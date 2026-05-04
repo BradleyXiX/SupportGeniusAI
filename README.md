@@ -10,7 +10,7 @@ support-genius/
 │   │   └── chat.js           # Chat endpoint
 │   │
 │   ├── services/
-│   │   ├── llm.js            # AI interaction (Ollama/OpenAI)
+│   │   ├── llm.js            # AI interaction (Ollama/OpenAI/GoogleGemini)
 │   │   ├── rag.js            # Retrieval logic (vector search)
 │   │   ├── embeddings.js     # Convert text → vectors
 │   │   └── agent.js          # Handles "actions" (function calling)
