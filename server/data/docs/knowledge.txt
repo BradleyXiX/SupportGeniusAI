@@ -1,0 +1,13 @@
+# SupportGenius Company Knowledge Base
+
+## Shipping and Delivery
+We deliver orders within 24 hours to customers within the city. For regional orders, shipping takes 2-3 business days. All our packages are handled by trusted local couriers.
+
+## Refunds and Returns
+Refunds are processed within 3 business days of receiving the returned item. Items must be returned in their original packaging within 14 days of purchase.
+
+## Operating Hours
+Our support team is available Monday through Friday, from 9:00 AM to 5:00 PM. We are closed on weekends and major holidays.
+
+## Account Management
+To update your address, you can use our automated system or log into your account settings. If you forget your password, click the "Forgot Password" link on the login page.
