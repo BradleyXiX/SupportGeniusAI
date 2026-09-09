@@ -1,6 +1,13 @@
 import fetch from "node-fetch";
+import { trackUsage } from "./finops.js";
 
-export async function callLLM(prompt) {
+// Basic token estimation
+function estimateTokens(text) {
+  return Math.ceil(text.length / 4);
+}
+
+export async function callLLM(prompt, sessionId) {
+  let responseText = "";
   try {
     const res = await fetch("http://localhost:11434/api/generate", {
       method: "POST",
@@ -14,11 +21,20 @@ export async function callLLM(prompt) {
     
     if (!res.ok) throw new Error("Network response was not ok");
     const data = await res.json();
-    return data.response;
+    responseText = data.response;
   } catch (err) {
     console.warn("⚠️ Ollama is unreachable. Using simulated response for demonstration.");
-    return simulateLLM(prompt);
+    responseText = simulateLLM(prompt);
   }
+  
+  // Track tokens if sessionId is provided
+  if (sessionId) {
+    const promptTokens = estimateTokens(prompt);
+    const completionTokens = estimateTokens(responseText);
+    trackUsage(sessionId, promptTokens, completionTokens);
+  }
+  
+  return responseText;
 }
 
 // Simulated LLM logic so the MVP still functions for demo purposes without Ollama

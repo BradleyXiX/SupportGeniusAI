@@ -12,11 +12,11 @@ function updateAddress(params) {
   return `Address successfully updated to: ${address || 'unknown'}`;
 }
 
-export async function handleChat(message) {
+export async function handleChat(message, sessionId) {
   const context = await retrieveContext(message);
   const prompt = buildPrompt(message, context);
   
-  let aiResponse = await callLLM(prompt);
+  let aiResponse = await callLLM(prompt, sessionId);
   
   // Advanced Action Parsing using Regex
   const actionMatch = aiResponse.match(/ACTION:\s*([A-Za-z0-9_]+)/);
@@ -50,7 +50,7 @@ Tool Result for ${actionName}: ${result}
 
 Please provide the final helpful answer to the user based ONLY on the Tool Result and Context. Keep it conversational and concise. Do NOT generate any more ACTIONs.
 `;
-    aiResponse = await callLLM(finalPrompt);
+    aiResponse = await callLLM(finalPrompt, sessionId);
   }
   
   return aiResponse;

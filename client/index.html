@@ -7,6 +7,9 @@
   <title>SupportGenius AI</title>
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Markdown Parsers -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 </head>
 <body>
   <div class="chat-container">
@@ -14,9 +17,13 @@
       <div class="avatar">
         <span>SG</span>
       </div>
-      <div>
+      <div class="header-info">
         <h1>SupportGenius AI</h1>
         <p class="status">Online &bull; Ready to help</p>
+      </div>
+      <div class="finops-info">
+        <span class="cost-label">Session Cost:</span>
+        <span id="session-cost" class="cost-value">$0.0000</span>
       </div>
     </header>
     
