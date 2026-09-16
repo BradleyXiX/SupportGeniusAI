@@ -1,17 +1,28 @@
 // In-memory store for session costs. In a real app, this would use Redis or a DB.
 const sessionCosts = new Map();
+const sessionModels = new Map();
 
-// Assumed cost per 1k tokens (e.g., typical for a local or lightweight model)
-const COST_PER_1K_PROMPT_TOKENS = 0.0015;
-const COST_PER_1K_COMPLETION_TOKENS = 0.002;
+const PRICING = {
+  "gpt-4o-mini": { prompt: 0.00015, completion: 0.0006 },
+  "gemini-1.5-flash": { prompt: 0.000075, completion: 0.0003 },
+  "llama3": { prompt: 0.0015, completion: 0.002 }, // arbitrary local compute cost
+  "simulated": { prompt: 0, completion: 0 }
+};
+
+export function setModel(sessionId, model) {
+  if (!sessionId) return;
+  sessionModels.set(sessionId, model);
+}
 
 export function trackUsage(sessionId, promptTokens, completionTokens) {
   if (!sessionId) return;
   
   const currentCost = sessionCosts.get(sessionId) || 0;
+  const model = sessionModels.get(sessionId) || "llama3";
+  const rates = PRICING[model] || PRICING["llama3"];
   
-  const promptCost = (promptTokens / 1000) * COST_PER_1K_PROMPT_TOKENS;
-  const completionCost = (completionTokens / 1000) * COST_PER_1K_COMPLETION_TOKENS;
+  const promptCost = (promptTokens / 1000) * rates.prompt;
+  const completionCost = (completionTokens / 1000) * rates.completion;
   
   sessionCosts.set(sessionId, currentCost + promptCost + completionCost);
 }
