@@ -99,6 +99,10 @@ Once the server is running, open your browser and navigate to the client interfa
 - [ ] Authentication and user session management
 - [ ] Analytics dashboard for tracking support queries
 
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on how to get started, open issues, and submit pull requests.
+
 ## 📜 License
 
 This project is licensed under the MIT License.
