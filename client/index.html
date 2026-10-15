@@ -3,42 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SupportGenius AI - Intelligent Customer Support Assistant">
-  <title>SupportGenius AI</title>
+  <meta name="description" content="SupportGenius AI - Enterprise Customer Support Intelligence Copilot">
+  <title>SupportGenius AI • Support Copilot</title>
+  
+  <!-- Curated Font Hierarchy: Space Grotesk (Display), Plus Jakarta Sans (Body), JetBrains Mono (Telemetry) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- Markdown Parsers -->
+  
+  <!-- Markdown Parsers & Sanitizer -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 </head>
 <body>
-  <div class="chat-container">
+  <div class="chat-container" role="region" aria-label="SupportGenius Assistant Window">
     <header class="chat-header">
-      <div class="avatar">
-        <span>SG</span>
+      <div class="header-brand">
+        <div class="avatar" aria-hidden="true">
+          <svg class="avatar-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+            <circle cx="9" cy="10" r="1"/>
+            <circle cx="15" cy="10" r="1"/>
+          </svg>
+        </div>
+        <div class="header-info">
+          <h1>SupportGenius <span class="badge-copilot">AI</span></h1>
+          <p class="status">
+            <span class="status-beacon" aria-hidden="true"></span>
+            <span>Online &bull; Enterprise Gateway</span>
+          </p>
+        </div>
       </div>
-      <div class="header-info">
-        <h1>SupportGenius AI</h1>
-        <p class="status">Online &bull; Ready to help</p>
-      </div>
-      <div class="finops-info">
-        <span class="cost-label">Session Cost:</span>
-        <span id="session-cost" class="cost-value">$0.0000</span>
+
+      <div class="header-actions">
+        <div class="finops-info" title="Estimated OpenAI API inference cost for this session" aria-label="Session Cost Counter">
+          <span class="cost-label">Session Cost</span>
+          <span id="session-cost" class="cost-value">$0.0000</span>
+        </div>
+        <button id="reset-btn" class="header-action-btn" title="Reset Session Chat" aria-label="Reset Session Chat" onclick="resetChat()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+        </button>
       </div>
     </header>
     
-    <div id="chat-messages" class="chat-messages">
+    <main id="chat-messages" class="chat-messages" aria-live="polite">
       <div class="message ai-message">
-        <div class="bubble">Hello! I'm SupportGenius. I can help answer questions about our company, check your order status, or update your address. How can I assist you today?</div>
+        <div class="avatar-mini" aria-hidden="true">SG</div>
+        <div class="bubble">
+          <p>Hello! I am <strong>SupportGenius Copilot</strong>. I have instant access to our enterprise knowledge base and order management system.</p>
+          <p>How can I assist you today?</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Quick Action Suggestion Chips -->
+    <div class="suggestions-container" aria-label="Suggested Prompts">
+      <span class="suggestions-label">Suggested:</span>
+      <div class="suggestions-scroll">
+        <button class="suggestion-chip" onclick="handleSuggestion(this)">📦 Order status check</button>
+        <button class="suggestion-chip" onclick="handleSuggestion(this)">📍 Update delivery address</button>
+        <button class="suggestion-chip" onclick="handleSuggestion(this)">🛡️ Warranty & return policy</button>
+        <button class="suggestion-chip" onclick="handleSuggestion(this)">⚡ API rate limits & SLA</button>
       </div>
     </div>
     
-    <div class="chat-input-area">
-      <input type="text" id="input" placeholder="Type your message..." onkeypress="handleKeyPress(event)" autocomplete="off" />
-      <button onclick="send()" id="send-btn" aria-label="Send Message">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+    <footer class="chat-input-area">
+      <div class="input-wrapper">
+        <input 
+          type="text" 
+          id="input" 
+          placeholder="Ask a question or enter an order ID..." 
+          onkeypress="handleKeyPress(event)" 
+          autocomplete="off" 
+          aria-label="Your support query"
+        />
+        <span class="keyboard-hint" aria-hidden="true"><kbd>↵</kbd></span>
+      </div>
+      <button onclick="send()" id="send-btn" aria-label="Send Query" title="Send (Enter)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
       </button>
-    </div>
+    </footer>
   </div>
 
   <script src="app.js"></script>
