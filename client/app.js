@@ -1,43 +1,126 @@
+// ==========================================================================
+// SupportGeniusAI Client Controller
+// ==========================================================================
+
 const chatMessages = document.getElementById("chat-messages");
 const inputField = document.getElementById("input");
 const sessionCostEl = document.getElementById("session-cost");
+const sendBtn = document.getElementById("send-btn");
 
-// Generate a random session ID or retrieve from sessionStorage
-let sessionId = sessionStorage.getItem("supportGeniusSessionId");
-if (!sessionId) {
-  sessionId = "sess_" + Math.random().toString(36).substring(2, 15);
-  sessionStorage.setItem("supportGeniusSessionId", sessionId);
+// Initialize or retrieve existing session identifier
+let sessionId = getOrCreateSessionId();
+
+function getOrCreateSessionId() {
+  let id = sessionStorage.getItem("supportGeniusSessionId");
+  if (!id) {
+    id = "sess_" + Math.random().toString(36).substring(2, 11) + "_" + Date.now().toString(36);
+    sessionStorage.setItem("supportGeniusSessionId", id);
+  }
+  return id;
 }
 
+// Auto-focus input on page load
+window.addEventListener("DOMContentLoaded", () => {
+  if (inputField) inputField.focus();
+});
+
 function handleKeyPress(e) {
-  if (e.key === "Enter") {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
     send();
+  }
+}
+
+function handleSuggestion(buttonEl) {
+  const query = buttonEl.innerText.replace(/^[^\w\s]+\s*/, "").trim();
+  if (!query) return;
+  inputField.value = query;
+  inputField.focus();
+  send();
+}
+
+function resetChat() {
+  if (confirm("Reset current support session? This clears chat history and starts a new session.")) {
+    sessionStorage.removeItem("supportGeniusSessionId");
+    sessionId = getOrCreateSessionId();
+    sessionCostEl.innerText = "$0.0000";
+
+    // Reset chat messages to default welcome
+    chatMessages.innerHTML = `
+      <div class="message ai-message">
+        <div class="avatar-mini" aria-hidden="true">SG</div>
+        <div class="bubble">
+          <p>Hello! I am <strong>SupportGenius Copilot</strong>. I have instant access to our enterprise knowledge base and order management system.</p>
+          <p>How can I assist you today?</p>
+        </div>
+      </div>
+    `;
+    inputField.value = "";
+    inputField.focus();
   }
 }
 
 function appendMessage(text, isUser) {
   const msgDiv = document.createElement("div");
   msgDiv.className = `message ${isUser ? "user-message" : "ai-message"}`;
-  
+
+  if (!isUser) {
+    const avatar = document.createElement("div");
+    avatar.className = "avatar-mini";
+    avatar.setAttribute("aria-hidden", "true");
+    avatar.innerText = "SG";
+    msgDiv.appendChild(avatar);
+  }
+
   const bubbleDiv = document.createElement("div");
   bubbleDiv.className = "bubble";
-  
+
   if (isUser) {
     bubbleDiv.innerText = text;
   } else {
-    // Render markdown and sanitize
-    const rawMarkup = marked.parse(text);
-    const cleanMarkup = DOMPurify.sanitize(rawMarkup);
+    // Markdown rendering with secure DOMPurify sanitization
+    const rawMarkup = typeof marked !== "undefined" ? marked.parse(text) : text;
+    const cleanMarkup = typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(rawMarkup) : rawMarkup;
     bubbleDiv.innerHTML = cleanMarkup;
+
+    // Attach copy buttons to pre/code blocks
+    attachCodeCopyButtons(bubbleDiv);
   }
-  
+
   msgDiv.appendChild(bubbleDiv);
   chatMessages.appendChild(msgDiv);
-  
+
   // Smooth scroll to bottom
   chatMessages.scrollTo({
     top: chatMessages.scrollHeight,
-    behavior: 'smooth'
+    behavior: "smooth"
+  });
+}
+
+function attachCodeCopyButtons(container) {
+  const codeBlocks = container.querySelectorAll("pre");
+  codeBlocks.forEach((pre) => {
+    // Avoid duplicate copy buttons
+    if (pre.querySelector(".code-copy-btn")) return;
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "code-copy-btn";
+    copyBtn.type = "button";
+    copyBtn.innerText = "Copy";
+    copyBtn.addEventListener("click", () => {
+      const code = pre.querySelector("code")?.innerText || pre.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        copyBtn.innerText = "Copied!";
+        setTimeout(() => {
+          copyBtn.innerText = "Copy";
+        }, 2000);
+      });
+    });
+
+    const header = document.createElement("div");
+    header.className = "code-header";
+    header.appendChild(copyBtn);
+    pre.insertBefore(header, pre.firstChild);
   });
 }
 
@@ -45,17 +128,23 @@ function showLoading() {
   const msgDiv = document.createElement("div");
   msgDiv.className = "message ai-message loading";
   msgDiv.id = "loading-message";
-  
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar-mini";
+  avatar.setAttribute("aria-hidden", "true");
+  avatar.innerText = "SG";
+  msgDiv.appendChild(avatar);
+
   const bubbleDiv = document.createElement("div");
   bubbleDiv.className = "bubble loading-dots";
   bubbleDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-  
+
   msgDiv.appendChild(bubbleDiv);
   chatMessages.appendChild(msgDiv);
-  
+
   chatMessages.scrollTo({
     top: chatMessages.scrollHeight,
-    behavior: 'smooth'
+    behavior: "smooth"
   });
 }
 
@@ -67,40 +156,47 @@ function removeLoading() {
 async function send() {
   const text = inputField.value.trim();
   if (!text) return;
-  
+
+  // Append user message immediately
   appendMessage(text, true);
   inputField.value = "";
   
+  // Set UI state to busy
+  sendBtn.disabled = true;
+  inputField.disabled = true;
   showLoading();
-  
+
   try {
-    // Note: since we now serve static files from Express, we can use relative path
     const res = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: text, sessionId: sessionId })
     });
-    
+
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       if (res.status === 429) {
-        throw new Error(errData.reply || "Rate limit exceeded. Please wait.");
+        throw new Error(errData.reply || "Rate limit reached (10 req/min). Please pause for a moment.");
       }
-      throw new Error("Server response not OK");
+      throw new Error(errData.message || `Gateway returned status ${res.status}`);
     }
-    
+
     const data = await res.json();
     removeLoading();
     appendMessage(data.reply, false);
-    
-    // Update FinOps cost
+
+    // Update FinOps telemetry
     if (data.cost !== undefined) {
       sessionCostEl.innerText = `$${data.cost}`;
     }
-    
+
   } catch (err) {
-    console.error("Error communicating with server:", err);
+    console.error("Error communicating with gateway:", err);
     removeLoading();
-    appendMessage(`**Error:** ${err.message}`, false);
+    appendMessage(`⚠️ **System Notice**: ${err.message}`, false);
+  } finally {
+    sendBtn.disabled = false;
+    inputField.disabled = false;
+    inputField.focus();
   }
 }
