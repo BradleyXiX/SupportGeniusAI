@@ -174,11 +174,13 @@ async function send() {
     });
 
     if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      if (res.status === 429) {
-        throw new Error(errData.reply || "Rate limit reached (10 req/min). Please pause for a moment.");
+      const problem = await res.json().catch(() => ({}));
+      let errorMessage = problem.detail || problem.message || `Gateway returned status ${res.status}`;
+      if (Array.isArray(problem.invalidParams) && problem.invalidParams.length > 0) {
+        const paramDetails = problem.invalidParams.map((p) => `${p.name}: ${p.reason}`).join("; ");
+        errorMessage = `${errorMessage} (${paramDetails})`;
       }
-      throw new Error(errData.message || `Gateway returned status ${res.status}`);
+      throw new Error(errorMessage);
     }
 
     const data = await res.json();
