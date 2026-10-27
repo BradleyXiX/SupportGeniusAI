@@ -12,9 +12,13 @@ let vectorStore = [];
 export async function initializeStore() {
   console.log("Initializing knowledge base...");
   try {
+    if (!fs.existsSync(DOCS_DIR)) {
+      console.warn(`Knowledge base directory not found at ${DOCS_DIR}`);
+      return;
+    }
     const files = fs.readdirSync(DOCS_DIR);
     for (const file of files) {
-      if (file.endsWith(".txt")) {
+      if (file.endsWith(".txt") || file.endsWith(".md")) {
         const text = fs.readFileSync(path.join(DOCS_DIR, file), "utf-8");
         const chunks = chunkText(text, 40, 10); // Chunk to 40 words with 10 word overlap
         
@@ -33,7 +37,19 @@ export async function initializeStore() {
   }
 }
 
+export function getVectorStoreStats() {
+  return {
+    chunksCount: vectorStore.length,
+    isInitialized: vectorStore.length > 0
+  };
+}
+
+export function clearStore() {
+  vectorStore = [];
+}
+
 export async function getRelevantChunks(query, topK = 3) {
+  if (vectorStore.length === 0) return [];
   const queryEmbedding = await getEmbedding(query);
   
   // If Ollama failed, use keyword scoring fallback

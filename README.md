@@ -74,8 +74,14 @@ support-genius/
    npm install
    ```
 
-3. **Add your knowledge base:**
-   Place your support documents, text files, or PDFs into the `server/data/docs/` directory. The RAG system will process these files to inform its answers.
+3. **Configure Environment Variables:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your optional OPENAI_API_KEY or GEMINI_API_KEY
+   ```
+
+4. **Add your knowledge base:**
+   Place your support documents (`.txt` or `.md`) into the `server/data/docs/` directory. The RAG system will index and chunk these files at boot.
 
 ### Running the Application
 
@@ -89,7 +95,13 @@ npm run dev
 npm start
 ```
 
-Once the server is running, open your browser and navigate to the client interface (usually `http://localhost:3000` or as configured in `server/index.js`) to start chatting with the SupportGeniusAI!
+**Run Automated Quality Suite (Vitest):**
+```bash
+npm test
+```
+
+### Health & Monitoring
+- **Health Check Probe**: `GET /health` returns JSON uptime, vector store readiness, and memory metrics for container orchestrators.
 
 ## 🛣️ Roadmap / Future Enhancements
 

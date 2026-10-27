@@ -19,10 +19,30 @@ function getOrCreateSessionId() {
   return id;
 }
 
-// Auto-focus input on page load
+// Auto-focus input and verify gateway health on page load
 window.addEventListener("DOMContentLoaded", () => {
   if (inputField) inputField.focus();
+  checkGatewayHealth();
+  setInterval(checkGatewayHealth, 60000);
 });
+
+async function checkGatewayHealth() {
+  const statusBeacon = document.querySelector(".status-beacon");
+  const statusText = document.querySelector(".chat-header .status span:last-child");
+  try {
+    const res = await fetch("/health");
+    if (res.ok) {
+      if (statusBeacon) statusBeacon.style.backgroundColor = "var(--accent-emerald)";
+      if (statusText) statusText.innerHTML = "Online &bull; Enterprise Gateway";
+    } else {
+      if (statusBeacon) statusBeacon.style.backgroundColor = "var(--accent-amber)";
+      if (statusText) statusText.innerHTML = "Degraded &bull; Enterprise Gateway";
+    }
+  } catch {
+    if (statusBeacon) statusBeacon.style.backgroundColor = "#ef4444";
+    if (statusText) statusText.innerHTML = "Offline &bull; Enterprise Gateway";
+  }
+}
 
 function handleKeyPress(e) {
   if (e.key === "Enter" && !e.shiftKey) {
@@ -174,11 +194,13 @@ async function send() {
     });
 
     if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      if (res.status === 429) {
-        throw new Error(errData.reply || "Rate limit reached (10 req/min). Please pause for a moment.");
+      const problem = await res.json().catch(() => ({}));
+      let errorMessage = problem.detail || problem.message || `Gateway returned status ${res.status}`;
+      if (Array.isArray(problem.invalidParams) && problem.invalidParams.length > 0) {
+        const paramDetails = problem.invalidParams.map((p) => `${p.name}: ${p.reason}`).join("; ");
+        errorMessage = `${errorMessage} (${paramDetails})`;
       }
-      throw new Error(errData.message || `Gateway returned status ${res.status}`);
+      throw new Error(errorMessage);
     }
 
     const data = await res.json();

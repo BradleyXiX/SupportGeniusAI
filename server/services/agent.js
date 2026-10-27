@@ -1,57 +1,94 @@
 import { callLLM } from "./llm.js";
 import { retrieveContext } from "./rag.js";
-import { buildPrompt } from "../utils/promptBuilder.js";
+import { buildPrompt, buildToolResultPrompt } from "../utils/promptBuilder.js";
 
-function checkOrderStatus(params) {
-  const { orderId } = params;
-  return `Order ${orderId || 'unknown'} is currently in transit and is scheduled to arrive today.`;
+// Multi-turn conversation history buffer (sliding window of max 6 turns per session)
+const sessionHistory = new Map();
+const MAX_TURNS = 6;
+
+function getSessionHistory(sessionId) {
+  if (!sessionId) return [];
+  return sessionHistory.get(sessionId) || [];
 }
 
-function updateAddress(params) {
+function appendToSessionHistory(sessionId, role, content) {
+  if (!sessionId) return;
+  const history = sessionHistory.get(sessionId) || [];
+  history.push({ role, content, timestamp: Date.now() });
+  if (history.length > MAX_TURNS) {
+    history.splice(0, history.length - MAX_TURNS);
+  }
+  sessionHistory.set(sessionId, history);
+}
+
+export function clearAgentHistory(sessionId) {
+  if (sessionId) {
+    sessionHistory.delete(sessionId);
+  } else {
+    sessionHistory.clear();
+  }
+}
+
+function checkOrderStatus(params = {}) {
+  const { orderId } = params;
+  return `Order ${orderId || "unknown"} is currently in transit and is scheduled to arrive today with signature required.`;
+}
+
+function updateAddress(params = {}) {
   const { address } = params;
-  return `Address successfully updated to: ${address || 'unknown'}`;
+  return `Address successfully verified and updated to: ${address || "unknown"}`;
+}
+
+function parseToolAction(aiResponse = "") {
+  const actionMatch = aiResponse.match(/ACTION:\s*([A-Za-z0-9_]+)/i);
+  if (!actionMatch) return null;
+
+  const actionName = actionMatch[1];
+  let params = {};
+
+  // Extract JSON payload from PARAMS block, stripping any markdown code fences if present
+  const paramMatch = aiResponse.match(/PARAMS:\s*(\{[\s\S]*?\})/i);
+  if (paramMatch) {
+    try {
+      const rawJson = paramMatch[1].replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+      params = JSON.parse(rawJson);
+    } catch (e) {
+      console.warn("Failed to parse tool params JSON, using empty object:", e.message);
+    }
+  }
+
+  return { actionName, params };
 }
 
 export async function handleChat(message, sessionId) {
+  const history = getSessionHistory(sessionId);
   const context = await retrieveContext(message);
-  const prompt = buildPrompt(message, context);
-  
+  const prompt = buildPrompt(message, context, history);
+
   let aiResponse = await callLLM(prompt, sessionId);
-  
-  // Advanced Action Parsing using Regex
-  const actionMatch = aiResponse.match(/ACTION:\s*([A-Za-z0-9_]+)/);
-  if (actionMatch) {
-    const actionName = actionMatch[1];
-    
-    // Attempt to parse JSON params if provided
-    let params = {};
-    const paramMatch = aiResponse.match(/PARAMS:\s*(\{.*?\})/s);
-    if (paramMatch) {
-      try {
-        params = JSON.parse(paramMatch[1]);
-      } catch (e) {
-        console.warn("Failed to parse tool params JSON:", e);
-      }
-    }
-    
+
+  // Parse potential tool action
+  const toolCall = parseToolAction(aiResponse);
+  if (toolCall) {
+    const { actionName, params } = toolCall;
     let result = "Action not recognized.";
-    if (actionName === "checkOrderStatus") {
+
+    if (actionName.toLowerCase() === "checkorderstatus") {
       result = checkOrderStatus(params);
-    } else if (actionName === "updateAddress") {
+    } else if (actionName.toLowerCase() === "updateaddress") {
       result = updateAddress(params);
     }
-    
-    // Re-prompt the LLM with the tool result so it can generate a final answer
-    const finalPrompt = `
-User asked: ${message}
-Context: ${context}
 
-Tool Result for ${actionName}: ${result}
-
-Please provide the final helpful answer to the user based ONLY on the Tool Result and Context. Keep it conversational and concise. Do NOT generate any more ACTIONs.
-`;
-    aiResponse = await callLLM(finalPrompt, sessionId);
+    // Re-prompt the LLM with the tool result in a secure XML container
+    const toolPrompt = buildToolResultPrompt(message, context, actionName, result);
+    aiResponse = await callLLM(toolPrompt, sessionId);
   }
-  
+
+  // Update session history
+  if (sessionId) {
+    appendToSessionHistory(sessionId, "user", message);
+    appendToSessionHistory(sessionId, "assistant", aiResponse);
+  }
+
   return aiResponse;
 }
