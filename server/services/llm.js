@@ -9,7 +9,7 @@ export function estimateTokens(text = "") {
 
 export async function callLLM(prompt, sessionId) {
   let responseText = "";
-  let modelUsed = "llama3";
+  let modelUsed = process.env.OLLAMA_CHAT_MODEL || "qwen2.5-coder:7b";
   let promptTokens = estimateTokens(prompt);
   let completionTokens = 0;
 
@@ -59,7 +59,7 @@ export async function callLLM(prompt, sessionId) {
 
     } else {
       // Local Ollama
-      modelUsed = "llama3";
+      modelUsed = process.env.OLLAMA_CHAT_MODEL || "qwen2.5-coder:7b";
       const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
       const res = await fetch(`${ollamaUrl}/api/generate`, {
         method: "POST",
@@ -120,6 +120,16 @@ export function simulateLLM(prompt = "") {
       const resultMatch = prompt.match(/<tool_result[^>]*>\s*([\s\S]*?)\s*<\/tool_result>/) || prompt.match(/Tool Result.*:\s*(.*)/);
       const result = resultMatch ? resultMatch[1] : "Address updated";
       return `${result}. Let me know if you need any other help!`;
+    }
+  }
+
+  if (lowerPrompt.includes("appointment") || lowerPrompt.includes("booking") || lowerPrompt.includes("book") || lowerPrompt.includes("consultation") || lowerPrompt.includes("medspa") || lowerPrompt.includes("clinic")) {
+    if (!prompt.includes("<tool_result") && !prompt.includes("Tool Result")) {
+      return 'ACTION: bookAppointment\nPARAMS: { "name": "Jane Doe", "service": "HydraFacial Consultation", "date": "tomorrow", "time": "2:00 PM" }';
+    } else {
+      const resultMatch = prompt.match(/<tool_result[^>]*>\s*([\s\S]*?)\s*<\/tool_result>/) || prompt.match(/Tool Result.*:\s*(.*)/);
+      const result = resultMatch ? resultMatch[1] : "Appointment confirmed";
+      return `Your appointment request has been processed: ${result}. We look forward to seeing you!`;
     }
   }
 
