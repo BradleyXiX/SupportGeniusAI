@@ -9,6 +9,9 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional().default(""),
   GEMINI_API_KEY: z.string().optional().default(""),
   OLLAMA_URL: z.string().url().default("http://localhost:11434"),
+  OLLAMA_EMBED_MODEL: z.string().optional().default("nomic-embed-text:latest"),
+  OLLAMA_CHAT_MODEL: z.string().optional().default("qwen2.5-coder:7b"),
+  CLIENT_WEBHOOK_URL: z.string().url().optional().or(z.literal("")).default(""),
   CORS_ALLOWED_ORIGINS: z
     .string()
     .default("http://localhost:3000,http://127.0.0.1:3000")

@@ -1,3 +1,4 @@
+import fetch from "node-fetch";
 import { callLLM } from "./llm.js";
 import { retrieveContext } from "./rag.js";
 import { buildPrompt, buildToolResultPrompt } from "../utils/promptBuilder.js";
@@ -29,17 +30,74 @@ export function clearAgentHistory(sessionId) {
   }
 }
 
-function checkOrderStatus(params = {}) {
+export async function callWebhook(action, params = {}) {
+  const webhookUrl = process.env.CLIENT_WEBHOOK_URL;
+  if (!webhookUrl) return null;
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "SupportGeniusAI-Agent/1.0"
+      },
+      body: JSON.stringify({ action, params })
+    });
+
+    if (!res.ok) {
+      console.warn(`Client webhook returned HTTP status ${res.status}`);
+      return null;
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const data = await res.json();
+      if (typeof data === "string") return data;
+      if (data?.result && typeof data.result === "string") return data.result;
+      if (data?.message && typeof data.message === "string") return data.message;
+      if (data?.reply && typeof data.reply === "string") return data.reply;
+      if (data?.detail && typeof data.detail === "string") return data.detail;
+      return JSON.stringify(data);
+    }
+
+    const text = await res.text();
+    return text.trim() || null;
+  } catch (err) {
+    console.warn(`Client webhook dispatch failed (${err.message}), falling back to demo data.`);
+    return null;
+  }
+}
+
+export async function checkOrderStatus(params = {}) {
+  const webhookResult = await callWebhook("checkOrderStatus", params);
+  if (webhookResult) return webhookResult;
+
   const { orderId } = params;
   return `Order ${orderId || "unknown"} is currently in transit and is scheduled to arrive today with signature required.`;
 }
 
-function updateAddress(params = {}) {
+export async function updateAddress(params = {}) {
+  const webhookResult = await callWebhook("updateAddress", params);
+  if (webhookResult) return webhookResult;
+
   const { address } = params;
   return `Address successfully verified and updated to: ${address || "unknown"}`;
 }
 
-function parseToolAction(aiResponse = "") {
+export async function bookAppointment(params = {}) {
+  const webhookResult = await callWebhook("bookAppointment", params);
+  if (webhookResult) return webhookResult;
+
+  const name = params.name || params.customerName || params.patientName || "Client";
+  const service = params.service || params.treatment || "Consultation";
+  const date = params.date || "tomorrow";
+  const time = params.time || "2:00 PM";
+  const appointmentId = params.appointmentId || `APT-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  return `Appointment ${appointmentId} confirmed for ${name} for ${service} on ${date} at ${time}. Confirmation details sent via SMS.`;
+}
+
+export function parseToolAction(aiResponse = "") {
   const actionMatch = aiResponse.match(/ACTION:\s*([A-Za-z0-9_]+)/i);
   if (!actionMatch) return null;
 
@@ -73,10 +131,13 @@ export async function handleChat(message, sessionId) {
     const { actionName, params } = toolCall;
     let result = "Action not recognized.";
 
-    if (actionName.toLowerCase() === "checkorderstatus") {
-      result = checkOrderStatus(params);
-    } else if (actionName.toLowerCase() === "updateaddress") {
-      result = updateAddress(params);
+    const actionLower = actionName.toLowerCase();
+    if (actionLower === "checkorderstatus") {
+      result = await checkOrderStatus(params);
+    } else if (actionLower === "updateaddress") {
+      result = await updateAddress(params);
+    } else if (actionLower === "bookappointment") {
+      result = await bookAppointment(params);
     }
 
     // Re-prompt the LLM with the tool result in a secure XML container

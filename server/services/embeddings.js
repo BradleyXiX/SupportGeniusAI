@@ -52,7 +52,7 @@ export async function getEmbedding(text) {
     const res = await fetch(`${ollamaUrl}/api/embeddings`, {
       method: "POST",
       body: JSON.stringify({
-        model: "llama3",
+        model: process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text:latest",
         prompt: text
       }),
       headers: { "Content-Type": "application/json" }
