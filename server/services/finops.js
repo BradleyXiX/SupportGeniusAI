@@ -13,7 +13,8 @@ export const PRICING = {
   "gemini-1.5-flash": { prompt: 0.000075, completion: 0.0003 },
   "llama3": { prompt: 0.0015, completion: 0.002 },
   "qwen2.5-coder:7b": { prompt: 0.0015, completion: 0.002 },
-  "simulated": { prompt: 0, completion: 0 }
+  "simulated": { prompt: 0, completion: 0 },
+  "demo-simulated": { prompt: 0, completion: 0 }
 };
 
 function evictExpiredSessions() {

@@ -16,7 +16,7 @@ export async function callLLM(prompt, sessionId) {
 
   // In demo mode: use deterministic local fixtures only, zero chat-provider/embedding/webhook requests.
   if (mode === "demo") {
-    modelUsed = "demo-simulated";
+    modelUsed = "simulated";
     const simResponse = simulateLLM(prompt);
     responseText = simResponse.startsWith("[Demo] ") ? simResponse : `[Demo] ${simResponse}`;
     completionTokens = estimateTokens(responseText);

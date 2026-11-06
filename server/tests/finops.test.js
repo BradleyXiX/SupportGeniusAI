@@ -40,12 +40,28 @@ describe("FinOps Telemetry & Bounded Memory Service", () => {
     expect(metrics.completionTokens).toBe(250);
   });
 
-  it("returns zero cost for simulated model or non-existent session", () => {
+  it("returns zero cost for simulated model or non-existent session while tracking tokens", () => {
     const sessionId = "sess_simulated";
     setModel(sessionId, "simulated");
     trackUsage(sessionId, 1000, 1000);
 
     expect(getSessionCost(sessionId)).toBe(0);
+    const metrics = getSessionMetrics(sessionId);
+    expect(metrics.cost).toBe(0);
+    expect(metrics.promptTokens).toBe(1000);
+    expect(metrics.completionTokens).toBe(1000);
     expect(getSessionCost("non_existent_id")).toBe(0);
+
+    // Verify demo-simulated zero-cost alias
+    const demoSessionId = "sess_demo_alias";
+    setModel(demoSessionId, "demo-simulated");
+    trackUsage(demoSessionId, 500, 200);
+    expect(getSessionCost(demoSessionId)).toBe(0);
+
+    // Verify unknown model falls back to non-zero llama3 rates
+    const unknownSessionId = "sess_unknown";
+    setModel(unknownSessionId, "unknown-model");
+    trackUsage(unknownSessionId, 1000, 1000);
+    expect(getSessionCost(unknownSessionId)).toBeGreaterThan(0);
   });
 });

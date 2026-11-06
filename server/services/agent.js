@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import { callLLM } from "./llm.js";
 import { retrieveContext } from "./rag.js";
 import { buildPrompt, buildToolResultPrompt } from "../utils/promptBuilder.js";
