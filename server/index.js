@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "crypto";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -114,13 +115,16 @@ app.use((err, req, res, next) => {
     return res.status(400).json(problem.toJSON());
   }
 
-  console.error("Unhandled error intercepted:", err);
+  const correlationId = req.headers?.["x-request-id"] || crypto.randomUUID();
+  const safeErrorName = typeof err?.name === "string" && /^[A-Za-z0-9_]+$/.test(err.name) ? err.name : "Error";
+  console.error(`[UNHANDLED_EXCEPTION] id=${correlationId} errorType=${safeErrorName}`);
   const problem = new ProblemError({
     type: "https://supportgenius.ai/errors/unhandled-exception",
     title: "Internal Server Error",
     status: 500,
     detail: "An unhandled server exception occurred.",
-    instance: req.originalUrl || req.url
+    instance: req.originalUrl || req.url,
+    correlationId
   });
   res.status(500).json(problem.toJSON());
 });

@@ -7,6 +7,10 @@ export function estimateTokens(text = "") {
   return Math.ceil(text.length / 4) || 1;
 }
 
+function isNonEmptyText(val) {
+  return typeof val === "string" && val.trim().length > 0;
+}
+
 export async function callLLM(prompt, sessionId, { signal } = {}) {
   const mode = process.env.APP_MODE || "support";
   let responseText = "";
@@ -57,7 +61,7 @@ export async function callLLM(prompt, sessionId, { signal } = {}) {
           timeoutMs: 20000,
           signal,
           providerLabel: "openai",
-          validateShape: (d) => typeof d?.choices?.[0]?.message?.content === "string"
+          validateShape: (d) => isNonEmptyText(d?.choices?.[0]?.message?.content)
         }
       );
 
@@ -81,7 +85,7 @@ export async function callLLM(prompt, sessionId, { signal } = {}) {
           timeoutMs: 20000,
           signal,
           providerLabel: "gemini",
-          validateShape: (d) => typeof d?.candidates?.[0]?.content?.parts?.[0]?.text === "string"
+          validateShape: (d) => isNonEmptyText(d?.candidates?.[0]?.content?.parts?.[0]?.text)
         }
       );
 
@@ -108,7 +112,7 @@ export async function callLLM(prompt, sessionId, { signal } = {}) {
           timeoutMs: 20000,
           signal,
           providerLabel: "ollama",
-          validateShape: (d) => typeof d?.response === "string"
+          validateShape: (d) => isNonEmptyText(d?.response)
         }
       );
 

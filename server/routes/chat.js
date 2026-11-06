@@ -57,12 +57,13 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
       return res.status(err.status).json(err.toJSON());
     }
 
-    console.error(`[UNHANDLED_CHAT_ERROR] id=${correlationId}:`, err.message);
+    const safeErrorName = typeof err?.name === "string" && /^[A-Za-z0-9_]+$/.test(err.name) ? err.name : "Error";
+    console.error(`[UNHANDLED_CHAT_ERROR] id=${correlationId} errorType=${safeErrorName}`);
     const fallbackProblem = new ProblemError({
       type: "https://supportgenius.ai/errors/chat-processing-failed",
       title: "Chat Processing Error",
       status: 500,
-      detail: "An unexpected error occurred while processing the chat query.",
+      detail: "An unexpected error occurred while processing the chat request.",
       instance: req.originalUrl,
       correlationId
     });

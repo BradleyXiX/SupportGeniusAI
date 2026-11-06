@@ -19,6 +19,17 @@ export function calculateKeywordScore(query = "", text = "") {
   return score;
 }
 
+export function isValidEmbeddingVector(vec) {
+  if (!Array.isArray(vec) || vec.length === 0) return false;
+  for (let i = 0; i < vec.length; i++) {
+    const val = vec[i];
+    if (typeof val !== "number" || !Number.isFinite(val)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export async function getEmbedding(text, { signal } = {}) {
   // Demo mode: zero external network calls; keyword fallback is used deterministically
   if (process.env.APP_MODE === "demo") {
@@ -53,11 +64,11 @@ export async function getEmbedding(text, { signal } = {}) {
           timeoutMs: 5000,
           signal,
           providerLabel: "openai-embeddings",
-          validateShape: (d) => Array.isArray(d.data?.[0]?.embedding)
+          validateShape: (d) => isValidEmbeddingVector(d?.data?.[0]?.embedding)
         }
       );
 
-      if (data?.data?.[0]?.embedding) {
+      if (isValidEmbeddingVector(data?.data?.[0]?.embedding)) {
         return data.data[0].embedding;
       }
     } catch (err) {
@@ -85,11 +96,11 @@ export async function getEmbedding(text, { signal } = {}) {
         timeoutMs: 5000,
         signal,
         providerLabel: "ollama-embeddings",
-        validateShape: (d) => Array.isArray(d.embedding)
+        validateShape: (d) => isValidEmbeddingVector(d?.embedding)
       }
     );
 
-    if (data?.embedding) {
+    if (isValidEmbeddingVector(data?.embedding)) {
       return data.embedding;
     }
   } catch (err) {
