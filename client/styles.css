@@ -691,3 +691,521 @@ kbd {
     padding: var(--space-3) var(--space-4);
   }
 }
+
+
+/* ==========================================================================
+   Signal Desk Console Layout & Styles (body[data-page="console"])
+   Approved Spec: 2026-11-06-signal-desk-design.md
+   ========================================================================== */
+
+body[data-page="console"] {
+  margin: 0;
+  padding: 0;
+  background-color: #090D16;
+  color: #F8FAFC;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 20px;
+  background: #F2C572;
+  color: #090D16;
+  padding: 8px 16px;
+  font-weight: 600;
+  border-radius: 4px;
+  z-index: 1000;
+  transition: top 0.2s;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 10px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+body[data-page="console"] .console-layout {
+  display: flex;
+  width: 100%;
+  max-width: 1280px;
+  height: 100%;
+  margin: 0 auto;
+  background-color: #0D121F;
+  border-left: 1px solid #293447;
+  border-right: 1px solid #293447;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+}
+
+/* 256px Desktop Rail */
+body[data-page="console"] .console-rail {
+  width: 256px;
+  min-width: 256px;
+  background-color: #090D16;
+  border-right: 1px solid #293447;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px;
+  gap: 24px;
+}
+
+body[data-page="console"] .brand-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+body[data-page="console"] .brand-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #F8FAFC;
+}
+
+body[data-page="console"] .brand-accent {
+  color: #85D6BD;
+}
+
+body[data-page="console"] .brand-edition {
+  font-size: 0.75rem;
+  color: #A8B3C4;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+body[data-page="console"] .demo-disclosure {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #A8B3C4;
+  background-color: #141C2E;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #293447;
+  margin-top: 12px;
+}
+
+body[data-page="console"] .disclosure-badge {
+  background-color: rgba(242, 197, 114, 0.15);
+  color: #F2C572;
+  font-weight: 600;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+body[data-page="console"] .rail-guidance {
+  flex: 1;
+}
+
+body[data-page="console"] .rail-guidance-text {
+  font-size: 0.85rem;
+  color: #A8B3C4;
+  line-height: 1.5;
+}
+
+body[data-page="console"] .btn-new-conversation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background-color: #141C2E;
+  color: #F8FAFC;
+  border: 1px solid #293447;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+body[data-page="console"] .btn-new-conversation:hover {
+  background-color: #1a253d;
+  border-color: #85D6BD;
+}
+
+body[data-page="console"] .btn-new-conversation:focus-visible {
+  outline: 2px solid #F2C572;
+  outline-offset: 2px;
+}
+
+/* Flexible Main Panel */
+body[data-page="console"] .console-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #0D121F;
+  min-width: 0;
+  position: relative;
+}
+
+body[data-page="console"] .console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #293447;
+  background-color: #090D16;
+  gap: 16px;
+}
+
+body[data-page="console"] .header-status-group {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+body[data-page="console"] .console-heading {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: #F8FAFC;
+}
+
+body[data-page="console"] .connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #A8B3C4;
+}
+
+body[data-page="console"] .status-beacon {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #F2C572;
+  flex-shrink: 0;
+}
+
+body[data-page="console"] .finops-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+body[data-page="console"] .finops-info .cost-label {
+  font-size: 0.7rem;
+  color: #A8B3C4;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+body[data-page="console"] .finops-info .cost-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #85D6BD;
+}
+
+/* Message Transcript */
+body[data-page="console"] .chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+body[data-page="console"] .message {
+  display: flex;
+  gap: 12px;
+  max-width: 80%;
+  align-items: flex-start;
+}
+
+body[data-page="console"] .user-message {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+body[data-page="console"] .ai-message {
+  align-self: flex-start;
+}
+
+body[data-page="console"] .avatar-mini {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  background-color: #141C2E;
+  color: #85D6BD;
+  border: 1px solid #293447;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+body[data-page="console"] .bubble {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+body[data-page="console"] .user-message .bubble {
+  background-color: #141C2E;
+  color: #F8FAFC;
+  border: 1px solid #293447;
+  border-bottom-right-radius: 4px;
+}
+
+body[data-page="console"] .ai-message .bubble {
+  background-color: #090D16;
+  color: #F8FAFC;
+  border: 1px solid #293447;
+  border-bottom-left-radius: 4px;
+}
+
+body[data-page="console"] .bubble pre {
+  background-color: #0D121F;
+  border: 1px solid #293447;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0;
+  overflow-x: auto;
+  position: relative;
+}
+
+body[data-page="console"] .code-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+body[data-page="console"] .code-copy-btn {
+  background-color: #141C2E;
+  color: #A8B3C4;
+  border: 1px solid #293447;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+body[data-page="console"] .code-copy-btn:hover {
+  color: #F8FAFC;
+  border-color: #85D6BD;
+}
+
+/* Suggestion Chips */
+body[data-page="console"] .suggestions-container {
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid #293447;
+  background-color: #090D16;
+}
+
+body[data-page="console"] .suggestions-label {
+  font-size: 0.75rem;
+  color: #A8B3C4;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+body[data-page="console"] .suggestions-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px 0;
+}
+
+body[data-page="console"] .suggestions-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-page="console"] .suggestion-chip {
+  background-color: #141C2E;
+  color: #F8FAFC;
+  border: 1px solid #293447;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 150ms ease;
+}
+
+body[data-page="console"] .suggestion-chip:hover {
+  background-color: #1e293f;
+  border-color: #85D6BD;
+}
+
+body[data-page="console"] .suggestion-chip:focus-visible {
+  outline: 2px solid #F2C572;
+  outline-offset: 2px;
+}
+
+/* Fixed Composer Form */
+body[data-page="console"] .console-composer {
+  padding: 16px 24px;
+  background-color: #090D16;
+  border-top: 1px solid #293447;
+}
+
+body[data-page="console"] .composer-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+body[data-page="console"] .composer-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+body[data-page="console"] textarea#input {
+  width: 100%;
+  background-color: #0D121F;
+  border: 1px solid #293447;
+  border-radius: 8px;
+  padding: 12px 48px 12px 16px;
+  color: #F8FAFC;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: none;
+  outline: none;
+  line-height: 1.4;
+  height: 48px;
+  max-height: 120px;
+  box-sizing: border-box;
+}
+
+body[data-page="console"] textarea#input:focus {
+  border-color: #85D6BD;
+}
+
+body[data-page="console"] .keyboard-hint {
+  position: absolute;
+  right: 14px;
+  font-size: 0.75rem;
+  color: #A8B3C4;
+  pointer-events: none;
+}
+
+body[data-page="console"] .keyboard-hint kbd {
+  background: #141C2E;
+  border: 1px solid #293447;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+body[data-page="console"] #send-btn {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  background-color: #85D6BD;
+  color: #090D16;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+body[data-page="console"] #send-btn:hover {
+  background-color: #9fe2cd;
+}
+
+body[data-page="console"] #send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+body[data-page="console"] #send-btn:focus-visible {
+  outline: 2px solid #F2C572;
+  outline-offset: 2px;
+}
+
+/* Mobile responsive collapse */
+@media (max-width: 768px) {
+  body[data-page="console"] .console-layout {
+    flex-direction: column;
+    border: none;
+  }
+
+  body[data-page="console"] .console-rail {
+    width: 100%;
+    min-width: unset;
+    border-right: none;
+    border-bottom: 1px solid #293447;
+    padding: 12px 16px;
+    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  body[data-page="console"] .rail-guidance {
+    display: none;
+  }
+
+  body[data-page="console"] .demo-disclosure {
+    margin-top: 0;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+
+  body[data-page="console"] .btn-new-conversation {
+    width: auto;
+    padding: 8px 12px;
+  }
+
+  body[data-page="console"] .console-header {
+    padding: 12px 16px;
+  }
+
+  body[data-page="console"] .chat-messages {
+    padding: 16px;
+  }
+
+  body[data-page="console"] .suggestions-container {
+    padding: 8px 16px;
+  }
+
+  body[data-page="console"] .console-composer {
+    padding: 12px 16px;
+  }
+}

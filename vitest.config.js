@@ -5,6 +5,7 @@ export default defineConfig({
     environment: "node",
     globals: true,
     testTimeout: 60000,
+    exclude: ["**/node_modules/**", "**/dist/**", "tests/browser/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
