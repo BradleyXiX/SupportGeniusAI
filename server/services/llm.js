@@ -8,11 +8,27 @@ export function estimateTokens(text = "") {
 }
 
 export async function callLLM(prompt, sessionId) {
+  const mode = process.env.APP_MODE || "support";
   let responseText = "";
   let modelUsed = process.env.OLLAMA_CHAT_MODEL || "qwen2.5-coder:7b";
   let promptTokens = estimateTokens(prompt);
   let completionTokens = 0;
 
+  // In demo mode: use deterministic local fixtures only, zero chat-provider/embedding/webhook requests.
+  if (mode === "demo") {
+    modelUsed = "demo-simulated";
+    const simResponse = simulateLLM(prompt);
+    responseText = simResponse.startsWith("[Demo] ") ? simResponse : `[Demo] ${simResponse}`;
+    completionTokens = estimateTokens(responseText);
+
+    if (sessionId) {
+      setModel(sessionId, modelUsed);
+      trackUsage(sessionId, promptTokens, completionTokens);
+    }
+    return responseText;
+  }
+
+  // Support mode: call configured provider or local Ollama. Provider failure produces a stable unavailable error.
   try {
     if (process.env.OPENAI_API_KEY) {
       modelUsed = "gpt-4o-mini";
@@ -79,15 +95,8 @@ export async function callLLM(prompt, sessionId) {
       completionTokens = estimateTokens(responseText);
     }
   } catch (err) {
-    if (process.env.NODE_ENV === "production") {
-      console.error(`❌ Upstream LLM Failure in Production: ${err.message}`);
-      throw gatewayError("/chat", `AI Gateway upstream provider failed: ${err.message}`);
-    }
-
-    console.warn(`⚠️ API Unreachable (${err.message}). Using simulated response for demonstration.`);
-    responseText = simulateLLM(prompt);
-    completionTokens = estimateTokens(responseText);
-    modelUsed = "simulated";
+    console.error(`❌ Upstream LLM Failure in Support Mode: ${err.message}`);
+    throw gatewayError("/chat", `AI Gateway upstream provider failed: ${err.message}`);
   }
 
   // Track tokens if sessionId is provided
@@ -100,41 +109,21 @@ export async function callLLM(prompt, sessionId) {
 }
 
 // Simulated LLM logic for demo & automated testing purposes
+// Illustrates document Q&A; does NOT invent appointment IDs, SMS, address changes, or order tracking
 export function simulateLLM(prompt = "") {
   const lowerPrompt = prompt.toLowerCase();
 
-  if (lowerPrompt.includes("order status") || lowerPrompt.includes("where is my order") || lowerPrompt.includes("order 12345")) {
-    if (!prompt.includes("<tool_result") && !prompt.includes("Tool Result")) {
-      return 'ACTION: checkOrderStatus\nPARAMS: { "orderId": "12345" }';
-    } else {
-      const resultMatch = prompt.match(/<tool_result[^>]*>\s*([\s\S]*?)\s*<\/tool_result>/) || prompt.match(/Tool Result.*:\s*(.*)/);
-      const result = resultMatch ? resultMatch[1] : "in transit and scheduled for delivery";
-      return `I checked our system, and ${result}. Is there anything else you need?`;
-    }
-  }
-
-  if (lowerPrompt.includes("address") || lowerPrompt.includes("update address")) {
-    if (!prompt.includes("<tool_result") && !prompt.includes("Tool Result")) {
-      return 'ACTION: updateAddress\nPARAMS: { "address": "123 Main St" }';
-    } else {
-      const resultMatch = prompt.match(/<tool_result[^>]*>\s*([\s\S]*?)\s*<\/tool_result>/) || prompt.match(/Tool Result.*:\s*(.*)/);
-      const result = resultMatch ? resultMatch[1] : "Address updated";
-      return `${result}. Let me know if you need any other help!`;
-    }
-  }
-
-  if (lowerPrompt.includes("appointment") || lowerPrompt.includes("booking") || lowerPrompt.includes("book") || lowerPrompt.includes("consultation") || lowerPrompt.includes("medspa") || lowerPrompt.includes("clinic")) {
-    if (!prompt.includes("<tool_result") && !prompt.includes("Tool Result")) {
-      return 'ACTION: bookAppointment\nPARAMS: { "name": "Jane Doe", "service": "HydraFacial Consultation", "date": "tomorrow", "time": "2:00 PM" }';
-    } else {
-      const resultMatch = prompt.match(/<tool_result[^>]*>\s*([\s\S]*?)\s*<\/tool_result>/) || prompt.match(/Tool Result.*:\s*(.*)/);
-      const result = resultMatch ? resultMatch[1] : "Appointment confirmed";
-      return `Your appointment request has been processed: ${result}. We look forward to seeing you!`;
-    }
-  }
-
-  if (lowerPrompt.includes("refund") || lowerPrompt.includes("shipping") || lowerPrompt.includes("warranty")) {
+  if (
+    lowerPrompt.includes("refund") ||
+    lowerPrompt.includes("shipping") ||
+    lowerPrompt.includes("warranty") ||
+    lowerPrompt.includes("return")
+  ) {
     return "Based on our company policy, refunds are processed within 3 business days and shipping takes 24 hours locally. Items must be returned in their original packaging within 14 days.";
+  }
+
+  if (lowerPrompt.includes("hours") || lowerPrompt.includes("location") || lowerPrompt.includes("contact")) {
+    return "Our support team is available Monday through Friday from 9:00 AM to 6:00 PM EST.";
   }
 
   return "I don't know based on the available information.";

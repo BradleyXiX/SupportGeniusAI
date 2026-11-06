@@ -6,7 +6,8 @@ import {
   updateAddress,
   bookAppointment,
   handleChat,
-  clearAgentHistory
+  clearAgentHistory,
+  unavailableActionReply
 } from "../services/agent.js";
 import {
   initializeStore,
@@ -35,23 +36,23 @@ describe("Agent Tools & CLIENT_WEBHOOK_URL Integration", () => {
     }
   });
 
-  it("checkOrderStatus falls back to demo data when CLIENT_WEBHOOK_URL is not set", async () => {
+  it("checkOrderStatus fails closed and returns deterministic action refusal", async () => {
     delete process.env.CLIENT_WEBHOOK_URL;
     const res = await checkOrderStatus({ orderId: "ORD-999" });
 
-    expect(res).toContain("ORD-999");
-    expect(res).toContain("in transit");
+    expect(res).toBe(unavailableActionReply());
+    expect(res).not.toContain("in transit");
   });
 
-  it("updateAddress falls back to demo data when CLIENT_WEBHOOK_URL is not set", async () => {
+  it("updateAddress fails closed and returns deterministic action refusal", async () => {
     delete process.env.CLIENT_WEBHOOK_URL;
     const res = await updateAddress({ address: "742 Evergreen Terrace" });
 
-    expect(res).toContain("742 Evergreen Terrace");
-    expect(res).toContain("updated");
+    expect(res).toBe(unavailableActionReply());
+    expect(res).not.toContain("updated");
   });
 
-  it("bookAppointment generates confirmed clinic/medspa demo data when CLIENT_WEBHOOK_URL is not set", async () => {
+  it("bookAppointment fails closed and returns deterministic action refusal without inventing IDs or SMS", async () => {
     delete process.env.CLIENT_WEBHOOK_URL;
     const res = await bookAppointment({
       name: "Sophia Martinez",
@@ -60,68 +61,43 @@ describe("Agent Tools & CLIENT_WEBHOOK_URL Integration", () => {
       time: "3:30 PM"
     });
 
-    expect(res).toContain("Sophia Martinez");
-    expect(res).toContain("HydraFacial Deluxe");
-    expect(res).toContain("tomorrow");
-    expect(res).toContain("3:30 PM");
-    expect(res).toContain("confirmed");
+    expect(res).toBe(unavailableActionReply());
+    expect(res).not.toContain("confirmed");
+    expect(res).not.toContain("SMS");
   });
 
-  it("dispatches checkOrderStatus, updateAddress, and bookAppointment to CLIENT_WEBHOOK_URL when configured", async () => {
+  it("makes zero outbound requests to CLIENT_WEBHOOK_URL when configured and fails closed", async () => {
     webhookServer = http.createServer((req, res) => {
       let body = "";
       req.on("data", (chunk) => (body += chunk));
       req.on("end", () => {
-        const payload = JSON.parse(body);
-        receivedWebhookCalls.push(payload);
-
+        receivedWebhookCalls.push(JSON.parse(body));
         res.writeHead(200, { "Content-Type": "application/json" });
-        if (payload.action === "checkOrderStatus") {
-          res.end(JSON.stringify({ result: `Custom CRM: Order ${payload.params.orderId} dispatched via FedEx express.` }));
-        } else if (payload.action === "updateAddress") {
-          res.end(JSON.stringify({ result: `Custom CRM: Address updated in Salesforce to ${payload.params.address}.` }));
-        } else if (payload.action === "bookAppointment") {
-          res.end(JSON.stringify({ result: `Clinic EHR: Appointment booked with Dr. Smith for ${payload.params.service}.` }));
-        } else {
-          res.end(JSON.stringify({ result: "OK" }));
-        }
+        res.end(JSON.stringify({ result: "OK" }));
       });
     });
 
     await new Promise((resolve) => webhookServer.listen(PORT, resolve));
     process.env.CLIENT_WEBHOOK_URL = WEBHOOK_URL;
 
-    // 1. checkOrderStatus
     const orderRes = await checkOrderStatus({ orderId: "LIVE-101" });
-    expect(orderRes).toBe("Custom CRM: Order LIVE-101 dispatched via FedEx express.");
+    expect(orderRes).toBe(unavailableActionReply());
 
-    // 2. updateAddress
     const addrRes = await updateAddress({ address: "500 Madison Ave" });
-    expect(addrRes).toBe("Custom CRM: Address updated in Salesforce to 500 Madison Ave.");
+    expect(addrRes).toBe(unavailableActionReply());
 
-    // 3. bookAppointment
     const apptRes = await bookAppointment({ name: "Emma", service: "Botox Consultation" });
-    expect(apptRes).toBe("Clinic EHR: Appointment booked with Dr. Smith for Botox Consultation.");
+    expect(apptRes).toBe(unavailableActionReply());
 
-    expect(receivedWebhookCalls.length).toBe(3);
-    expect(receivedWebhookCalls[0].action).toBe("checkOrderStatus");
-    expect(receivedWebhookCalls[1].action).toBe("updateAddress");
-    expect(receivedWebhookCalls[2].action).toBe("bookAppointment");
+    expect(receivedWebhookCalls.length).toBe(0);
   });
 
-  it("falls back to demo data if CLIENT_WEBHOOK_URL returns HTTP error or fails", async () => {
-    webhookServer = http.createServer((req, res) => {
-      res.writeHead(500, { "Content-Type": "text/plain" });
-      res.end("Internal Webhook Error");
-    });
-
-    await new Promise((resolve) => webhookServer.listen(PORT, resolve));
+  it("returns deterministic action refusal without dispatching when CLIENT_WEBHOOK_URL is set", async () => {
     process.env.CLIENT_WEBHOOK_URL = WEBHOOK_URL;
 
     const res = await bookAppointment({ name: "Fallback Test", service: "Chemical Peel" });
-    expect(res).toContain("Fallback Test");
-    expect(res).toContain("Chemical Peel");
-    expect(res).toContain("confirmed");
+    expect(res).toBe(unavailableActionReply());
+    expect(res).not.toContain("confirmed");
   });
 });
 

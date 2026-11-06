@@ -20,6 +20,11 @@ export function calculateKeywordScore(query = "", text = "") {
 }
 
 export async function getEmbedding(text) {
+  // Demo mode: zero external network calls; keyword fallback is used deterministically
+  if (process.env.APP_MODE === "demo") {
+    return null;
+  }
+
   // 1. Try OpenAI Embeddings if key configured
   if (process.env.OPENAI_API_KEY) {
     try {

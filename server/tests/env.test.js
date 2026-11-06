@@ -9,8 +9,24 @@ describe("Environment Configuration & Schema Validation", () => {
     };
     const parsed = parseEnv(raw);
     expect(parsed.NODE_ENV).toBe("development");
+    expect(parsed.APP_MODE).toBe("support");
     expect(parsed.PORT).toBe(3000);
     expect(parsed.CORS_ALLOWED_ORIGINS).toContain("http://localhost:3000");
+  });
+
+  it("parses explicit demo APP_MODE", () => {
+    const raw = {
+      APP_MODE: "demo"
+    };
+    const parsed = parseEnv(raw);
+    expect(parsed.APP_MODE).toBe("demo");
+  });
+
+  it("throws validation error for invalid APP_MODE", () => {
+    const raw = {
+      APP_MODE: "invalid_mode"
+    };
+    expect(() => parseEnv(raw)).toThrow();
   });
 
   it("coerces numeric string PORT to number", () => {

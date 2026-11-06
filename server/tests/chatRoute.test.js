@@ -1,8 +1,22 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import request from "supertest";
 import app from "../index.js";
+import { unavailableActionReply } from "../services/agent.js";
+import * as llmService from "../services/llm.js";
 
 describe("POST /chat Route & RFC 7807 Contracts", () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    process.env = { ...originalEnv };
+    process.env.APP_MODE = "demo";
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
   it("processes a valid customer question and returns 200 with reply and cost", async () => {
     const res = await request(app)
       .post("/chat")
@@ -14,10 +28,15 @@ describe("POST /chat Route & RFC 7807 Contracts", () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("reply");
     expect(typeof res.body.reply).toBe("string");
+    expect(res.body.reply).toContain("[Demo]");
     expect(res.body).toHaveProperty("cost");
   });
 
-  it("triggers agentic order status action when asked about an order", async () => {
+  it("returns safe deterministic refusal when model output contains an action attempt", async () => {
+    vi.spyOn(llmService, "callLLM").mockResolvedValue(
+      'ACTION: checkOrderStatus\nPARAMS: { "orderId": "12345" }'
+    );
+
     const res = await request(app)
       .post("/chat")
       .send({
@@ -26,7 +45,7 @@ describe("POST /chat Route & RFC 7807 Contracts", () => {
       });
 
     expect(res.status).toBe(200);
-    expect(res.body.reply.toLowerCase()).toContain("transit");
+    expect(res.body.reply).toBe(unavailableActionReply());
   });
 
   it("returns HTTP 422 RFC 7807 Problem Details for empty message", async () => {

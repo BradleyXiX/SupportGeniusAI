@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
 import chatRoute from "./routes/chat.js";
 import healthRoute from "./routes/health.js";
+import capabilitiesRoute from "./routes/capabilities.js";
 import { initializeStore } from "./db/vectorStore.js";
 import { rateLimitError, ProblemError } from "./utils/problemDetails.js";
 
@@ -74,6 +75,9 @@ app.use(express.static("client"));
 
 // Health and liveness probe
 app.use("/health", healthRoute);
+
+// Public capabilities descriptor
+app.use("/capabilities", capabilitiesRoute);
 
 // AI Gateway Rate Limiter (sliding window with RFC 7807 response)
 const chatLimiter = rateLimit({
