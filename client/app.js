@@ -11,6 +11,7 @@ import {
   acceptsReply,
   completeRequest
 } from "./chat-state.js";
+import { mountOrb } from "./orb.js";
 
 const REQUEST_TIMEOUT_MS = 45000;
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
@@ -50,6 +51,11 @@ export function initConsole() {
   let state = createChatState(getOrCreateSessionId());
   let hasHistory = false;
   let activeAbortController = null;
+
+  // Mount console status orb
+  const consoleOrbCanvas = document.getElementById("console-orb");
+  const consoleOrb = consoleOrbCanvas ? mountOrb(consoleOrbCanvas, { state: "idle" }) : null;
+  window.__consoleOrbState = "idle";
 
   // Auto-focus input on load
   inputField.focus();
@@ -130,6 +136,8 @@ export function initConsole() {
 
     state = resetChatState(state, newSessionId);
     hasHistory = false;
+    consoleOrb?.setState("idle");
+    window.__consoleOrbState = "idle";
 
     if (sessionCostEl) {
       sessionCostEl.textContent = "$0.0000";
@@ -318,6 +326,8 @@ export function initConsole() {
 
     state = beginRequest(state, requestId);
     hasHistory = true;
+    consoleOrb?.setState("pending");
+    window.__consoleOrbState = "pending";
 
     // Only append user message if not a retry of an already displayed turn
     if (!isRetry) {
@@ -412,6 +422,8 @@ export function initConsole() {
       );
     } finally {
       activeAbortController = null;
+      consoleOrb?.setState("idle");
+      window.__consoleOrbState = "idle";
       if (acceptsReply(state, { requestId, generation: requestGeneration })) {
         state = completeRequest(state, { requestId, generation: requestGeneration });
         if (sendBtn) sendBtn.disabled = false;
@@ -420,6 +432,11 @@ export function initConsole() {
       }
     }
   }
+  window.addEventListener("unload", () => {
+    if (consoleOrb) {
+      consoleOrb.destroy();
+    }
+  });
 }
 
 // Auto-initialize if DOM is ready, or on DOMContentLoaded

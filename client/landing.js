@@ -1,8 +1,12 @@
 // ==========================================================================
 // SupportGeniusAI Marketing Landing Controller
-// Pure ES Module • Strict CSP Compliant • Native Scrolling
-// Governed by Task 3 / A3
+// Pure ES Module • Strict CSP Compliant • Native Scrolling & Orb Lifecycle
+// Governed by Task 3 & Task 5
 // ==========================================================================
+
+import { mountOrb } from "./orb.js";
+
+let landingOrb = null;
 
 export function initLanding() {
   // Smooth in-page anchor navigation using native scrolling
@@ -24,16 +28,32 @@ export function initLanding() {
     });
   });
 
-  // Verify orb placeholder container
+  // Mount Signal Orb on [data-orb]
   const orbMount = document.querySelector("[data-orb]");
   if (orbMount) {
-    orbMount.setAttribute("data-initialized", "static");
+    let canvas = orbMount.querySelector("canvas");
+    if (!canvas) {
+      canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 64;
+      canvas.setAttribute("aria-hidden", "true");
+      canvas.className = "signal-orb-canvas";
+      orbMount.innerHTML = "";
+      orbMount.appendChild(canvas);
+    }
+    landingOrb = mountOrb(canvas, { state: "idle" });
   }
 }
+
+window.addEventListener("unload", () => {
+  if (landingOrb) {
+    landingOrb.destroy();
+    landingOrb = null;
+  }
+});
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initLanding);
 } else {
   initLanding();
 }
-

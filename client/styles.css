@@ -1712,3 +1712,18 @@ body[data-page="marketing"] .footer-link:hover {
     padding: 24px;
   }
 }
+
+
+/* Task 5 / A5: Orb Canvas Styles */
+.signal-orb-canvas {
+  width: 64px;
+  height: 64px;
+  display: block;
+}
+
+body[data-page="console"] .console-orb-canvas {
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
+}
