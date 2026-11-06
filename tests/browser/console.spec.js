@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
 
 test.describe("Console Shell & CSP Compliance", () => {
   test("direct GET /console/ loads shell with strict CSP and no inline-script violations", async ({ page }) => {
@@ -437,5 +439,142 @@ test.describe("Task 2 / A2: Request & Session Safety", () => {
 
     // Session cost must remain $0.0000, NOT $0.9999
     await expect(page.locator("#session-cost")).toHaveText("$0.0000");
+  });
+});
+
+test.describe("Task 4 / A4: Responsive Console & Accessibility Polish", () => {
+  const axeSource = fs.readFileSync(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
+
+  test("runs axe-core on /console/ with zero serious or critical violations", async ({ page }) => {
+    await page.goto("/console/");
+    await expect(page.locator("#chat-messages")).toBeVisible();
+
+    await page.evaluate(axeSource);
+    const results = await page.evaluate(async () => {
+      return await window.axe.run({
+        runOnly: {
+          type: "tag",
+          values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
+        }
+      });
+    });
+
+    const seriousOrCritical = results.violations.filter(
+      (v) => v.impact === "serious" || v.impact === "critical"
+    );
+    expect(seriousOrCritical).toEqual([]);
+  });
+
+  test("runs axe-core on / with zero serious or critical violations", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("h1")).toBeVisible();
+
+    await page.evaluate(axeSource);
+    const results = await page.evaluate(async () => {
+      return await window.axe.run({
+        runOnly: {
+          type: "tag",
+          values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
+        }
+      });
+    });
+
+    const seriousOrCritical = results.violations.filter(
+      (v) => v.impact === "serious" || v.impact === "critical"
+    );
+    expect(seriousOrCritical).toEqual([]);
+  });
+
+  test("direct /console/ refresh maintains focusability and layout", async ({ page }) => {
+    await page.goto("/console/");
+    await expect(page.locator("#chat-messages")).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator("#chat-messages")).toBeVisible();
+    await expect(page.locator("#input")).toBeVisible();
+    await expect(page.locator("#send-btn")).toBeVisible();
+  });
+
+  test("keyboard-only navigation tabs through interactive controls with visible focus ring", async ({ page }) => {
+    await page.goto("/console/");
+
+    // Press Tab from top of page
+    await page.keyboard.press("Tab"); // Skip link
+    const activeTagName1 = await page.evaluate(() => document.activeElement.tagName);
+    expect(["A", "BUTTON", "TEXTAREA"]).toContain(activeTagName1);
+
+    // Tab further through interactive controls
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    const activeTagName2 = await page.evaluate(() => document.activeElement.tagName);
+    expect(["A", "BUTTON", "TEXTAREA", "INPUT"]).toContain(activeTagName2);
+
+    // Verify focus outline on active element
+    const hasFocusIndicator = await page.evaluate(() => {
+      const style = window.getComputedStyle(document.activeElement);
+      return style.outlineStyle !== "none" || style.boxShadow !== "none" || style.borderWidth !== "0px";
+    });
+    expect(hasFocusIndicator).toBe(true);
+  });
+
+  test("mobile viewport (390x844) has zero horizontal document overflow", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/console/");
+    await expect(page.locator("#chat-messages")).toBeVisible();
+
+    const overflow = await page.evaluate(() => {
+      return document.documentElement.scrollWidth > window.innerWidth;
+    });
+    expect(overflow).toBe(false);
+  });
+
+  test("touch controls on mobile target at least 44px height", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/console/");
+
+    const sendBtn = page.locator("#send-btn");
+    const sendBox = await sendBtn.boundingBox();
+    expect(sendBox.height).toBeGreaterThanOrEqual(44);
+    expect(sendBox.width).toBeGreaterThanOrEqual(44);
+
+    const input = page.locator("#input");
+    const inputBox = await input.boundingBox();
+    expect(inputBox.height).toBeGreaterThanOrEqual(44);
+
+    const resetBtn = page.locator("#reset-btn");
+    const resetBox = await resetBtn.boundingBox();
+    expect(resetBox.height).toBeGreaterThanOrEqual(36); // Compact mobile header action
+  });
+
+  test("desktop viewport (1440x1000) displays 2-column rail + conversation centered with max-width 1280px", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto("/console/");
+
+    const rail = page.locator(".console-rail");
+    await expect(rail).toBeVisible();
+
+    const railBox = await rail.boundingBox();
+    expect(railBox.width).toBeCloseTo(256, -1);
+
+    const layout = page.locator(".console-layout");
+    const layoutBox = await layout.boundingBox();
+    expect(layoutBox.width).toBeLessThanOrEqual(1280);
+
+    // Capture updated desktop screenshot at 1440x1000
+    await page.screenshot({
+      path: "docs/design-prompts/screenshots/console-desktop-1440x1000.png",
+      fullPage: true
+    });
+  });
+
+  test("reflow test at 200% zoom does not clip or overflow horizontally", async ({ page }) => {
+    // 200% zoom simulated at 640px equivalent width
+    await page.setViewportSize({ width: 640, height: 800 });
+    await page.goto("/console/");
+
+    const hasOverflow = await page.evaluate(() => {
+      return document.documentElement.scrollWidth > window.innerWidth;
+    });
+    expect(hasOverflow).toBe(false);
   });
 });
