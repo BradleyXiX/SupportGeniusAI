@@ -14,7 +14,8 @@ SupportGeniusAI is a full-stack Retrieval-Augmented Generation (RAG) application
 
 ## 🏗️ Architecture & Tech Stack
 
-- **Frontend:** Vanilla JavaScript, HTML5, CSS3
+- **Frontend:** Vanilla JavaScript (ES Modules), HTML5, CSS3 (Signal Desk design system)
+- **Routes:** `/` (Editorial introduction), `/console/` (Interactive support console)
 - **Backend:** Node.js, Express.js
 - **AI/LLM:** Ollama (Local LLMs)
 - **Database/Vector Store:** Local Vector Store / ChromaDB integration
@@ -46,9 +47,18 @@ support-genius/
 │       └── docs/             # Knowledge base (PDFs, text files)
 │
 ├── client/
-│   ├── index.html            # Chat interface
-│   ├── app.js                # Client-side logic
-│   └── styles.css            # UI Styling
+│   ├── index.html            # Marketing editorial introduction (/)
+│   ├── landing.js            # Marketing landing controller
+│   ├── console/
+│   │   └── index.html        # Signal Desk support console (/console/)
+│   ├── app.js                # Console controller (ES Module)
+│   ├── chat-state.js         # Pure request/session state machine
+│   ├── orb.js                # Restrained Signal Orb (Canvas2D)
+│   ├── styles.css            # Signal Desk design system styling
+│   └── vendor/               # Locally vendored Marked & DOMPurify
+│
+├── tests/
+│   └── browser/              # Playwright browser integration suite
 │
 ├── package.json              # Dependencies and scripts
 └── README.md                 # Project documentation
@@ -98,6 +108,11 @@ npm start
 **Run Automated Quality Suite (Vitest):**
 ```bash
 npm test
+```
+
+**Run End-to-End Browser & Accessibility Suite (Playwright):**
+```bash
+npm run test:browser
 ```
 
 ### Health & Monitoring
