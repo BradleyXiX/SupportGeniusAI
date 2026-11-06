@@ -10,6 +10,7 @@
  * @param {object} [options]
  * @param {'idle' | 'pending'} [options.state='idle']
  * @param {boolean} [options.reducedMotion]
+ * @param {boolean} [options.animateIdle=false]
  * @returns {{ setState: (newState: 'idle' | 'pending') => void, destroy: () => void, isPaused: () => boolean, isDestroyed: () => boolean }}
  */
 export function mountOrb(canvas, options = {}) {
@@ -33,17 +34,24 @@ export function mountOrb(canvas, options = {}) {
   }
 
   let currentState = options.state || "idle";
-  const reducedMotion =
+  const animateIdle = Boolean(options.animateIdle);
+
+  const motionQuery =
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
+
+  let reducedMotion =
     options.reducedMotion !== undefined
-      ? options.reducedMotion
-      : typeof window !== "undefined" &&
-        window.matchMedia &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      ? Boolean(options.reducedMotion)
+      : motionQuery
+      ? Boolean(motionQuery.matches)
+      : false;
 
   let destroyed = false;
   let paused = false;
   let isIntersecting = true;
-  let isDocVisible = !document.hidden;
+  let isDocVisible = typeof document !== "undefined" ? !document.hidden : true;
   let rafId = null;
   let startTime = performance.now();
 
@@ -67,6 +75,7 @@ export function mountOrb(canvas, options = {}) {
   resize();
 
   function drawStaticMark() {
+    resize();
     const cx = width / 2;
     const cy = height / 2;
     const baseR = Math.min(cx, cy) * 0.85;
@@ -159,21 +168,46 @@ export function mountOrb(canvas, options = {}) {
 
   function updateRunningState() {
     if (reducedMotion) {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      paused = true;
       drawStaticMark();
       return;
     }
 
-    const shouldRun = !destroyed && isDocVisible && isIntersecting;
-    if (shouldRun && paused) {
-      paused = false;
-      rafId = requestAnimationFrame(render);
-    } else if (!shouldRun && !paused) {
+    const shouldAnimate =
+      !destroyed &&
+      isDocVisible &&
+      isIntersecting &&
+      (animateIdle || currentState === "pending");
+
+    if (shouldAnimate) {
+      if (paused || !rafId) {
+        paused = false;
+        rafId = requestAnimationFrame(render);
+      }
+    } else {
       paused = true;
       if (rafId) {
         cancelAnimationFrame(rafId);
         rafId = null;
       }
+      drawStaticMark();
     }
+  }
+
+  // Dynamic prefers-reduced-motion listener
+  function onMotionChange(e) {
+    if (options.reducedMotion === undefined) {
+      reducedMotion = Boolean(e.matches);
+      updateRunningState();
+    }
+  }
+
+  if (motionQuery && typeof motionQuery.addEventListener === "function") {
+    motionQuery.addEventListener("change", onMotionChange);
   }
 
   // IntersectionObserver to pause when offscreen
@@ -192,27 +226,21 @@ export function mountOrb(canvas, options = {}) {
 
   // VisibilityChange listener to pause when backgrounded
   function onVisibilityChange() {
-    isDocVisible = !document.hidden;
+    isDocVisible = typeof document !== "undefined" ? !document.hidden : true;
     updateRunningState();
   }
-  document.addEventListener("visibilitychange", onVisibilityChange);
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", onVisibilityChange);
+  }
 
   // Initialize
-  if (reducedMotion) {
-    drawStaticMark();
-    paused = true;
-  } else {
-    paused = false;
-    rafId = requestAnimationFrame(render);
-  }
+  updateRunningState();
 
   return {
     setState(newState) {
       if (destroyed) return;
       currentState = newState;
-      if (reducedMotion) {
-        drawStaticMark();
-      }
+      updateRunningState();
     },
     destroy() {
       if (destroyed) return;
@@ -226,7 +254,12 @@ export function mountOrb(canvas, options = {}) {
         observer.disconnect();
         observer = null;
       }
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      }
+      if (motionQuery && typeof motionQuery.removeEventListener === "function") {
+        motionQuery.removeEventListener("change", onMotionChange);
+      }
     },
     isPaused() {
       return paused;

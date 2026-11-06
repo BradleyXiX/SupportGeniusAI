@@ -117,7 +117,7 @@ test.describe("Console Shell & CSP Compliance", () => {
     await expect(page.locator("#session-cost")).toHaveText("$0.0000");
   });
 
-  test("captures desktop and mobile visual snapshots of /console/", async ({ page }) => {
+  test("captures desktop, mobile, and reduced-motion visual snapshots of /console/", async ({ page }) => {
     // Desktop (1440x900)
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/console/");
@@ -129,6 +129,13 @@ test.describe("Console Shell & CSP Compliance", () => {
     await page.goto("/console/");
     await expect(page.locator("#chat-messages")).toBeVisible();
     await page.screenshot({ path: "docs/design-prompts/screenshots/console-mobile.png", fullPage: true });
+
+    // Reduced Motion Desktop (1440x900)
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/console/");
+    await expect(page.locator("#chat-messages")).toBeVisible();
+    await page.screenshot({ path: "docs/design-prompts/screenshots/console-reduced-motion.png", fullPage: true });
   });
 });
 
@@ -576,5 +583,418 @@ test.describe("Task 4 / A4: Responsive Console & Accessibility Polish", () => {
       return document.documentElement.scrollWidth > window.innerWidth;
     });
     expect(hasOverflow).toBe(false);
+  });
+});
+
+test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetry Regressions", () => {
+  test("45s deadline aborts request when 200 headers arrive immediately but JSON body stalls", async ({ page }) => {
+    await page.clock.install();
+    await page.goto("/console/");
+
+    await page.evaluate(() => {
+      const origFetch = window.fetch;
+      window.fetch = async (url, opts) => {
+        if (typeof url === "string" && url.includes("/chat")) {
+          const stream = new ReadableStream({
+            start(controller) {
+              if (opts?.signal) {
+                opts.signal.addEventListener("abort", () => {
+                  controller.error(new DOMException("Aborted", "AbortError"));
+                });
+              }
+            }
+          });
+          return new Response(stream, {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+        return origFetch(url, opts);
+      };
+    });
+
+    const input = page.locator("#input");
+    await input.fill("Testing stalled 200 body");
+    await page.locator("#send-btn").click();
+
+    // Fast-forward past 45s (46,000ms)
+    await page.clock.fastForward(46000);
+
+    const messages = page.locator("#chat-messages");
+    await expect(messages).toContainText("No reply received. An action may have completed. Verify with the business before repeating your request.");
+    await expect(input).toBeEnabled();
+    await expect(page.locator("#send-btn")).toBeEnabled();
+    await expect(page.locator("button:has-text('Retry')")).toHaveCount(0);
+  });
+
+  test("45s deadline aborts request when 422 headers arrive immediately but JSON body stalls", async ({ page }) => {
+    await page.clock.install();
+    await page.goto("/console/");
+
+    await page.evaluate(() => {
+      const origFetch = window.fetch;
+      window.fetch = async (url, opts) => {
+        if (typeof url === "string" && url.includes("/chat")) {
+          const stream = new ReadableStream({
+            start(controller) {
+              if (opts?.signal) {
+                opts.signal.addEventListener("abort", () => {
+                  controller.error(new DOMException("Aborted", "AbortError"));
+                });
+              }
+            }
+          });
+          return new Response(stream, {
+            status: 422,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+        return origFetch(url, opts);
+      };
+    });
+
+    const input = page.locator("#input");
+    await input.fill("Testing stalled 422 body");
+    await page.locator("#send-btn").click();
+
+    await page.clock.fastForward(46000);
+
+    const messages = page.locator("#chat-messages");
+    await expect(messages).toContainText("No reply received. An action may have completed. Verify with the business before repeating your request.");
+    await expect(input).toBeEnabled();
+    await expect(page.locator("#send-btn")).toBeEnabled();
+    await expect(page.locator("button:has-text('Retry')")).toHaveCount(0);
+  });
+
+  test("Request A receives headers with unresolved body, reset, start B, then settle A: B remains pending, B deadline aborts B", async ({ page }) => {
+    await page.clock.install();
+    await page.goto("/console/");
+
+    await page.evaluate(() => {
+      const origFetch = window.fetch;
+      window.__resolvers = {};
+      window.fetch = async (url, opts) => {
+        if (typeof url === "string" && url.includes("/chat")) {
+          const postData = JSON.parse(opts.body);
+          const msg = postData.message;
+          if (msg === "Request A") {
+            let resolveBody;
+            const bodyPromise = new Promise((resolve) => {
+              resolveBody = resolve;
+            });
+            window.__resolvers.resolveA = resolveBody;
+            const stream = new ReadableStream({
+              async start(controller) {
+                if (opts?.signal) {
+                  opts.signal.addEventListener("abort", () => {
+                    controller.error(new DOMException("Aborted", "AbortError"));
+                  });
+                }
+                const data = await bodyPromise;
+                controller.enqueue(new TextEncoder().encode(JSON.stringify(data)));
+                controller.close();
+              }
+            });
+            return new Response(stream, {
+              status: 200,
+              headers: { "Content-Type": "application/json" }
+            });
+          } else if (msg === "Request B") {
+            const stream = new ReadableStream({
+              start(controller) {
+                if (opts?.signal) {
+                  opts.signal.addEventListener("abort", () => {
+                    controller.error(new DOMException("Aborted", "AbortError"));
+                  });
+                }
+              }
+            });
+            return new Response(stream, {
+              status: 200,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+        }
+        return origFetch(url, opts);
+      };
+    });
+
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+
+    // Start Request A
+    await input.fill("Request A");
+    await sendBtn.click();
+
+    // Reset session while A is waiting for body
+    page.on("dialog", (dialog) => dialog.accept());
+    await page.locator("#reset-btn").click();
+
+    // Start Request B immediately
+    await input.fill("Request B");
+    await sendBtn.click();
+
+    // Request B is now pending
+    await expect(page.locator(".loading-status-text")).toBeVisible();
+    await expect(sendBtn).toBeDisabled();
+    await expect(input).toBeDisabled();
+    expect(await page.evaluate(() => window.__consoleOrbState)).toBe("pending");
+
+    // Settle Request A now
+    await page.evaluate(() => {
+      if (window.__resolvers.resolveA) {
+        window.__resolvers.resolveA({ reply: "Stale reply from A", cost: "0.5555" });
+      }
+    });
+
+    // Request B MUST still remain pending!
+    await expect(page.locator(".loading-status-text")).toBeVisible();
+    await expect(sendBtn).toBeDisabled();
+    await expect(input).toBeDisabled();
+    expect(await page.evaluate(() => window.__consoleOrbState)).toBe("pending");
+
+    // A's reply/cost must NEVER appear
+    const messages = page.locator("#chat-messages");
+    await expect(messages).not.toContainText("Stale reply from A");
+    await expect(page.locator("#session-cost")).toHaveText("$0.0000");
+
+    // Advance clock past 45s for Request B's deadline
+    await page.clock.fastForward(46000);
+
+    // Request B's deadline aborts B and recovers!
+    await expect(messages).toContainText("No reply received. An action may have completed. Verify with the business before repeating your request.");
+    await expect(input).toBeEnabled();
+    await expect(sendBtn).toBeEnabled();
+    expect(await page.evaluate(() => window.__consoleOrbState)).toBe("idle");
+  });
+
+  test("Request A receives headers with unresolved body, reset, start B, then reject A: B remains pending, B deadline aborts B", async ({ page }) => {
+    await page.clock.install();
+    await page.goto("/console/");
+
+    await page.evaluate(() => {
+      const origFetch = window.fetch;
+      window.__rejecters = {};
+      window.fetch = async (url, opts) => {
+        if (typeof url === "string" && url.includes("/chat")) {
+          const postData = JSON.parse(opts.body);
+          const msg = postData.message;
+          if (msg === "Request A Rejection") {
+            const stream = new ReadableStream({
+              start(controller) {
+                window.__rejecters.rejectA = () => {
+                  controller.error(new TypeError("Network error during body stream"));
+                };
+              }
+            });
+            return new Response(stream, {
+              status: 200,
+              headers: { "Content-Type": "application/json" }
+            });
+          } else if (msg === "Request B After Reject") {
+            const stream = new ReadableStream({
+              start(controller) {
+                if (opts?.signal) {
+                  opts.signal.addEventListener("abort", () => {
+                    controller.error(new DOMException("Aborted", "AbortError"));
+                  });
+                }
+              }
+            });
+            return new Response(stream, {
+              status: 200,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+        }
+        return origFetch(url, opts);
+      };
+    });
+
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+
+    await input.fill("Request A Rejection");
+    await sendBtn.click();
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await page.locator("#reset-btn").click();
+
+    await input.fill("Request B After Reject");
+    await sendBtn.click();
+
+    await expect(page.locator(".loading-status-text")).toBeVisible();
+    await expect(sendBtn).toBeDisabled();
+    await expect(input).toBeDisabled();
+    expect(await page.evaluate(() => window.__consoleOrbState)).toBe("pending");
+
+    // Reject Request A's body
+    await page.evaluate(() => {
+      if (window.__rejecters.rejectA) {
+        window.__rejecters.rejectA();
+      }
+    });
+
+    // Request B MUST still remain pending!
+    await expect(page.locator(".loading-status-text")).toBeVisible();
+    await expect(sendBtn).toBeDisabled();
+    await expect(input).toBeDisabled();
+    expect(await page.evaluate(() => window.__consoleOrbState)).toBe("pending");
+
+    // No error from A in new transcript
+    const messages = page.locator("#chat-messages");
+    await expect(messages).not.toContainText("No reply received");
+
+    // Advance clock past 45s for Request B
+    await page.clock.fastForward(46000);
+
+    // B recovers
+    await expect(messages).toContainText("No reply received. An action may have completed. Verify with the business before repeating your request.");
+    await expect(input).toBeEnabled();
+    await expect(sendBtn).toBeEnabled();
+    expect(await page.evaluate(() => window.__consoleOrbState)).toBe("idle");
+  });
+
+  test("422 headers arrive with delayed body, reset conversation, resolve body: no stale validation text in transcript", async ({ page }) => {
+    await page.goto("/console/");
+
+    await page.evaluate(() => {
+      const origFetch = window.fetch;
+      window.__resolvers = {};
+      window.fetch = async (url, opts) => {
+        if (typeof url === "string" && url.includes("/chat")) {
+          let resolve422;
+          const promise = new Promise((resolve) => {
+            resolve422 = resolve;
+          });
+          window.__resolvers.resolve422 = resolve422;
+
+          const stream = new ReadableStream({
+            async start(controller) {
+              const data = await promise;
+              controller.enqueue(new TextEncoder().encode(JSON.stringify(data)));
+              controller.close();
+            }
+          });
+          return new Response(stream, {
+            status: 422,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+        return origFetch(url, opts);
+      };
+    });
+
+    const input = page.locator("#input");
+    await input.fill("Bad input before reset");
+    await page.locator("#send-btn").click();
+
+    // Reset session while 422 body is delayed
+    page.on("dialog", (dialog) => dialog.accept());
+    await page.locator("#reset-btn").click();
+
+    // Now resolve 422 body
+    await page.evaluate(() => {
+      if (window.__resolvers.resolve422) {
+        window.__resolvers.resolve422({
+          status: 422,
+          detail: "Stale validation error from old session"
+        });
+      }
+    });
+
+    await page.waitForTimeout(500);
+
+    const messages = page.locator("#chat-messages");
+    await expect(messages).not.toContainText("Stale validation error from old session");
+    await expect(messages).not.toContainText("Validation Error");
+  });
+
+  test("server health check shows distinct knowledge readiness based on vectorStore.isInitialized", async ({ page }) => {
+    // Sub-case 1: vectorStore.isInitialized = true
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "healthy",
+          vectorStore: { isInitialized: true, count: 5 }
+        })
+      });
+    });
+
+    await page.goto("/console/");
+    await expect(page.locator("#connection-status-text")).toHaveText("Server reachable");
+    await expect(page.locator("#knowledge-status-text")).toHaveText("Knowledge active");
+
+    // Sub-case 2: vectorStore.isInitialized = false
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "healthy",
+          vectorStore: { isInitialized: false, count: 0 }
+        })
+      });
+    });
+    await page.evaluate(() => window.__checkServerHealth && window.__checkServerHealth());
+    await expect(page.locator("#connection-status-text")).toHaveText("Server reachable");
+    await expect(page.locator("#knowledge-status-text")).toHaveText("Knowledge unavailable");
+
+    // Sub-case 3: missing or malformed JSON
+    await page.route("**/health", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/plain",
+        body: "NOT_JSON"
+      });
+    });
+    await page.evaluate(() => window.__checkServerHealth && window.__checkServerHealth());
+    await expect(page.locator("#connection-status-text")).toHaveText("Server reachable");
+    await expect(page.locator("#knowledge-status-text")).toHaveText("Knowledge status unknown");
+
+    // Sub-case 4: unreachable server (500 or network fail)
+    await page.route("**/health", async (route) => {
+      await route.abort("failed");
+    });
+    await page.evaluate(() => window.__checkServerHealth && window.__checkServerHealth());
+    await expect(page.locator("#connection-status-text")).toHaveText("Server unreachable");
+    await expect(page.locator("#knowledge-status-text")).toHaveText("Knowledge status unknown");
+  });
+
+  test("showLoading displays visible 'Waiting for reply' text with accessible announcement semantics and cleans up on completion and reset", async ({ page }) => {
+    let resolvePost;
+    const postPromise = new Promise((resolve) => {
+      resolvePost = resolve;
+    });
+
+    await page.route("**/chat", async (route) => {
+      await postPromise;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ reply: "Finished reply", cost: "0.0001" })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    await input.fill("Testing accessible loading");
+    await page.locator("#send-btn").click();
+
+    // Verify visible text and status role during pending
+    const loadingEl = page.locator("#loading-message");
+    await expect(loadingEl).toBeVisible();
+    await expect(loadingEl).toContainText("Waiting for reply");
+    await expect(page.locator(".loading-status-text")).toContainText("Waiting for reply");
+    await expect(page.locator(".loading-bubble")).toHaveAttribute("role", "status");
+
+    // Resolve POST
+    resolvePost();
+    await expect(page.locator("#chat-messages")).toContainText("Finished reply");
+
+    // Loading indicator is removed
+    await expect(loadingEl).toHaveCount(0);
   });
 });

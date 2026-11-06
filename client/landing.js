@@ -41,7 +41,7 @@ export function initLanding() {
       orbMount.innerHTML = "";
       orbMount.appendChild(canvas);
     }
-    landingOrb = mountOrb(canvas, { state: "idle" });
+    landingOrb = mountOrb(canvas, { state: "idle", animateIdle: true });
   }
 }
 

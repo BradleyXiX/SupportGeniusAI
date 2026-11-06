@@ -103,19 +103,43 @@ export function initConsole() {
   }
 
   async function checkServerHealth() {
+    const knowledgeStatusText = document.getElementById("knowledge-status-text");
     try {
       const res = await fetch("/health");
       if (res.ok) {
-        if (statusBeacon) statusBeacon.style.backgroundColor = "var(--accent-emerald, #85D6BD)";
         if (statusText) statusText.textContent = "Server reachable";
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          // Missing or malformed JSON
+        }
+        if (data && data.vectorStore && typeof data.vectorStore.isInitialized === "boolean") {
+          if (data.vectorStore.isInitialized) {
+            if (statusBeacon) statusBeacon.style.backgroundColor = "var(--accent-emerald, #85D6BD)";
+            if (knowledgeStatusText) knowledgeStatusText.textContent = "Knowledge active";
+          } else {
+            if (statusBeacon) statusBeacon.style.backgroundColor = "var(--accent-amber, #F2C572)";
+            if (knowledgeStatusText) knowledgeStatusText.textContent = "Knowledge unavailable";
+          }
+        } else {
+          if (statusBeacon) statusBeacon.style.backgroundColor = "var(--accent-amber, #F2C572)";
+          if (knowledgeStatusText) knowledgeStatusText.textContent = "Knowledge status unknown";
+        }
       } else {
         if (statusBeacon) statusBeacon.style.backgroundColor = "var(--accent-amber, #F2C572)";
         if (statusText) statusText.textContent = "Server degraded";
+        if (knowledgeStatusText) knowledgeStatusText.textContent = "Knowledge status unknown";
       }
     } catch {
       if (statusBeacon) statusBeacon.style.backgroundColor = "var(--destructive, #F2A6A6)";
       if (statusText) statusText.textContent = "Server unreachable";
+      if (knowledgeStatusText) knowledgeStatusText.textContent = "Knowledge status unknown";
     }
+  }
+
+  if (typeof window !== "undefined") {
+    window.__checkServerHealth = checkServerHealth;
   }
 
   function handleReset() {
@@ -171,18 +195,35 @@ export function initConsole() {
     msgDiv.appendChild(avatar);
 
     const bubbleDiv = document.createElement("div");
-    bubbleDiv.className = "bubble loading-dots";
-    bubbleDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    bubbleDiv.className = "bubble loading-bubble";
+    bubbleDiv.setAttribute("role", "status");
+    bubbleDiv.setAttribute("aria-live", "polite");
+
+    const textSpan = document.createElement("span");
+    textSpan.className = "loading-status-text";
+    textSpan.textContent = "Waiting for reply";
+    bubbleDiv.appendChild(textSpan);
+
+    const dotsDiv = document.createElement("div");
+    dotsDiv.className = "loading-dots";
+    dotsDiv.setAttribute("aria-hidden", "true");
+    dotsDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    bubbleDiv.appendChild(dotsDiv);
 
     msgDiv.appendChild(bubbleDiv);
     chatMessages.appendChild(msgDiv);
 
     scrollTranscriptToBottom();
+    return msgDiv;
   }
 
-  function removeLoading() {
-    const loadingMsg = document.getElementById("loading-message");
-    if (loadingMsg) loadingMsg.remove();
+  function removeLoading(loadingEl) {
+    if (loadingEl && typeof loadingEl.remove === "function") {
+      loadingEl.remove();
+    } else {
+      const loadingMsg = document.getElementById("loading-message");
+      if (loadingMsg) loadingMsg.remove();
+    }
   }
 
   function scrollTranscriptToBottom() {
@@ -337,13 +378,12 @@ export function initConsole() {
 
     if (sendBtn) sendBtn.disabled = true;
     inputField.disabled = true;
-    showLoading();
+    const reqLoadingElement = showLoading();
 
-    activeAbortController = new AbortController();
+    const abortController = new AbortController();
+    activeAbortController = abortController;
     const timeoutId = setTimeout(() => {
-      if (activeAbortController) {
-        activeAbortController.abort();
-      }
+      abortController.abort();
     }, REQUEST_TIMEOUT_MS);
 
     try {
@@ -351,19 +391,17 @@ export function initConsole() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, sessionId: state.sessionId }),
-        signal: activeAbortController.signal
+        signal: abortController.signal
       });
-
-      clearTimeout(timeoutId);
 
       // Check if this response is still accepted (session might have been reset)
       if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
-        removeLoading();
+        reqLoadingElement.remove();
         return;
       }
 
       if (res.status === 429) {
-        removeLoading();
+        reqLoadingElement.remove();
         const retryHeader = res.headers.get("Retry-After");
         let retrySeconds = parseInt(retryHeader, 10);
         if (isNaN(retrySeconds) || retrySeconds <= 0) {
@@ -374,8 +412,21 @@ export function initConsole() {
       }
 
       if (res.status === 422) {
-        removeLoading();
-        const problem = await res.json().catch(() => ({}));
+        let problem = {};
+        try {
+          problem = await res.json();
+        } catch (jsonErr) {
+          if (abortController.signal.aborted) {
+            throw jsonErr;
+          }
+        }
+        reqLoadingElement.remove();
+
+        // Recheck ownership after awaiting body parse
+        if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
+          return;
+        }
+
         let errorMessage = problem.detail || problem.message || "Message validation failed.";
         if (Array.isArray(problem.invalidParams) && problem.invalidParams.length > 0) {
           const paramDetails = problem.invalidParams.map((p) => `${p.name}: ${p.reason}`).join("; ");
@@ -386,7 +437,10 @@ export function initConsole() {
       }
 
       if (!res.ok) {
-        removeLoading();
+        reqLoadingElement.remove();
+        if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
+          return;
+        }
         // 5xx / gateway / upstream error: show approved honest uncertainty guidance with NO auto-retry
         appendMessage(
           "No reply received. An action may have completed. Verify with the business before repeating your request.",
@@ -397,8 +451,9 @@ export function initConsole() {
       }
 
       const data = await res.json();
-      removeLoading();
+      reqLoadingElement.remove();
 
+      // Recheck ownership after awaiting body parse
       if (acceptsReply(state, { requestId, generation: requestGeneration })) {
         appendMessage(data.reply, false);
         if (data.cost !== undefined && sessionCostEl) {
@@ -406,14 +461,12 @@ export function initConsole() {
         }
       }
     } catch (err) {
-      clearTimeout(timeoutId);
+      reqLoadingElement.remove();
 
       if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
-        removeLoading();
         return;
       }
 
-      removeLoading();
       // Network loss, timeout, or aborted fetch: approved uncertainty message with NO auto-retry
       appendMessage(
         "No reply received. An action may have completed. Verify with the business before repeating your request.",
@@ -421,10 +474,15 @@ export function initConsole() {
         true
       );
     } finally {
-      activeAbortController = null;
-      consoleOrb?.setState("idle");
-      window.__consoleOrbState = "idle";
+      clearTimeout(timeoutId);
+
+      if (activeAbortController === abortController) {
+        activeAbortController = null;
+      }
+
       if (acceptsReply(state, { requestId, generation: requestGeneration })) {
+        consoleOrb?.setState("idle");
+        window.__consoleOrbState = "idle";
         state = completeRequest(state, { requestId, generation: requestGeneration });
         if (sendBtn) sendBtn.disabled = false;
         inputField.disabled = false;
