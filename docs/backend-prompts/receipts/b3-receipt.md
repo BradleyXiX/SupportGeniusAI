@@ -4,6 +4,7 @@
 - **Branch**: `feature/safe-support-foundation`
 - **Base SHA**: `03886d2`
 - **Prior HEAD**: `c2bc2b7`
+- **Head SHA**: `b0aa6b5` (`b0aa6b57dca7e387c5cf7ebf54a8677c77c78dc3`)
 - **Status**: Implemented shared deadline- and size-bounded upstream fetch helper (`fetchJsonBounded`), signal propagation through retrieval/generation, safe error classification (502 `PROVIDER_UNAVAILABLE` / 504 `PROVIDER_TIMEOUT`), secret sanitization, and body-parser error mapping (400 / 413).
 
 ## Changed Files
