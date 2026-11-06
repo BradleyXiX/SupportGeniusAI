@@ -1,13 +1,13 @@
-import fetch from "node-fetch";
 import { trackUsage, setModel } from "./finops.js";
 import { gatewayError } from "../utils/problemDetails.js";
+import { fetchJsonBounded, UpstreamError } from "../utils/upstream.js";
 
 // Basic token estimation fallback (1 token ~ 4 characters)
 export function estimateTokens(text = "") {
   return Math.ceil(text.length / 4) || 1;
 }
 
-export async function callLLM(prompt, sessionId) {
+export async function callLLM(prompt, sessionId, { signal } = {}) {
   const mode = process.env.APP_MODE || "support";
   let responseText = "";
   let modelUsed = process.env.OLLAMA_CHAT_MODEL || "qwen2.5-coder:7b";
@@ -28,27 +28,39 @@ export async function callLLM(prompt, sessionId) {
     return responseText;
   }
 
-  // Support mode: call configured provider or local Ollama. Provider failure produces a stable unavailable error.
+  if (signal?.aborted) {
+    throw new UpstreamError({
+      kind: "timeout",
+      message: "LLM call aborted prior to execution",
+      providerLabel: "llm"
+    });
+  }
+
+  // Support mode: call configured provider or local Ollama using bounded fetch (20s budget)
   try {
     if (process.env.OPENAI_API_KEY) {
       modelUsed = "gpt-4o-mini";
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      const data = await fetchJsonBounded(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: modelUsed,
+            messages: [{ role: "user", content: prompt }]
+          })
         },
-        body: JSON.stringify({
-          model: modelUsed,
-          messages: [{ role: "user", content: prompt }]
-        })
-      });
+        {
+          timeoutMs: 20000,
+          signal,
+          providerLabel: "openai",
+          validateShape: (d) => typeof d?.choices?.[0]?.message?.content === "string"
+        }
+      );
 
-      if (!res.ok) {
-        const errBody = await res.text();
-        throw new Error(`OpenAI API returned status ${res.status}: ${errBody}`);
-      }
-      const data = await res.json();
       responseText = data.choices[0].message.content;
       promptTokens = data.usage?.prompt_tokens ?? estimateTokens(prompt);
       completionTokens = data.usage?.completion_tokens ?? estimateTokens(responseText);
@@ -56,20 +68,24 @@ export async function callLLM(prompt, sessionId) {
     } else if (process.env.GEMINI_API_KEY) {
       modelUsed = "gemini-1.5-flash";
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
+      const data = await fetchJsonBounded(
+        url,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        },
+        {
+          timeoutMs: 20000,
+          signal,
+          providerLabel: "gemini",
+          validateShape: (d) => typeof d?.candidates?.[0]?.content?.parts?.[0]?.text === "string"
+        }
+      );
 
-      if (!res.ok) {
-        const errBody = await res.text();
-        throw new Error(`Gemini API returned status ${res.status}: ${errBody}`);
-      }
-      const data = await res.json();
-      responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      responseText = data.candidates[0].content.parts[0].text;
       promptTokens = data.usageMetadata?.promptTokenCount ?? estimateTokens(prompt);
       completionTokens = data.usageMetadata?.candidatesTokenCount ?? estimateTokens(responseText);
 
@@ -77,26 +93,37 @@ export async function callLLM(prompt, sessionId) {
       // Local Ollama
       modelUsed = process.env.OLLAMA_CHAT_MODEL || "qwen2.5-coder:7b";
       const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
-      const res = await fetch(`${ollamaUrl}/api/generate`, {
-        method: "POST",
-        body: JSON.stringify({
-          model: modelUsed,
-          prompt: prompt,
-          stream: false
-        }),
-        headers: { "Content-Type": "application/json" }
-      });
+      const data = await fetchJsonBounded(
+        `${ollamaUrl}/api/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: modelUsed,
+            prompt: prompt,
+            stream: false
+          })
+        },
+        {
+          timeoutMs: 20000,
+          signal,
+          providerLabel: "ollama",
+          validateShape: (d) => typeof d?.response === "string"
+        }
+      );
 
-      if (!res.ok) {
-        throw new Error(`Ollama API error with status ${res.status}`);
-      }
-      const data = await res.json();
       responseText = data.response;
       completionTokens = estimateTokens(responseText);
     }
   } catch (err) {
-    console.error(`❌ Upstream LLM Failure in Support Mode: ${err.message}`);
-    throw gatewayError("/chat", `AI Gateway upstream provider failed: ${err.message}`);
+    if (err instanceof UpstreamError) {
+      throw err;
+    }
+    throw new UpstreamError({
+      kind: "connection",
+      message: `Upstream LLM failure: ${err.message}`,
+      providerLabel: "llm"
+    });
   }
 
   // Track tokens if sessionId is provided

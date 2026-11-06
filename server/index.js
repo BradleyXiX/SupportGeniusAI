@@ -7,7 +7,7 @@ import chatRoute from "./routes/chat.js";
 import healthRoute from "./routes/health.js";
 import capabilitiesRoute from "./routes/capabilities.js";
 import { initializeStore } from "./db/vectorStore.js";
-import { rateLimitError, ProblemError } from "./utils/problemDetails.js";
+import { rateLimitError, ProblemError, badRequest, payloadTooLargeError } from "./utils/problemDetails.js";
 
 const app = express();
 
@@ -102,12 +102,24 @@ app.use((err, req, res, next) => {
   if (err instanceof ProblemError) {
     return res.status(err.status).json(err.toJSON());
   }
+
+  // Map body parser errors: payload too large (413) and malformed JSON (400)
+  if (err.status === 413 || err.type === "entity.too.large") {
+    const problem = payloadTooLargeError(req.originalUrl || req.url, "Request payload exceeds allowed limit.");
+    return res.status(413).json(problem.toJSON());
+  }
+
+  if (err.status === 400 || err.type === "entity.parse.failed" || (err instanceof SyntaxError && "body" in err)) {
+    const problem = badRequest(req.originalUrl || req.url, "Malformed JSON request body.");
+    return res.status(400).json(problem.toJSON());
+  }
+
   console.error("Unhandled error intercepted:", err);
   const problem = new ProblemError({
     type: "https://supportgenius.ai/errors/unhandled-exception",
     title: "Internal Server Error",
     status: 500,
-    detail: err.message || "An unhandled server exception occurred.",
+    detail: "An unhandled server exception occurred.",
     instance: req.originalUrl || req.url
   });
   res.status(500).json(problem.toJSON());

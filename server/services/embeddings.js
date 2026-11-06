@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import { fetchJsonBounded, UpstreamError } from "../utils/upstream.js";
 
 // Fallback scoring for when vector embeddings are unavailable
 export function calculateKeywordScore(query = "", text = "") {
@@ -19,56 +19,84 @@ export function calculateKeywordScore(query = "", text = "") {
   return score;
 }
 
-export async function getEmbedding(text) {
+export async function getEmbedding(text, { signal } = {}) {
   // Demo mode: zero external network calls; keyword fallback is used deterministically
   if (process.env.APP_MODE === "demo") {
     return null;
   }
 
-  // 1. Try OpenAI Embeddings if key configured
+  if (signal?.aborted) {
+    throw new UpstreamError({
+      kind: "timeout",
+      message: "Embedding request aborted prior to dispatch",
+      providerLabel: "embedding"
+    });
+  }
+
+  // 1. Try OpenAI Embeddings if key configured (5s timeout budget)
   if (process.env.OPENAI_API_KEY) {
     try {
-      const res = await fetch("https://api.openai.com/v1/embeddings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      const data = await fetchJsonBounded(
+        "https://api.openai.com/v1/embeddings",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "text-embedding-3-small",
+            input: text
+          })
         },
-        body: JSON.stringify({
-          model: "text-embedding-3-small",
-          input: text
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.data && data.data[0] && data.data[0].embedding) {
-          return data.data[0].embedding;
+        {
+          timeoutMs: 5000,
+          signal,
+          providerLabel: "openai-embeddings",
+          validateShape: (d) => Array.isArray(d.data?.[0]?.embedding)
         }
+      );
+
+      if (data?.data?.[0]?.embedding) {
+        return data.data[0].embedding;
       }
-    } catch (e) {
-      console.warn("OpenAI embedding API failed, falling back to Ollama / keywords:", e.message);
+    } catch (err) {
+      if (err.kind === "timeout" || signal?.aborted) {
+        throw err;
+      }
+      console.warn("OpenAI embedding API unavailable, falling back to Ollama / keywords");
     }
   }
 
-  // 2. Try Ollama Embeddings
+  // 2. Try Ollama Embeddings (5s timeout budget)
   const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
   try {
-    const res = await fetch(`${ollamaUrl}/api/embeddings`, {
-      method: "POST",
-      body: JSON.stringify({
-        model: process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text:latest",
-        prompt: text
-      }),
-      headers: { "Content-Type": "application/json" }
-    });
+    const data = await fetchJsonBounded(
+      `${ollamaUrl}/api/embeddings`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text:latest",
+          prompt: text
+        })
+      },
+      {
+        timeoutMs: 5000,
+        signal,
+        providerLabel: "ollama-embeddings",
+        validateShape: (d) => Array.isArray(d.embedding)
+      }
+    );
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.embedding) return data.embedding;
+    if (data?.embedding) {
+      return data.embedding;
     }
   } catch (err) {
-    // Expected when Ollama is not running in local or CI environment
+    if (err.kind === "timeout" || signal?.aborted) {
+      throw err;
+    }
+    // Expected when Ollama is not running in local/test environment
   }
 
   // 3. Signal caller to use keyword fallback

@@ -75,12 +75,12 @@ export function parseToolAction(aiResponse = "") {
   return { actionName, params };
 }
 
-export async function handleChat(message, sessionId) {
+export async function handleChat(message, sessionId, { signal } = {}) {
   const history = getSessionHistory(sessionId);
-  const context = await retrieveContext(message);
+  const context = await retrieveContext(message, { signal });
   const prompt = buildPrompt(message, context, history);
 
-  let aiResponse = await callLLM(prompt, sessionId);
+  let aiResponse = await callLLM(prompt, sessionId, { signal });
 
   // If the model produced any tool action (recognized, unknown, or malformed), refuse deterministically
   const isActionAttempt = /(?:ACTION:|PARAMS:)/i.test(aiResponse) || parseToolAction(aiResponse) !== null;
