@@ -4,6 +4,7 @@
 - **Branch**: `feature/safe-support-foundation`
 - **Base SHA**: `03886d2`
 - **Prior HEAD**: `893853f`
+- **Head SHA**: `a7b2065` (`a7b2065864ed92d771d12c36f40b84833b72a0da`)
 - **Status**: Implemented explicit `APP_MODE` (`support` | `demo`), public no-secret `/capabilities`, unconditional zero-dispatch action refusal, canonical zero-cost demo accounting, module-boundary fetch interception, and regression tests.
 
 ## Changed Files
