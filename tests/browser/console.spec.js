@@ -1273,6 +1273,8 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
   // =========================================================================
 
   test("held reset prevents suggestion chips, form submit, Enter key, and 429 Retry from sending /chat", async ({ page }) => {
+    page.on("console", (msg) => console.log("[BROWSER CONSOLE]", msg.type(), msg.text()));
+    page.on("pageerror", (err) => console.log("[BROWSER ERROR]", err));
     let chatPostCount = 0;
     await page.route("**/chat", async (route) => {
       chatPostCount++;
@@ -1630,5 +1632,155 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     const cookiesRecovered = await context.cookies();
     const sessionCookieRecovered = cookiesRecovered.find((c) => c.name.includes("session"));
     expect(sessionCookieRecovered).toBeDefined();
+  });
+
+  test("New conversation in needsRecovery routes through validated capabilities and blocks bypass on invalid config", async ({ page }) => {
+    let sessionPostCount = 0;
+    await page.route("**/session", async (route) => {
+      sessionPostCount++;
+      await route.fulfill({ status: 204 });
+    });
+
+    // 1. Initial capabilities invalid (missing required fields)
+    let currentCapabilities = { mode: "demo" };
+    await page.route("**/capabilities", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(currentCapabilities)
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+    const resetBtn = page.locator("#reset-btn");
+
+    await expect(sendBtn).toBeDisabled();
+    await expect(input).toBeDisabled();
+    await expect(page.locator("#init-error-banner")).toBeVisible();
+    expect(sessionPostCount).toBe(0);
+
+    // 2. Click New conversation while capabilities are invalid -> MUST NOT bypass capabilities!
+    // Must NOT call POST /session, must NOT enable Send!
+    await resetBtn.click();
+    await page.waitForTimeout(300);
+
+    expect(sessionPostCount).toBe(0);
+    await expect(sendBtn).toBeDisabled();
+    await expect(input).toBeDisabled();
+    await expect(page.locator(".demo-disclosure")).toContainText(/Configuration unavailable/i);
+
+    // 3. Suggestion chips and direct form submit must also remain blocked
+    const chip = page.locator(".suggestion-chip").first();
+    await chip.click({ force: true }).catch(() => {});
+    await page.evaluate(() => {
+      const form = document.getElementById("chat-form");
+      if (form) form.dispatchEvent(new Event("submit", { cancelable: true }));
+    });
+    await page.waitForTimeout(200);
+
+    let chatCount = 0;
+    await page.route("**/chat", async (route) => {
+      chatCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply: "No" }) });
+    });
+    expect(chatCount).toBe(0);
+
+    // 4. Now server capabilities recover to valid descriptor
+    currentCapabilities = { mode: "demo", actionsEnabled: false, sessionRequired: true };
+
+    // Explicit recovery via New conversation (or Retry initialization)
+    await resetBtn.click();
+
+    // Now exactly 1 session POST is dispatched, Send is enabled, and badge updates to Demo
+    await expect(sendBtn).toBeEnabled();
+    await expect(input).toBeEnabled();
+    await expect(page.locator(".demo-disclosure")).toContainText(/Demonstration — simulated answers, no automated actions|Simulated answers/i);
+    expect(sessionPostCount).toBe(1);
+  });
+
+  test("rate-limit Retry readiness derives from console ready state AND completed countdown across busy periods", async ({ page }) => {
+    let chatCallCount = 0;
+    let resolveTurnB;
+    const turnBPromise = new Promise((resolve) => {
+      resolveTurnB = resolve;
+    });
+
+    await page.route("**/chat", async (route) => {
+      chatCallCount++;
+      const body = JSON.parse(route.request().postData() || "{}");
+
+      if (body.message === "Trigger 429" && chatCallCount === 1) {
+        // Return 429 with 3s Retry-After
+        await route.fulfill({
+          status: 429,
+          headers: { "Retry-After": "3" },
+          contentType: "application/json",
+          body: JSON.stringify({ code: "RATE_LIMIT_EXCEEDED", detail: "Too many requests" })
+        });
+      } else if (body.message === "Turn B while 429 cooling down") {
+        // Hold Turn B pending
+        await turnBPromise;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ reply: "Turn B replied", cost: "0.0010" })
+        });
+      } else if (body.message === "Trigger 429" && chatCallCount > 2) {
+        // Retry submission
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ reply: "Retry succeeded", cost: "0.0020" })
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ reply: "Default reply", cost: "0.0000" })
+        });
+      }
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+
+    // 1. Send query that receives 429
+    await input.fill("Trigger 429");
+    await sendBtn.click();
+
+    const retryBtn = page.locator(".btn-retry-429").first();
+    await expect(retryBtn).toBeVisible();
+    await expect(retryBtn).toBeDisabled();
+
+    // 2. Immediately start turn B while countdown is running (e.g. at 2s remaining)
+    await input.fill("Turn B while 429 cooling down");
+    await sendBtn.click();
+
+    // Turn B is in-flight (sessionStatus is chatPending)
+    await expect(sendBtn).toBeDisabled();
+
+    // 3. Wait for 429 countdown to expire (3s + buffer)
+    await page.waitForTimeout(3500);
+
+    // While Turn B is STILL pending: retryBtn MUST remain disabled because console is not ready!
+    await expect(retryBtn).toBeDisabled();
+    await expect(retryBtn).toHaveAttribute("aria-disabled", "true");
+
+    // 4. Now settle Turn B -> console returns to ready
+    resolveTurnB();
+    await expect(page.locator("#chat-messages")).toContainText("Turn B replied");
+    await expect(sendBtn).toBeEnabled();
+
+    // 5. Because countdown is complete AND console is now ready: retryBtn MUST become enabled!
+    await expect(retryBtn).toBeEnabled();
+    await expect(retryBtn).toHaveAttribute("aria-disabled", "false");
+
+    // 6. Click retry button once -> dispatches exactly 1 POST /chat without duplicating turn
+    await retryBtn.click();
+    await expect(page.locator("#chat-messages")).toContainText("Retry succeeded");
+    expect(chatCallCount).toBe(3); // 1 (429) + 1 (Turn B) + 1 (Retry)
   });
 });

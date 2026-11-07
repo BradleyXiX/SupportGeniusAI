@@ -5,7 +5,7 @@
 - **Base SHA**: `03886d2`
 - **Prior HEAD**: `f24ad5845264233fe73874341bdf4b513f78e60f`
 - **Initial B5 HEAD**: `f263aab4d7258f39da991691a2158bf78a37da3c`
-- **Correction Commit HEAD**: `2ac59eae90de41d6e2f14178643f8dfc48faaf7e`
+- **Correction Commit HEAD**: `6212aa2` (prior intermediate corrections: `2ac59ea`, `1327636`)
 - **Status**: Complete with full review corrections. Client console securely connects to server-owned anonymous cookie sessions and capability descriptors with zero browser storage tokens, resilient bootstrap gates, mode disclosure, unified session-operation state machine, strict capability contract validation, 15s session operation deadlines, failed-reset submission locks, and unmocked local-demo cookie rotation/recovery verification.
 
 ---
@@ -93,21 +93,40 @@
   7. Verifies composer input and Send are disabled.
   8. Recovers via `New conversation` -> successfully initializes fresh session with new cookie and re-enables composer.
 
+### 7. Close New Conversation Capability Bypass
+- When in `needsRecovery` or when capabilities descriptor is invalid/missing:
+  - `handleReset()` routes strictly through full validated bootstrap (`bootstrapSession()`), issuing `GET /capabilities` first and verifying compliance before any `POST /session` is dispatched.
+  - Direct session rotation is strictly permitted only when `isValidCapabilities(capabilities) && sessionStatus === "ready"`.
+  - Any capability validation failure immediately nullifies cached capabilities (`capabilities = null`) so no stale descriptor can be trusted.
+  - Never defaults to demo or support when capabilities are missing or invalid.
+- **Regression Verified**: `New conversation in needsRecovery routes through validated capabilities and blocks bypass on invalid config`.
+
+### 8. Derive Rate-Limit 429 Retry Readiness from State and Countdown
+- Track per-button completion via `dataset.countdownComplete = "true"` and `dataset.generation = currentGeneration`.
+- In `updateControlState()`, retry button enabled state is strictly derived from:
+  `const isCountdownComplete = (btn.dataset.countdownComplete === "true");`
+  `const isCurrentGen = (btn.dataset.generation === String(chatState.generation));`
+  `const isEligible = isReady && isCountdownComplete && isCurrentGen;`
+- A countdown expiring while chat is busy records countdown completion without enabling prematurely; once the chat settles and status returns to `ready`, `updateControlState()` immediately enables the button.
+- Rotation/reset increments `chatState.generation`, permanently disabling stale retry buttons.
+- Submissions remain strictly manual; no automated re-posts.
+- **Regression Verified**: `rate-limit Retry readiness derives from console ready state AND completed countdown across busy periods`.
+
 ---
 
 ## Verification Evidence
 
 - `npm run test:browser`:
-  - 3 test files, **60 passed**, 0 failed (exit code 0, 2.2m).
+  - 3 test files, **62 passed**, 0 failed (exit code 0, 2.3m).
   - All console CSP compliance, suggestion chips, keyboard/IME, error scenarios (401, 409, 422, 429, 500), 45s chat deadlines, responsive layouts, axe-core a11y, orb motion, and all new B5 review regression suites passed.
 - `npm test`:
-  - 14 test files, **115 passed**, 0 failed (exit code 0, 7.43s).
+  - 14 test files, **115 passed**, 0 failed (exit code 0, 9.39s).
   - Upstream error handling, explicit modes, B3 regressions, B4 session lifecycle, FinOps cost estimation, and env validation all 100% green.
 
 ## Changed Files
-- `client/app.js`: unified session-operation state machine (`uninitialized`, `initializing`, `ready`, `chatPending`, `resetting`, `needsRecovery`), concurrency lock `isSessionOpInProgress`, operation generation `activeOpId`, full capability validator `isValidCapabilities`, 15s session operation deadline, consistent rotation transition `applySuccessfulRotation`, and strict submission guards.
+- `client/app.js`: unified session-operation state machine (`uninitialized`, `initializing`, `ready`, `chatPending`, `resetting`, `needsRecovery`), concurrency lock `isSessionOpInProgress`, operation generation `activeOpId`, full capability validator `isValidCapabilities`, 15s session operation deadline, consistent rotation transition `applySuccessfulRotation`, recovery New conversation routing via bootstrap, dynamic 429 retry readiness derivation, and strict submission guards.
 - `client/console/index.html`: initialized suggestion chips with `disabled` attribute to prevent early interaction prior to bootstrap.
 - `client/styles.css`: added disabled styling for `.suggestion-chip:disabled` and `.suggestion-chip.chip-disabled`.
 - `playwright.config.js`: configured `RATE_LIMIT_MAX_REQUESTS: "1000"` and `RATE_LIMIT_WINDOW_MS: "60000"` in `webServer.env`.
-- `tests/browser/console.spec.js`: updated test 35 for unconfirmed failed reset; added 7 regression test suites covering held reset gating, held recovery bootstrap duplicate prevention, consistent rotation on recovery, strict capability contract validation, 15s bootstrap/reset deadlines, and unmocked local-demo cookie rotation/recovery.
+- `tests/browser/console.spec.js`: updated test 35 for unconfirmed failed reset; added 9 regression test suites covering held reset gating, held recovery bootstrap duplicate prevention, consistent rotation on recovery, strict capability contract validation, 15s bootstrap/reset deadlines, unmocked local-demo cookie rotation/recovery, New conversation recovery capability routing, and 429 retry countdown/state derivation.
 - `docs/backend-prompts/receipts/b5-receipt.md`: detailed record of B5 corrections, architecture, and verification.

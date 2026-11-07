@@ -150,9 +150,12 @@ export function initConsole() {
     // Rate Limit 429 Retry buttons
     const retry429Btns = document.querySelectorAll(".btn-retry-429");
     retry429Btns.forEach((btn) => {
-      if (!isReady) {
-        btn.setAttribute("aria-disabled", "true");
-      }
+      const isCountdownComplete = (btn.dataset.countdownComplete === "true");
+      const isCurrentGeneration = (btn.dataset.generation === String(chatState.generation));
+      const shouldBeEnabled = isReady && isCountdownComplete && isCurrentGeneration;
+
+      btn.disabled = !shouldBeEnabled;
+      btn.setAttribute("aria-disabled", String(!shouldBeEnabled));
     });
 
     // Retry initialization buttons
@@ -212,6 +215,15 @@ export function initConsole() {
    * @param {string} mode
    */
   function applySuccessfulRotation(mode) {
+    if (!isValidCapabilities(capabilities)) {
+      capabilities = null;
+      sessionStatus = "needsRecovery";
+      updateModeDisclosure("unavailable");
+      updateControlState();
+      showInitError("Valid server capabilities required.");
+      return;
+    }
+
     isSessionOpInProgress = false;
     chatState = resetChatState(chatState);
     hasHistory = false;
@@ -280,6 +292,7 @@ export function initConsole() {
       }
 
       if (!isValidCapabilities(capData)) {
+        capabilities = null;
         throw new Error("Invalid or unsupported server capabilities");
       }
 
@@ -304,6 +317,7 @@ export function initConsole() {
       // Apply consistent successful rotation
       applySuccessfulRotation(capData.mode);
     } catch (err) {
+      capabilities = null;
       if (opId !== activeOpId) return;
 
       sessionStatus = "needsRecovery";
@@ -324,6 +338,13 @@ export function initConsole() {
   async function handleReset() {
     if (sessionStatus === "chatPending" || isSessionOpInProgress) {
       return;
+    }
+
+    // Close capability bypass: if capabilities are missing/invalid or session is in recovery,
+    // New conversation MUST route through full validated bootstrap, never direct rotation!
+    if (!isValidCapabilities(capabilities) || sessionStatus === "needsRecovery") {
+      capabilities = null;
+      return bootstrapSession();
     }
 
     if (hasHistory) {
@@ -356,11 +377,12 @@ export function initConsole() {
 
       if (res.status === 204) {
         if (opId !== activeOpId) return;
-        applySuccessfulRotation(capabilities?.mode || "demo");
+        applySuccessfulRotation(capabilities.mode);
       } else {
         throw new Error(`Server failed to rotate session (status: ${res.status})`);
       }
     } catch (err) {
+      capabilities = null;
       if (opId !== activeOpId) return;
 
       sessionStatus = "needsRecovery";
@@ -560,6 +582,9 @@ export function initConsole() {
     retryBtn.className = "btn-retry-429";
     retryBtn.type = "button";
     retryBtn.disabled = true;
+    retryBtn.setAttribute("aria-disabled", "true");
+    retryBtn.dataset.countdownComplete = "false";
+    retryBtn.dataset.generation = String(chatState.generation);
     retryBtn.textContent = `Retry in ${retrySeconds}s`;
 
     let remaining = retrySeconds;
@@ -570,14 +595,17 @@ export function initConsole() {
       } else {
         clearInterval(interval);
         activeRateLimitTimers.delete(interval);
-        retryBtn.disabled = (sessionStatus !== "ready");
+        retryBtn.dataset.countdownComplete = "true";
         retryBtn.textContent = "Retry request";
+        updateControlState();
       }
     }, 1000);
     activeRateLimitTimers.add(interval);
 
     retryBtn.addEventListener("click", () => {
-      if (sessionStatus !== "ready") return;
+      const isCountdownComplete = (retryBtn.dataset.countdownComplete === "true");
+      const isCurrentGeneration = (retryBtn.dataset.generation === String(chatState.generation));
+      if (sessionStatus !== "ready" || !isCountdownComplete || !isCurrentGeneration) return;
       retryBtn.remove();
       handleSend(originalText, true);
     });
