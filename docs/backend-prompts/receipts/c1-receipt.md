@@ -4,8 +4,10 @@
 - **Branch**: `feature/safe-support-foundation`
 - **Base SHA**: `03886d2a64d5bff18ee5be6bd50e9ff75c328bc5` (stems from `design/signal-desk-v1` at `03886d2`)
 - **Verified Product Commit**: `4b659bc3ca8ba40562e6d5bfbb67ad10492cb3e5` (116 unit tests, 62 browser tests)
-- **Documentation Commits**: `895369e` (B7 receipt), `76d4934` (initial C1 plans)
-- **Status**: Complete. Release PR draft, staging deployment plan, and rollback procedures updated with corrected executable guidance, strict secret boundaries, and verified code interfaces.
+- **Prior Documentation Commits**: `895369e` (B7 receipt), `76d4934` (initial C1 plans), `81237f4` (C1 executable plans)
+- **Current HEAD**: `81237f4`
+- **Working Tree State During Handoff Cleanup**: Pre-existing reviewed `README.md` rewrite by Codex, plus targeted corrections to `docs/release/rollback-plan.md` and this receipt.
+- **Status**: Complete. Release PR draft, staging deployment plan, and rollback procedures finalized.
 
 ---
 
@@ -44,24 +46,30 @@
 - **Cost & Grounding Assertions**: Clarified that FinOps cost is a four-decimal estimate (`$0.0000`); local models and small requests legitimately show zero cost. Clarified that demo replies are deterministic fixture strings, and factual accuracy checks are strictly required during the separately authorized support-mode smoke check.
 
 ### 2.2 Rollback Procedures (`docs/release/rollback-plan.md`)
-- **Corrected Git Revert Syntax**: Removed invalid `git revert -m 1 ... -m "message"`. Documented that `-m` in `git revert` is exclusively `--mainline <parent-number>`:
+- **Corrected Git Revert Syntax**: Removed invalid `git revert -m 1 ... -m "message"`. Clarified that `-m` in `git revert` is exclusively `--mainline <parent-number>` to select the mainline parent (parent 1). Clarified that `--no-edit` accepts git's generated default message without launching an interactive editor.
   - True merge: `git revert -m 1 <MERGE_COMMIT_SHA>`.
-  - Squash merge: `git revert <SQUASH_COMMIT_SHA>` (regular commit).
-  - Fast-forward merge: revert release commits in reverse order (`git revert <OLDEST>..<NEWEST>`).
+  - Squash merge: `git revert <SQUASH_COMMIT_SHA>` (regular commit, no `-m`).
+  - Fast-forward integration: for a verified contiguous linear range without merges, specify `git revert <PRE_RELEASE_SHA>..<RELEASE_HEAD_SHA>`, which correctly includes every commit in the range and reverts in reverse order. For histories containing merges, do not use a generic range; identify each commit and its verified mainline parent explicitly.
   - Explicitly prohibited `git reset --hard` or rewriting `main`.
 - **Platform Immutable Revision Preference**: Prioritized platform-managed immutable artifact rollback over git reverts; labeled UI button names as unverified until observed directly in the live dashboard.
 - **Rollback Contract Verification**: Clarified that restoring an earlier prototype revision may restore older UI/routes (e.g., legacy `/` instead of `/console/`, no session cookies); recovery verification must test against the actual rollback revision's documented contracts.
 - **Private Environment Backups**: Required environment backups to use an approved private secret manager (e.g., Doppler, 1Password); prohibited saving actual secret values to git, receipts, logs, or chat.
 
+### 2.3 README.md Review & Link Verification
+- Reviewed Codex's intentional rewrite of `README.md`:
+  - Verified Node version requirement: Node 22.12+ (LTS line) required by Vitest; noted Dockerfile Node 20 alignment needed for container testing.
+  - Verified internal documentation links: [docs/deployment.md](docs/deployment.md), [docs/release/staging-plan.md](docs/release/staging-plan.md), [docs/release/rollback-plan.md](docs/release/rollback-plan.md), [docs/adr/0002-safe-support-foundation-and-anonymous-sessions.md](docs/adr/0002-safe-support-foundation-and-anonymous-sessions.md), [docs/adr/README.md](docs/adr/README.md), [docs/release/safe-foundation-pr.md](docs/release/safe-foundation-pr.md), [CONTRIBUTING.md](CONTRIBUTING.md). All links exist and are valid.
+  - Verified truthful license statement: noted no license file is included, avoiding premature claims of MIT distribution.
+  - Distinguishes tested product baseline (116 unit tests, 62 browser tests) from a live badge.
+
 ---
 
 ## 3. Checks Actually Run in This Pass
 
+- Document and link checks: verified all internal markdown links resolve to existing files.
+- Command validation: verified git revert range semantics (`<A>..<B>` excludes A, hence `<PRE_RELEASE_SHA>..<RELEASE_HEAD_SHA>` includes all release commits).
+- Git status check: `git status --short` confirmed working tree contains pre-existing reviewed `README.md` and scoped doc updates.
 - Source code checks against `server/session/middleware.js`, `server/services/llm.js`, `server/services/embeddings.js`, `server/config/env.js`: all verified.
-- Git state verification:
-  - `git branch --show-current`: `feature/safe-support-foundation`
-  - `git rev-parse HEAD`: verified current commit.
-  - `git status --short`: verified clean working tree prior to doc edits.
 - *Note*: Full test suites were not rerun in this pass because no product code was altered. Product tree remains at verified commit `4b659bc` (`npm test` 116 passed exit 0, `npm run test:browser` 62 passed exit 0).
 
 ---

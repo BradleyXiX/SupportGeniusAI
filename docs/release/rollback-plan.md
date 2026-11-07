@@ -48,15 +48,16 @@ Prefer platform-managed rollback to the immutable deployment artifact/revision w
     ```bash
     git revert -m 1 <MERGE_COMMIT_SHA>
     ```
-    *(Note: `-m 1` specifies the mainline parent number; it is not a message flag. To customize the message, use `--no-edit` or supply standard git commit message options).*
+    *(Note: `-m 1` specifies the mainline parent number; it is not a message flag. `--no-edit` accepts git's generated revert message without opening an interactive editor).*
   - **Squash Merge**: A squash merge creates a single regular commit, not a merge commit. Revert it directly without `-m`:
     ```bash
     git revert <SQUASH_COMMIT_SHA>
     ```
-  - **Fast-Forward Merge**: A fast-forward integration creates no merge commit; the individual release commits must be reverted in reverse order:
+  - **Fast-Forward Integration (Linear Sequence)**: A fast-forward integration creates no merge commit. If the deployed history is a verified contiguous linear range without merges, specify the range relative to the pre-release commit:
     ```bash
-    git revert <OLDEST_RELEASE_COMMIT>..<NEWEST_RELEASE_COMMIT>
+    git revert <PRE_RELEASE_SHA>..<RELEASE_HEAD_SHA>
     ```
+    *(Note: `<A>..<B>` includes commits reachable from `B` excluding `A`. Specifying `<PRE_RELEASE_SHA>..<RELEASE_HEAD_SHA>` correctly captures every release commit and reverts them in reverse order. Review the exact commit list via `git log --oneline <PRE_RELEASE_SHA>..<RELEASE_HEAD_SHA>` before executing. If the released range contains merge commits, do not prescribe a generic range; identify each commit and its verified mainline parent explicitly).*
   Merge the approved revert PR to trigger redeployment of the prior code.
 
 ### Step 2: Environment Variable Reversion
