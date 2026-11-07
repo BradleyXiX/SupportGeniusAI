@@ -4,6 +4,7 @@
 - **Branch**: `feature/safe-support-foundation`
 - **Base SHA**: `03886d2`
 - **Prior HEAD**: `f24ad5845264233fe73874341bdf4b513f78e60f`
+- **B5 Commit HEAD**: `f263aab4d7258f39da991691a2158bf78a37da3c`
 - **Status**: Complete. Client console securely connects to server-owned anonymous cookie sessions and capability descriptors with zero browser storage tokens, resilient bootstrap gates, mode disclosure, disabled-during-pending reset lifecycle, and robust 401/409 handling.
 
 ## Scope Implemented & Guardrails Enforced
