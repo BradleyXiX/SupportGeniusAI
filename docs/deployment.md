@@ -49,20 +49,26 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ## 4. Production HTTPS & Reverse Proxy Topology
 
-SupportGeniusAI is designed to run behind a TLS-terminating reverse proxy (such as Render, Cloudflare, AWS ALB, or Nginx).
+SupportGeniusAI is designed to run behind a single TLS-terminating reverse proxy (such as Render, Cloudflare, AWS ALB, or Nginx).
 
 ```
 [Browser Client]
        │
        ▼ (HTTPS :443)
-[TLS Reverse Proxy / CDN]  <-- Terminates SSL, injects X-Forwarded-Proto: https
+[Single Trusted TLS Proxy]  <-- Terminates TLS, sanitizes & replaces X-Forwarded-* headers
        │
-       ▼ (HTTP :10000 / loopback)
+       ▼ (HTTP :10000 / loopback / private network)
 [Express Server (trust proxy: 1)]
 ```
 
+### Supported Topology Requirements (`trust proxy: 1`):
+1. **Exactly One Trusted Hop**: The application configures `app.set("trust proxy", 1)`. This setting strictly assumes **exactly one trusted reverse proxy** sits directly between the public client and the Node.js application process.
+2. **Restricted Backend Ingress**: Backend ingress must be restricted solely to the trusted proxy. The backend application port (e.g., `:3000` or `:10000`) must **not** be publicly reachable or exposed directly to the internet; direct client bypass would allow spoofed `X-Forwarded-For` or `X-Forwarded-Proto` headers to bypass rate limits or TLS detection.
+3. **Header Sanitization**: The trusted fronting proxy must sanitize and replace incoming `X-Forwarded-*` headers (`X-Forwarded-Proto`, `X-Forwarded-For`, `X-Forwarded-Host`) before relaying requests to Express.
+4. **Arbitrary Proxy Chains Unsupported**: Multi-tier architectures (e.g., Cloudflare CDN -> intermediate load balancer -> egress proxy -> app) or arbitrary proxy chains do **not** automatically satisfy `trust proxy: 1` unless intermediate hops are consolidated, strip untrusted headers, or Express trust configuration is explicitly tailored to the specific CIDR network.
+
 ### Key Network & Security Settings:
-1. **Trust Proxy**: The Express app configures `app.set("trust proxy", 1)`, trusting exactly one hop of upstream reverse proxy so that `req.secure` correctly identifies HTTPS connections and `req.ip` correctly resolves client IPs for rate limiting.
+1. **TLS & Rate Limiting Detection**: With `trust proxy: 1`, Express inspects the single proxy hop so that `req.secure` correctly identifies HTTPS connections and `req.ip` correctly resolves client IPs for rate limiting.
 2. **Cookie Security**:
    - `HttpOnly: true`: Completely prevents JavaScript access to session tokens.
    - `SameSite: "Strict"`: Blocks cookies from being sent on cross-site requests.
@@ -122,7 +128,27 @@ When configuring a Web Service on Render:
    - `SESSION_SECRET`: `<generated-32-char-hex-secret>`
    - `OPENAI_API_KEY` or `GEMINI_API_KEY`: `<your-llm-provider-api-key>` (if in `support` mode)
    - `PORT`: `10000` (Render default)
-6. **Health Check Path**: `/health` (returns HTTP 200 with JSON metrics when vector store is initialized).
+6. **Health Check Path**: `/health` (strictly a container liveness/status endpoint; returns HTTP 200 with process uptime and memory metrics).
+
+### 6.3 Staging Smoke Check for Knowledge Availability
+The `GET /health` endpoint confirms HTTP process liveness and that the vector store structure is initialized in memory, but it does **not** prove that custom knowledge documents are accurate, that upstream LLM providers are reachable, or that model answers are usable.
+
+Before promoting any build to production, perform an explicit staging smoke test:
+1. **Liveness & Chunk Verification**:
+   ```bash
+   curl -s https://<staging-app>.onrender.com/health | jq .
+   # Verify: status === "healthy", environment === "production", vectorStore.isInitialized === true, vectorStore.chunksCount > 0
+   ```
+2. **Capability Contract Check**:
+   ```bash
+   curl -s https://<staging-app>.onrender.com/capabilities | jq .
+   # Verify: mode matches configured APP_MODE, actionsEnabled === false, sessionRequired === true
+   ```
+3. **End-to-End Query Verification**:
+   - Open `/console/` in a browser.
+   - Verify connection beacon turns green and initial welcome loads.
+   - Send a domain question covered by `server/data/docs/` (e.g., "What is your return policy?").
+   - Confirm that the assistant provides a grounded, non-empty response, that inference latency is reasonable, and that no 502/504 errors appear in the browser console.
 
 ---
 
@@ -135,3 +161,4 @@ The following capabilities are deliberately out of scope for the Safe Support Fo
 - **Distributed Session Clustering**: Redis/Valkey session adapters.
 - **Live Action Execution**: External order lookup, CRM syncing, or calendar booking webhooks.
 - **Dynamic Knowledge Sync**: Ingesting live Google Drive or Confluence documents.
+

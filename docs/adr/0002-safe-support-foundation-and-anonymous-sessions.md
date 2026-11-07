@@ -108,8 +108,17 @@ flowchart TD
 ### 4.5 Exact Origin Validation & Reverse Proxy Trust Topology
 - State-mutating endpoints (`POST /chat`, `POST /session`) enforce that `req.headers.origin` strictly matches `PUBLIC_ORIGIN`.
 - Missing or mismatched origins are rejected with `403 Forbidden (INVALID_ORIGIN)`.
-- Behind reverse proxies (e.g., Render, Cloudflare, Nginx), `app.set("trust proxy", 1)` enables accurate `req.secure` inspection for HTTPS enforcement.
 - When `NODE_ENV === "production"`, `PUBLIC_ORIGIN` must use the `https://` protocol scheme.
+- **Supported Proxy Topology (`trust proxy: 1`)**:
+  - Express is configured with `app.set("trust proxy", 1)`, which strictly assumes **exactly one trusted proxy** sits between the client and the application.
+  - Backend application ingress must be restricted solely to that trusted proxy; backend ports must not be directly reachable by public traffic.
+  - The fronting proxy must sanitize and replace incoming `X-Forwarded-For` and `X-Forwarded-Proto` headers.
+  - Arbitrary multi-proxy chains (e.g., edge CDN -> load balancer -> egress proxy) or exposed backend ports do not satisfy this topology and risk header spoofing or incorrect TLS/IP detection unless explicitly consolidated.
+
+### 4.6 Container Liveness Probe vs Knowledge Verification
+- The `GET /health` endpoint is strictly an unauthenticated container liveness and status probe returning HTTP 200 with uptime, memory consumption, and vector store memory stats.
+- `GET /health` does **not** evaluate upstream provider availability, document accuracy, or answer quality.
+- Operators must perform an explicit staging smoke test (e.g., submitting a known domain question through `/console/`) to verify real provider connectivity and knowledge retrieval prior to production release.
 
 ---
 
@@ -142,3 +151,4 @@ The following capabilities are deliberately excluded from this foundation phase 
 - [Safe Support Foundation Specification](../superpowers/specs/2026-11-07-safe-support-foundation-design.md)
 - [Safe Support Foundation Plan](../superpowers/plans/2026-11-07-safe-support-foundation.md)
 - [RFC 7807: Problem Details for HTTP APIs](https://datatracker.ietf.org/doc/html/rfc7807)
+

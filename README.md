@@ -120,7 +120,7 @@ npm run test:browser
 - **Architecture Decision Records**:
   - [ADR 0001: Enterprise Hardening](docs/adr/0001-ecc-production-hardening-architecture.md) (RFC 7807, XML Prompt Boundaries, FinOps)
   - [ADR 0002: Safe Support Foundation](docs/adr/0002-safe-support-foundation-and-anonymous-sessions.md) (Anonymous Cookie Sessions, Action Guardrails, Dual Operational Modes)
-- **Health Check Probe**: `GET /health` returns JSON uptime, vector store readiness, and memory metrics for container orchestrators.
+- **Health Check Probe**: `GET /health` provides a container liveness/status endpoint returning process uptime and vector store in-memory status (staging smoke check in [docs/deployment.md](docs/deployment.md) verifies end-to-end knowledge and provider availability).
 
 ## 🛣️ Roadmap / Future Enhancements
 
