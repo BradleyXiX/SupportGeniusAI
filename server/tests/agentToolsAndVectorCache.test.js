@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import http from "http";
 import fs from "fs";
+import * as embeddingsService from "../services/embeddings.js";
 import {
   checkOrderStatus,
   updateAddress,
@@ -101,9 +102,13 @@ describe("Agent Tools & CLIENT_WEBHOOK_URL Integration", () => {
   });
 });
 
-describe("VectorStore Caching & Sub-50ms Initialization", () => {
+describe("VectorStore Caching & Deterministic Chunk Reuse", () => {
   beforeEach(() => {
     clearStore();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("computes reproducible SHA-256 hash for document chunks", () => {
@@ -115,17 +120,36 @@ describe("VectorStore Caching & Sub-50ms Initialization", () => {
     expect(hash1).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it("has vector_cache.json persisted and loads into memory in <50ms", async () => {
+  it("has vector_cache.json persisted and reuses cached embeddings with zero re-embedding calls", async () => {
     expect(fs.existsSync(CACHE_FILE)).toBe(true);
 
-    const start = performance.now();
+    const embeddingSpy = vi.spyOn(embeddingsService, "getEmbedding");
+
     await initializeStore();
-    const elapsed = performance.now() - start;
 
     const stats = getVectorStoreStats();
     expect(stats.isInitialized).toBe(true);
     expect(stats.chunksCount).toBeGreaterThan(0);
-    expect(elapsed).toBeLessThan(50);
+    expect(embeddingSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it("invokes getEmbedding only for uncached chunks when cache has misses", async () => {
+    const embeddingSpy = vi.spyOn(embeddingsService, "getEmbedding").mockResolvedValue([0.01, 0.02, 0.03]);
+    const originalReadFileSync = fs.readFileSync;
+    vi.spyOn(fs, "readFileSync").mockImplementation((filePath, options) => {
+      if (String(filePath).includes("vector_cache.json")) {
+        return "{}";
+      }
+      return originalReadFileSync(filePath, options);
+    });
+    vi.spyOn(fs, "writeFileSync").mockImplementation(() => {});
+
+    await initializeStore();
+
+    const stats = getVectorStoreStats();
+    expect(stats.isInitialized).toBe(true);
+    expect(stats.chunksCount).toBeGreaterThan(0);
+    expect(embeddingSpy).toHaveBeenCalledTimes(stats.chunksCount);
   });
 });
 

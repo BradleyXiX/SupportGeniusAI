@@ -87,11 +87,11 @@ support-genius/
 3. **Configure Environment Variables:**
    ```bash
    cp .env.example .env
-   # Edit .env with your optional OPENAI_API_KEY or GEMINI_API_KEY
+   # Edit .env with your SESSION_SECRET (min 32 chars), PUBLIC_ORIGIN, and optional LLM keys
    ```
 
 4. **Add your knowledge base:**
-   Place your support documents (`.txt` or `.md`) into the `server/data/docs/` directory. The RAG system will index and chunk these files at boot.
+   Place your support documents (`.txt` or `.md`) into the `server/data/docs/` directory. The RAG system will index and chunk these files at boot, reusing cached embeddings from `server/data/vector_cache.json`.
 
 ### Running the Application
 
@@ -115,7 +115,11 @@ npm test
 npm run test:browser
 ```
 
-### Health & Monitoring
+### Health, Operations & Architecture
+- **Operational Deployment Guide**: See [docs/deployment.md](docs/deployment.md) for full configuration, Render setup, reverse proxy topology, and single-process in-memory store limits.
+- **Architecture Decision Records**:
+  - [ADR 0001: Enterprise Hardening](docs/adr/0001-ecc-production-hardening-architecture.md) (RFC 7807, XML Prompt Boundaries, FinOps)
+  - [ADR 0002: Safe Support Foundation](docs/adr/0002-safe-support-foundation-and-anonymous-sessions.md) (Anonymous Cookie Sessions, Action Guardrails, Dual Operational Modes)
 - **Health Check Probe**: `GET /health` returns JSON uptime, vector store readiness, and memory metrics for container orchestrators.
 
 ## 🛣️ Roadmap / Future Enhancements
