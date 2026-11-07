@@ -57,8 +57,8 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
       return res.status(err.status).json(err.toJSON());
     }
 
-    const safeErrorName = typeof err?.name === "string" && /^[A-Za-z0-9_]+$/.test(err.name) ? err.name : "Error";
-    console.error(`[UNHANDLED_CHAT_ERROR] id=${correlationId} errorType=${safeErrorName}`);
+    const safeErrorType = "UNEXPECTED";
+    console.error(`[UNHANDLED_CHAT_ERROR] id=${correlationId} errorType=${safeErrorType}`);
     const fallbackProblem = new ProblemError({
       type: "https://supportgenius.ai/errors/chat-processing-failed",
       title: "Chat Processing Error",

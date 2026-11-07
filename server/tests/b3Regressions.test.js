@@ -212,6 +212,59 @@ describe("Task B3 Corrections: Nonempty Model Text, Valid Vectors & Safe Logging
       expect(allLogText).not.toContain("Database failure connecting");
     });
 
+    it("chat route rejects alphanumeric/long custom error names and ignores x-request-id headers", async () => {
+      const CUSTOM_ERR_NAME = "SecretAlphaNumericName12345";
+      const LONG_ERR_NAME = "VeryLongCustomErrorName".repeat(25);
+      const UNTRUSTED_HEADER_ID = "untrusted-client-header-id-with-secret-ssn";
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const agentService = await import("../services/agent.js");
+      const customErr = new Error("Something broke");
+      customErr.name = CUSTOM_ERR_NAME;
+      vi.spyOn(agentService, "handleChat").mockRejectedValue(customErr);
+
+      const res = await request(app)
+        .post("/chat")
+        .set("x-request-id", UNTRUSTED_HEADER_ID)
+        .send({
+          message: "My query",
+          sessionId: "sess_custom_err_test"
+        });
+
+      expect(res.status).toBe(500);
+      expect(res.body.title).toBe("Chat Processing Error");
+      expect(res.body.correlationId).not.toBe(UNTRUSTED_HEADER_ID);
+      expect(res.body.correlationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+
+      const bodyStr = JSON.stringify(res.body);
+      expect(bodyStr).not.toContain(CUSTOM_ERR_NAME);
+      expect(bodyStr).not.toContain(UNTRUSTED_HEADER_ID);
+
+      const allLogText = consoleErrorSpy.mock.calls.map((args) => args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")).join("\n");
+      expect(allLogText).not.toContain(CUSTOM_ERR_NAME);
+      expect(allLogText).not.toContain(UNTRUSTED_HEADER_ID);
+      expect(allLogText).toContain("errorType=UNEXPECTED");
+
+      // Also test with very long custom name
+      consoleErrorSpy.mockClear();
+      const longErr = new Error("Another crash");
+      longErr.name = LONG_ERR_NAME;
+      vi.spyOn(agentService, "handleChat").mockRejectedValue(longErr);
+
+      const res2 = await request(app)
+        .post("/chat")
+        .set("x-request-id", UNTRUSTED_HEADER_ID)
+        .send({
+          message: "Query 2",
+          sessionId: "sess_long_err_test"
+        });
+
+      expect(res2.status).toBe(500);
+      const allLogText2 = consoleErrorSpy.mock.calls.map((args) => args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")).join("\n");
+      expect(allLogText2).not.toContain(LONG_ERR_NAME);
+      expect(allLogText2).toContain("errorType=UNEXPECTED");
+    });
+
     it("global unhandled error handler in server/index.js does not log raw err object or sentinels", async () => {
       const GLOBAL_SECRET = "global-secret-key-sentinel-8888";
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -242,6 +295,56 @@ describe("Task B3 Corrections: Nonempty Model Text, Valid Vectors & Safe Logging
       const allLogText = consoleErrorSpy.mock.calls.map((args) => args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")).join("\n");
       expect(allLogText).not.toContain(GLOBAL_SECRET);
       expect(allLogText).not.toContain("Global middleware crash");
+    });
+
+    it("global unhandled error handler generates server UUID and ignores x-request-id and custom error names", async () => {
+      const CUSTOM_ERR_NAME = "GlobalAlphanumericSentinel123";
+      const LONG_ERR_NAME = "VeryLongGlobalCustomName".repeat(25);
+      const UNTRUSTED_HEADER_ID = "untrusted-global-header-token-secret-999";
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const errorHandlerLayer = app._router.stack.find((layer) => layer.handle && layer.handle.length === 4);
+      expect(errorHandlerLayer).toBeDefined();
+
+      const customErr = new Error("Global failure");
+      customErr.name = CUSTOM_ERR_NAME;
+
+      const mockReq = {
+        originalUrl: "/test-error",
+        url: "/test-error",
+        headers: { "x-request-id": UNTRUSTED_HEADER_ID }
+      };
+      let sentStatus = null;
+      let sentBody = null;
+      const mockRes = {
+        status(s) { sentStatus = s; return this; },
+        json(b) { sentBody = b; return this; }
+      };
+
+      errorHandlerLayer.handle(customErr, mockReq, mockRes, () => {});
+
+      expect(sentStatus).toBe(500);
+      expect(sentBody.correlationId).not.toBe(UNTRUSTED_HEADER_ID);
+      expect(sentBody.correlationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+
+      const bodyStr = JSON.stringify(sentBody);
+      expect(bodyStr).not.toContain(CUSTOM_ERR_NAME);
+      expect(bodyStr).not.toContain(UNTRUSTED_HEADER_ID);
+
+      const allLogText = consoleErrorSpy.mock.calls.map((args) => args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")).join("\n");
+      expect(allLogText).not.toContain(CUSTOM_ERR_NAME);
+      expect(allLogText).not.toContain(UNTRUSTED_HEADER_ID);
+      expect(allLogText).toContain("errorType=UNEXPECTED");
+
+      // Test with long error name
+      consoleErrorSpy.mockClear();
+      const longErr = new Error("Global failure 2");
+      longErr.name = LONG_ERR_NAME;
+
+      errorHandlerLayer.handle(longErr, mockReq, mockRes, () => {});
+      const allLogText2 = consoleErrorSpy.mock.calls.map((args) => args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")).join("\n");
+      expect(allLogText2).not.toContain(LONG_ERR_NAME);
+      expect(allLogText2).toContain("errorType=UNEXPECTED");
     });
   });
 });
