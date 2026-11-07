@@ -977,5 +977,379 @@ describe("Task B4: Server-Owned Anonymous Sessions & Origin Enforcement", () => 
         await testCleanup();
       }
     });
+
+    it("Combined Schedule: delayed middleware + prior commit + eviction + provider 502 error returns 502 without resurrecting evicted session or emitting Set-Cookie", async () => {
+      const testStore = createSessionStore();
+      const { app: testApp, cleanup: testCleanup } = createApp({ sessionStore: testStore });
+
+      try {
+        // Step 1: Bootstrap session
+        const initRes = await request(testApp)
+          .post("/session")
+          .set("Origin", TEST_ORIGIN)
+          .send({});
+        const cookie = initRes.headers["set-cookie"][0];
+        const sid = cookie.split(";")[0].split("=")[1].split(".")[0].replace(/^s%3A/, "");
+
+        // Step 2: Set up Chat A
+        let chatAStartedResolve;
+        const chatAStarted = new Promise((resolve) => {
+          chatAStartedResolve = resolve;
+        });
+        let resolveChatA;
+        const chatAPromise = new Promise((resolve) => {
+          resolveChatA = resolve;
+        });
+
+        let chatBStartedResolve;
+        const chatBStarted = new Promise((resolve) => {
+          chatBStartedResolve = resolve;
+        });
+        let rejectChatB;
+        const chatBPromise = new Promise((resolve, reject) => {
+          rejectChatB = reject;
+        });
+
+        let callCount = 0;
+        vi.spyOn(agentModule, "handleChat").mockImplementation(async (msg, opts) => {
+          callCount++;
+          if (callCount === 1) {
+            chatAStartedResolve();
+            await chatAPromise;
+            return {
+              reply: "Reply A",
+              history: [...opts.history, { role: "user", content: msg }, { role: "assistant", content: "Reply A" }],
+              metrics: { ...opts.metrics, promptTokens: 10, completionTokens: 20, cost: 0.005 }
+            };
+          } else {
+            chatBStartedResolve();
+            await chatBPromise;
+            return { reply: "Never returned", history: [], metrics: {} };
+          }
+        });
+
+        // Start Chat A
+        const reqChatAPromise = new Promise((resolve, reject) => {
+          request(testApp)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookie)
+            .send({ message: "Turn A" })
+            .end((err, res) => {
+              if (err) reject(err);
+              else resolve(res);
+            });
+        });
+
+        await chatAStarted;
+
+        // Wrap store.get to delay Chat B's session middleware callback
+        const originalGet = testStore.get.bind(testStore);
+        let holdBStoreGetResolve;
+        const holdBStoreGet = new Promise((resolve) => {
+          holdBStoreGetResolve = resolve;
+        });
+        let bGetInterceptedResolve;
+        const bGetIntercepted = new Promise((resolve) => {
+          bGetInterceptedResolve = resolve;
+        });
+
+        let bGetCallCount = 0;
+        vi.spyOn(testStore, "get").mockImplementation((id, cb) => {
+          bGetCallCount++;
+          if (bGetCallCount === 1) {
+            // Chat B's session middleware store.get
+            originalGet(id, async (err, sess) => {
+              bGetInterceptedResolve();
+              await holdBStoreGet; // Hold until Chat A commits
+              cb(err, sess); // Pass stale snapshot
+            });
+          } else {
+            originalGet(id, cb);
+          }
+        });
+
+        // Dispatch Chat B
+        const reqChatBPromise = new Promise((resolve, reject) => {
+          request(testApp)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookie)
+            .send({ message: "Turn B" })
+            .end((err, res) => {
+              if (err) reject(err);
+              else resolve(res);
+            });
+        });
+
+        await bGetIntercepted;
+
+        // Chat A completes
+        resolveChatA();
+        const resChatA = await reqChatAPromise;
+        expect(resChatA.status).toBe(200);
+
+        // Release Chat B's delayed store.get callback
+        holdBStoreGetResolve();
+
+        // Wait until Chat B enters handleChat
+        await chatBStarted;
+
+        // While Chat B is pending inside handleChat:
+        // Evict/destroy the session from the store!
+        await new Promise((resolve) => testStore.destroy(sid, resolve));
+
+        // Verify the session is currently destroyed in the store
+        const sessionDuringEviction = await new Promise((resolve) => originalGet(sid, (err, s) => resolve(s)));
+        expect(sessionDuringEviction).toBeFalsy();
+
+        // Now make provider fail with UpstreamError(kind='connection')
+        const { UpstreamError } = await import("../utils/upstream.js");
+        rejectChatB(new UpstreamError({
+          kind: "connection",
+          providerLabel: "ollama",
+          durationMs: 50,
+          status: null
+        }));
+
+        const resChatB = await reqChatBPromise;
+
+        // Chat B must return 502 PROVIDER_UNAVAILABLE
+        expect(resChatB.status).toBe(502);
+        expect(resChatB.body.code).toBe("PROVIDER_UNAVAILABLE");
+
+        // Set-Cookie must NOT be emitted on failed request
+        expect(resChatB.headers["set-cookie"]).toBeUndefined();
+
+        // Crucial: The evicted session must NOT have been resurrected in the store by response-end auto-save!
+        const sessionAfterFailure = await new Promise((resolve) => originalGet(sid, (err, s) => resolve(s)));
+        expect(sessionAfterFailure).toBeFalsy();
+      } finally {
+        await testCleanup();
+      }
+    });
+
+    describe("11. Compact Error Persistence Matrix", () => {
+      it("valid-state failure (provider 502, 504, 500) preserves existing committed store state without emitting Set-Cookie", async () => {
+        const testStore = createSessionStore();
+        const { app: testApp, cleanup: testCleanup } = createApp({ sessionStore: testStore });
+
+        try {
+          const initRes = await request(testApp)
+            .post("/session")
+            .set("Origin", TEST_ORIGIN)
+            .send({});
+          const cookie = initRes.headers["set-cookie"][0];
+          const sid = cookie.split(";")[0].split("=")[1].split(".")[0].replace(/^s%3A/, "");
+
+          // Complete Turn 1
+          vi.spyOn(agentModule, "handleChat").mockResolvedValueOnce({
+            reply: "First reply",
+            history: [{ role: "user", content: "Hi" }, { role: "assistant", content: "First reply" }],
+            metrics: { ...createUsageMetrics(), cost: 0.002 }
+          });
+
+          const turn1 = await request(testApp)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookie)
+            .send({ message: "Hi" });
+          expect(turn1.status).toBe(200);
+
+          const { UpstreamError } = await import("../utils/upstream.js");
+
+          // Test Case 1: Upstream 502
+          vi.spyOn(agentModule, "handleChat").mockRejectedValueOnce(
+            new UpstreamError({ kind: "connection", providerLabel: "openai", durationMs: 40 })
+          );
+
+          const err502Res = await request(testApp)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookie)
+            .send({ message: "Fail 502" });
+
+          expect(err502Res.status).toBe(502);
+          expect(err502Res.headers["set-cookie"]).toBeUndefined();
+
+          // Existing committed store state must remain unchanged!
+          let storeEntry = await new Promise((resolve) => testStore.get(sid, (err, s) => resolve(s)));
+          expect(storeEntry.history.length).toBe(2);
+          expect(storeEntry.revision).toBe(2);
+          expect(storeEntry.metrics.cost).toBe(0.002);
+
+          // Test Case 2: Upstream 504 timeout
+          vi.spyOn(agentModule, "handleChat").mockRejectedValueOnce(
+            new UpstreamError({ kind: "timeout", providerLabel: "gemini", durationMs: 20000 })
+          );
+
+          const err504Res = await request(testApp)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookie)
+            .send({ message: "Fail 504" });
+
+          expect(err504Res.status).toBe(504);
+          expect(err504Res.headers["set-cookie"]).toBeUndefined();
+
+          storeEntry = await new Promise((resolve) => testStore.get(sid, (err, s) => resolve(s)));
+          expect(storeEntry.history.length).toBe(2);
+          expect(storeEntry.revision).toBe(2);
+
+          // Test Case 3: Unexpected 500 error
+          vi.spyOn(agentModule, "handleChat").mockRejectedValueOnce(new Error("Unexpected crash"));
+
+          const err500Res = await request(testApp)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookie)
+            .send({ message: "Fail 500" });
+
+          expect(err500Res.status).toBe(500);
+          expect(err500Res.headers["set-cookie"]).toBeUndefined();
+
+          storeEntry = await new Promise((resolve) => testStore.get(sid, (err, s) => resolve(s)));
+          expect(storeEntry.history.length).toBe(2);
+          expect(storeEntry.revision).toBe(2);
+        } finally {
+          await testCleanup();
+        }
+      });
+
+      it("fresh middleware snapshot with mid-flight eviction on provider failure performs ZERO store.set operations and never resurrects", async () => {
+        const testStore = createSessionStore();
+        const { app: testApp, cleanup: testCleanup } = createApp({ sessionStore: testStore });
+
+        try {
+          const initRes = await request(testApp)
+            .post("/session")
+            .set("Origin", TEST_ORIGIN)
+            .send({});
+          const cookie = initRes.headers["set-cookie"][0];
+          const sid = cookie.split(";")[0].split("=")[1].split(".")[0].replace(/^s%3A/, "");
+
+          let chatStartedResolve;
+          const chatStarted = new Promise((resolve) => {
+            chatStartedResolve = resolve;
+          });
+          let failChatResolve;
+          const failChat = new Promise((resolve, reject) => {
+            failChatResolve = reject;
+          });
+
+          const { UpstreamError } = await import("../utils/upstream.js");
+          vi.spyOn(agentModule, "handleChat").mockImplementation(async () => {
+            chatStartedResolve();
+            await failChat;
+          });
+
+          const chatReq = new Promise((resolve, reject) => {
+            request(testApp)
+              .post("/chat")
+              .set("Origin", TEST_ORIGIN)
+              .set("Cookie", cookie)
+              .send({ message: "Hello" })
+              .end((err, res) => {
+                if (err) reject(err);
+                else resolve(res);
+              });
+          });
+
+          await chatStarted;
+
+          // Destroy session while provider call is pending
+          await new Promise((resolve) => testStore.destroy(sid, resolve));
+
+          // Spy on store.set to guarantee ZERO set calls on response end
+          const setSpy = vi.spyOn(testStore, "set");
+
+          // Fail provider with 502
+          failChatResolve(new UpstreamError({ kind: "connection", providerLabel: "openai", durationMs: 10 }));
+
+          const res = await chatReq;
+          expect(res.status).toBe(502);
+          expect(res.headers["set-cookie"]).toBeUndefined();
+
+          // Assert store.set was NOT called by express-session auto-save!
+          expect(setSpy).not.toHaveBeenCalled();
+
+          // Session remains destroyed
+          const check = await new Promise((resolve) => testStore.get(sid, (err, s) => resolve(s)));
+          expect(check).toBeFalsy();
+        } finally {
+          await testCleanup();
+        }
+      });
+
+      it("revision changed mid-flight returns 401, performs zero store.set operations, and preserves newer revision", async () => {
+        const testStore = createSessionStore();
+        const { app: testApp, cleanup: testCleanup } = createApp({ sessionStore: testStore });
+
+        try {
+          const initRes = await request(testApp)
+            .post("/session")
+            .set("Origin", TEST_ORIGIN)
+            .send({});
+          const cookie = initRes.headers["set-cookie"][0];
+          const sid = cookie.split(";")[0].split("=")[1].split(".")[0].replace(/^s%3A/, "");
+
+          let chatStartedResolve;
+          const chatStarted = new Promise((resolve) => {
+            chatStartedResolve = resolve;
+          });
+          let finishChatResolve;
+          const finishChat = new Promise((resolve) => {
+            finishChatResolve = resolve;
+          });
+
+          vi.spyOn(agentModule, "handleChat").mockImplementation(async (msg, opts) => {
+            chatStartedResolve();
+            await finishChat;
+            return {
+              reply: "Late reply",
+              history: [...opts.history, { role: "user", content: msg }, { role: "assistant", content: "Late reply" }],
+              metrics: createUsageMetrics()
+            };
+          });
+
+          const chatReq = new Promise((resolve, reject) => {
+            request(testApp)
+              .post("/chat")
+              .set("Origin", TEST_ORIGIN)
+              .set("Cookie", cookie)
+              .send({ message: "Hello" })
+              .end((err, res) => {
+                if (err) reject(err);
+                else resolve(res);
+              });
+          });
+
+          await chatStarted;
+
+          // Directly update store revision (simulating mid-flight change)
+          const currentSess = await new Promise((resolve) => testStore.get(sid, (err, s) => resolve(s)));
+          currentSess.revision = 999;
+          await new Promise((resolve) => testStore.set(sid, currentSess, resolve));
+
+          const setSpy = vi.spyOn(testStore, "set");
+
+          finishChatResolve();
+          const res = await chatReq;
+
+          expect(res.status).toBe(401);
+          expect(res.body.code).toBe("SESSION_REQUIRED");
+          expect(res.headers["set-cookie"]).toBeUndefined();
+
+          // store.set was not called on response completion
+          expect(setSpy).not.toHaveBeenCalled();
+
+          // Revision in store was not overwritten
+          const finalSess = await new Promise((resolve) => testStore.get(sid, (err, s) => resolve(s)));
+          expect(finalSess.revision).toBe(999);
+        } finally {
+          await testCleanup();
+        }
+      });
+    });
   });
 });

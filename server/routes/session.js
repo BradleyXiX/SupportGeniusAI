@@ -21,6 +21,7 @@ router.post("/", async (req, res, next) => {
     if (req.session && req.session.initialized) {
       acquiredLease = tryAcquireSessionLock(req.session.id, req.sessionStore);
       if (!acquiredLease) {
+        suppressAutoSaveAndCookie(req, res);
         const problem = sessionBusyError(req.originalUrl || "/session");
         return res.status(409).json(problem.toJSON());
       }

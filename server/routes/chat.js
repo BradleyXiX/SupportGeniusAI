@@ -43,6 +43,7 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
   // Enforce single-flight concurrency: immediate 409 SESSION_BUSY
   const lockLease = tryAcquireSessionLock(sessionId, req.sessionStore);
   if (!lockLease) {
+    suppressAutoSaveAndCookie(req, res);
     const problem = sessionBusyError(req.originalUrl || "/chat");
     return res.status(problem.status).json(problem.toJSON());
   }
@@ -62,19 +63,15 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
       return res.status(401).json(problem.toJSON());
     }
 
-    // Hydrate working context and req.session from the SAME fresh store snapshot under acquired ownership
+    // Hydrate working context from the SAME fresh store snapshot under acquired ownership.
+    // Keep expected revision, working history, and working metrics detached from req.session during retrieval/generation.
     const expectedRevision = initialEntry.revision || 1;
     const workingHistory = Array.isArray(initialEntry.history)
       ? [...initialEntry.history]
       : [];
     const workingMetrics = initialEntry.metrics
-      ? { ...initialEntry.metrics }
+      ? JSON.parse(JSON.stringify(initialEntry.metrics))
       : createUsageMetrics();
-
-    // Synchronize req.session with fresh store snapshot so it never contains stale middleware payload
-    req.session.revision = expectedRevision;
-    req.session.history = workingHistory;
-    req.session.metrics = workingMetrics;
 
     const mode = process.env.APP_MODE || env.APP_MODE || "support";
 
@@ -96,10 +93,10 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
       return res.status(401).json(problem.toJSON());
     }
 
-    // Commit to session payload
+    // Commit to session payload ONLY after the live-store/revision check, immediately before explicit persistence
     req.session.history = response.history;
     req.session.metrics = response.metrics;
-    req.session.revision = (expectedRevision || 1) + 1;
+    req.session.revision = expectedRevision + 1;
     req.session.touch();
 
     try {
@@ -116,6 +113,9 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
       cost: Number(costNum).toFixed(4)
     });
   } catch (err) {
+    // Prevent response-end automatic persistence and Set-Cookie on EVERY unsuccessful route exit
+    suppressAutoSaveAndCookie(req, res);
+
     if (err instanceof UpstreamError) {
       console.error(
         `[UPSTREAM_ERROR] id=${correlationId} kind=${err.kind} provider=${err.providerLabel} duration=${err.durationMs}ms status=${err.status ?? "N/A"}`
