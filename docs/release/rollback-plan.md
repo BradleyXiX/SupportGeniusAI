@@ -3,21 +3,21 @@
 - **Target Service**: SupportGeniusAI
 - **Current Branch**: `feature/safe-support-foundation`
 - **Release Target**: Production / Staging Promotion
+- **Security Policy**: Secret values must never be stored in git, receipts, logs, or chat. Environment backups must use an approved private secret-management mechanism (e.g., Doppler, 1Password, or secure platform environment manager) storing references and variable names only.
 
 ---
 
 ## 1. Baseline & Currently Deployed Revision
 
-- **Currently Deployed Production Revision**: **UNKNOWN** (The active production commit deployed on Render cannot be verified locally without access to the live Render dashboard or deployment API).
-- **Locally Recorded Remote Reference (`origin/main`)**: `9b500e2f7e4b07329a4b7e5873ebd22c5bfa239c` (Note: This is a locally recorded git ref and does not guarantee this specific SHA is the active live deployment).
+- **Currently Deployed Production Revision**: **UNKNOWN** (The active production commit deployed on Render cannot be verified locally without read-only access to the live Render dashboard or deployment API).
+- **Locally Recorded Remote Reference (`origin/main`)**: `9b500e2f7e4b07329a4b7e5873ebd22c5bfa239c` (Distinguished as a local git reference; not verified against fresh remote hosting state).
 
-### 1.1 Pre-Release Operator Action: Record Live Deployment
-Before initiating any deployment or merge, the operator **must manually verify and record** the currently running commit:
+### 1.1 Pre-Release Operator Action: Record Live Deployment & Environment Reference
+Before initiating any deployment or merge, the operator **must manually verify and record** the currently running state:
 1. Open the hosting dashboard (e.g., [dashboard.render.com](https://dashboard.render.com)).
-2. Navigate to the `supportgenius-ai` Web Service -> **Events** / **Deploys** tab.
-3. Identify the currently active deploy marked with `Live`.
-4. Record the full commit SHA (e.g., `DEPLOYED_PRE_RELEASE_SHA = <commit-hash>`).
-5. Record all current Environment Variables from the Render **Environment** tab before modifying any variables.
+2. Inspect the connected service's tracked branch, automatic/preview deployment settings, and currently active deploy marked `Live`.
+3. Record the full immutable commit SHA (e.g., `DEPLOYED_PRE_RELEASE_SHA = <commit-hash>`).
+4. Securely record all active Environment Variable **names** and securely store their values in an approved private secret manager (e.g., 1Password, Doppler, or secure vault). Never paste actual secret values into git commits, receipts, logs, or chat.
 
 ---
 
@@ -34,40 +34,52 @@ Initiate rollback immediately if any of the following occur post-deployment:
 
 ## 3. Rollback Procedure
 
-### Step 1: Code Reversion / Redeployment in Dashboard
-Depending on hosting capabilities:
-- **Option A (Manual Redeploy from Render Dashboard)**:
-  1. In the Render Web Service dashboard, go to the **Deploys** tab.
-  2. Locate the prior stable deployment identified in Section 1 (`DEPLOYED_PRE_RELEASE_SHA`).
-  3. Click the actions menu (`...`) on that specific deployment and select **Rollback to this deploy** (or **Redeploy this commit**).
+Execution of rollback must be separately authorized. Never attempt to rewrite or reset `main` (`git reset --hard` is strictly prohibited).
+
+### Step 1: Code Reversion / Redeployment
+Prefer platform-managed rollback to the immutable deployment artifact/revision when supported:
+
+- **Option A (Platform Immutable Rollback — Preferred)**:
+  1. In the hosting dashboard, locate the previously verified live deployment (`DEPLOYED_PRE_RELEASE_SHA`).
+  2. Select the platform's redeploy or rollback action for that specific immutable artifact. *(Note: Exact UI button labels and paths are unverified until observed directly in the live hosting interface; verify in dashboard before clicking).*
 - **Option B (Git Reversion via PR)**:
-  1. If hosting uses automatic git deployment tracking `main`, create a revert commit on a clean branch:
-     ```bash
-     git revert -m 1 <MERGE_COMMIT_SHA> -m "revert: rollback Safe Support Foundation release"
-     ```
-  2. Merge the revert commit to trigger redeployment of the prior code.
+  If the platform tracks `main` and requires a new commit to trigger deployment, create a revert commit on a separate branch based on the actual integration method used:
+  - **True Merge**: Revert the merge commit specifying parent 1 (the mainline):
+    ```bash
+    git revert -m 1 <MERGE_COMMIT_SHA>
+    ```
+    *(Note: `-m 1` specifies the mainline parent number; it is not a message flag. To customize the message, use `--no-edit` or supply standard git commit message options).*
+  - **Squash Merge**: A squash merge creates a single regular commit, not a merge commit. Revert it directly without `-m`:
+    ```bash
+    git revert <SQUASH_COMMIT_SHA>
+    ```
+  - **Fast-Forward Merge**: A fast-forward integration creates no merge commit; the individual release commits must be reverted in reverse order:
+    ```bash
+    git revert <OLDEST_RELEASE_COMMIT>..<NEWEST_RELEASE_COMMIT>
+    ```
+  Merge the approved revert PR to trigger redeployment of the prior code.
 
 ### Step 2: Environment Variable Reversion
 > [!IMPORTANT]
-> Rolling back the code commit alone does **NOT** automatically revert environment variables in the hosting dashboard.
+> Reverting code alone does **NOT** automatically revert environment variables in the hosting dashboard.
 
-If environment variables were updated during release:
-1. Review the recorded pre-release environment variables.
-2. If `PUBLIC_ORIGIN`, `APP_MODE`, or `SESSION_SECRET` were modified or introduced, ensure they are compatible with the rolled-back code revision.
-3. If rolling back to a pre-foundation prototype revision that did not recognize `SESSION_SECRET` or required legacy settings, restore the exact prior environment values in the dashboard.
-4. Save changes and trigger a manual redeploy.
+Restoring an earlier prototype revision (e.g., prior to `03886d2` or `9b500e2`) may restore code with different environment expectations (such as older prototype code that did not validate `SESSION_SECRET` or `PUBLIC_ORIGIN`):
+1. Retrieve the pre-release environment configuration from your approved private secret manager.
+2. In the hosting dashboard, adjust environment variables to match the requirements of the restored revision.
+3. Save changes and trigger a manual redeploy if environment changes require a container restart.
 
 ### Step 3: Accounting for Ephemeral Session Invalidation
-- **Session Loss Impact**: Any rollback or container redeployment terminates the in-memory Node.js process and **permanently discards all active session states** in `InMemorySessionStore`.
-- Any customer currently interacting with the console will receive an HTTP `401 Unauthorized` (`SESSION_REQUIRED`) on their subsequent request.
-- The Signal Desk client console is designed to handle this gracefully by prompting the customer to click `New conversation` to re-initialize an anonymous session.
+- Any container redeployment terminates the in-memory Node process, permanently discarding all active session histories in `InMemorySessionStore`.
+- Connected clients will have their sessions invalidated.
 
 ---
 
-## 4. Post-Rollback Verification Checklist
+## 4. Post-Rollback Recovery Verification Checklist
 
-Verify recovery immediately after the rollback deploy is marked `Live`:
+Verify recovery against the **actual rollback revision's documented routes and contracts**, not assuming Safe Support Foundation routes:
 - [ ] **Liveness Probe**: `curl -s https://<service-url>/health` returns HTTP 200 with `status: "healthy"`.
-- [ ] **Console Access**: Open `https://<service-url>/console/` in a clean browser session; verify Signal Desk UI loads without JavaScript errors.
-- [ ] **Query Execution**: Submit a test question; verify response renders and connection beacon indicates operational status.
-- [ ] **Log Inspection**: Inspect container runtime logs; verify absence of unhandled exception crashes or environment validation errors.
+- [ ] **Application Shell Access**:
+  - If rolling back to `design/signal-desk-v1` (`03886d2`): verify `/console/` and `/` load correctly.
+  - If rolling back to pre-redesign prototype (`9b500e2`): verify legacy `/` interface loads (note: `/console/` and `__Host-` cookie sessions do not exist in that prototype).
+- [ ] **Basic Query Flow**: Submit a query appropriate to the restored revision and verify response generation.
+- [ ] **Log Inspection**: Inspect container logs to verify zero startup crashes or unhandled exceptions.

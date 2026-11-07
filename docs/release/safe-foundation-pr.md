@@ -3,7 +3,8 @@
 - **Branch**: `feature/safe-support-foundation`
 - **Target Base**: `main` (stems from `origin/main` at `9b500e2` and preserves full Signal Desk redesign ancestry from `03886d2`)
 - **Base SHA**: `03886d2a64d5bff18ee5be6bd50e9ff75c328bc5` (branch fork from `design/signal-desk-v1`)
-- **Current HEAD SHA**: `895369e46adf9712861b032c8bf3380f9c4bd2cc`
+- **Verified Product Commit**: `4b659bc3ca8ba40562e6d5bfbb67ad10492cb3e5` (116 unit tests, 62 browser tests)
+- **Current Documentation HEAD**: `76d4934e8f773663a8a9a200f507ba8d249f3e0d` (documentation & release plans)
 - **Type**: Security, Architecture & Reliability Hardening
 
 ---
@@ -71,6 +72,7 @@ To prevent misleading claims during handoff, the following boundaries are precis
 
 ## 5. Explicit Operating Limits & Deferred Scope
 
+- **Deployment Policy UNKNOWN**: Live hosting deployment policy cannot be determined from local files. Omission in `render.yaml` does not establish live dashboard configuration. The operator must verify the connected service's tracked branch and auto-deploy settings in the Render dashboard before any publish operation.
 - **Single-Process Constraint**: In-memory session store (500 sessions, 30m TTL, restart loss). Must run as **exactly one process**. Do not scale horizontally without replacing the store with Redis/distributed storage.
 - **Action Disablement**: Mutating customer actions fail closed deterministically in all modes.
 - **Deferred to Subsequent Milestones**:
@@ -79,3 +81,4 @@ To prevent misleading claims during handoff, the following boundaries are precis
   - Persistent SQL/NoSQL chat transcripts.
   - External vector database migration.
   - Live CRM or calendar action integrations.
+
