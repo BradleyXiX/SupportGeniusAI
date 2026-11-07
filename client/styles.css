@@ -1137,6 +1137,13 @@ body[data-page="console"] .suggestion-chip:focus-visible {
   outline-offset: 2px;
 }
 
+body[data-page="console"] .suggestion-chip:disabled,
+body[data-page="console"] .suggestion-chip.chip-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Fixed Composer Form */
 body[data-page="console"] .console-composer {
   padding: 16px 24px;

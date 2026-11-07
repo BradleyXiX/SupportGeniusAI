@@ -1,7 +1,7 @@
 // ==========================================================================
 // SupportGeniusAI Console Controller (Signal Desk)
 // Pure ES Module • Strict CSP Compliant • Safe Rendering & Session State
-// Governed by Task 2 / A2 & B5 Specifications
+// Governed by Task 2 / A2 & B5 Specifications (Corrected Architecture)
 // ==========================================================================
 
 import {
@@ -14,6 +14,7 @@ import {
 import { mountOrb } from "./orb.js";
 
 const REQUEST_TIMEOUT_MS = 45000;
+const SESSION_OP_TIMEOUT_MS = 15000;
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
 
 function generateId(prefix = "id_") {
@@ -21,6 +22,23 @@ function generateId(prefix = "id_") {
     return prefix + crypto.randomUUID().replace(/-/g, "").substring(0, 24);
   }
   return prefix + Math.random().toString(36).substring(2, 11) + "_" + Date.now().toString(36);
+}
+
+/**
+ * Validates the full server capabilities contract.
+ * Requires:
+ * - object with mode === 'support' || mode === 'demo'
+ * - actionsEnabled === false
+ * - sessionRequired === true
+ * @param {any} cap
+ * @returns {boolean}
+ */
+export function isValidCapabilities(cap) {
+  if (!cap || typeof cap !== "object") return false;
+  if (cap.mode !== "support" && cap.mode !== "demo") return false;
+  if (cap.actionsEnabled !== false) return false;
+  if (cap.sessionRequired !== true) return false;
+  return true;
 }
 
 export function initConsole() {
@@ -35,66 +53,30 @@ export function initConsole() {
   const statusText = document.getElementById("connection-status-text");
   const modeBadge = document.getElementById("mode-badge") || document.querySelector(".disclosure-badge");
   const modeText = document.getElementById("mode-text");
+  const suggestionChips = document.querySelectorAll("[data-suggestion], .suggestion-chip");
 
   if (!chatMessages || !inputField) return;
 
-  let state = createChatState();
-  let isSessionInitialized = false;
-  let isResetPending = false;
+  // Single coherent session status state machine:
+  // "uninitialized" | "initializing" | "ready" | "chatPending" | "resetting" | "needsRecovery"
+  let sessionStatus = "uninitialized";
+  let isSessionOpInProgress = false;
+  let activeOpId = 0;
+  let chatState = createChatState();
   let hasHistory = false;
   let activeAbortController = null;
   let capabilities = null;
+  const activeRateLimitTimers = new Set();
 
   // Mount console status orb
   const consoleOrbCanvas = document.getElementById("console-orb");
   const consoleOrb = consoleOrbCanvas ? mountOrb(consoleOrbCanvas, { state: "idle" }) : null;
   window.__consoleOrbState = "idle";
 
-  // Form submit listener
-  if (chatForm) {
-    chatForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      handleSend();
-    });
+  function clearActiveRateLimitTimers() {
+    activeRateLimitTimers.forEach((timer) => clearInterval(timer));
+    activeRateLimitTimers.clear();
   }
-
-  // Keydown listener for Enter / Shift+Enter respecting IME
-  inputField.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      if (e.isComposing || e.keyCode === 229) {
-        return; // Respect IME composition
-      }
-      e.preventDefault();
-      handleSend();
-    }
-  });
-
-  // Wire suggestion chips
-  const suggestionChips = document.querySelectorAll("[data-suggestion], .suggestion-chip");
-  suggestionChips.forEach((chip) => {
-    chip.addEventListener("click", () => {
-      if (!isSessionInitialized || state.pending !== null) return;
-      const text = chip.textContent.trim();
-      if (!text) return;
-      inputField.value = text;
-      inputField.focus();
-      handleSend();
-    });
-  });
-
-  // Wire reset button
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      handleReset();
-    });
-  }
-
-  // Verify server reachability on page load
-  checkServerHealth();
-  const healthInterval = setInterval(checkServerHealth, 60000);
-
-  // Bootstrap session and capabilities on page load
-  bootstrapSession();
 
   function updateModeDisclosure(mode) {
     if (mode === "demo") {
@@ -113,6 +95,71 @@ export function initConsole() {
         modeText.textContent = "Configuration unavailable — automated actions unavailable";
       }
     }
+  }
+
+  /**
+   * Helper deriving control readiness from sessionStatus.
+   * Disabled buttons alone are NOT the submission guard; handlers also gate on sessionStatus.
+   */
+  function updateControlState() {
+    const isReady = (sessionStatus === "ready");
+    const isPending = (sessionStatus === "chatPending");
+    const isResetting = (sessionStatus === "resetting");
+    const isInit = (sessionStatus === "initializing" || sessionStatus === "uninitialized");
+    const isRecovery = (sessionStatus === "needsRecovery");
+
+    // Input Field
+    inputField.disabled = !isReady;
+    if (isInit) {
+      inputField.placeholder = "Preparing conversation...";
+    } else if (isResetting) {
+      inputField.placeholder = "Starting new conversation...";
+    } else if (isReady) {
+      inputField.placeholder = "Ask a question or enter your query...";
+    } else if (isRecovery) {
+      inputField.placeholder = "Initialization failed. Please retry.";
+    }
+
+    // Send Button
+    if (sendBtn) {
+      sendBtn.disabled = !isReady;
+    }
+
+    // Reset Button: disabled during chatPending, resetting, or initializing.
+    // Allowed when ready or needsRecovery (allows user to restart/recover).
+    if (resetBtn) {
+      resetBtn.disabled = isPending || isResetting || isInit;
+      if (resetBtnText) {
+        resetBtnText.textContent = isResetting ? "Starting conversation..." : "New conversation";
+      }
+    }
+
+    // Suggestion Chips
+    suggestionChips.forEach((chip) => {
+      if (isReady) {
+        chip.removeAttribute("disabled");
+        chip.setAttribute("aria-disabled", "false");
+        chip.classList.remove("chip-disabled");
+      } else {
+        chip.setAttribute("disabled", "true");
+        chip.setAttribute("aria-disabled", "true");
+        chip.classList.add("chip-disabled");
+      }
+    });
+
+    // Rate Limit 429 Retry buttons
+    const retry429Btns = document.querySelectorAll(".btn-retry-429");
+    retry429Btns.forEach((btn) => {
+      if (!isReady) {
+        btn.setAttribute("aria-disabled", "true");
+      }
+    });
+
+    // Retry initialization buttons
+    const retryInitBtns = document.querySelectorAll(".btn-retry-init");
+    retryInitBtns.forEach((btn) => {
+      btn.disabled = isInit || isResetting || isPending;
+    });
   }
 
   function showInitError(messageText) {
@@ -139,6 +186,10 @@ export function initConsole() {
     retryBtn.className = "btn-retry-init";
     retryBtn.textContent = "Retry initialization";
     retryBtn.addEventListener("click", () => {
+      if (sessionStatus === "chatPending" || sessionStatus === "resetting" || sessionStatus === "initializing" || isSessionOpInProgress) {
+        return;
+      }
+      retryBtn.disabled = true;
       bootstrapSession();
     });
     bubble.appendChild(retryBtn);
@@ -153,16 +204,71 @@ export function initConsole() {
     if (banner) banner.remove();
   }
 
-  async function bootstrapSession() {
-    inputField.disabled = true;
-    inputField.placeholder = "Preparing conversation...";
-    if (sendBtn) sendBtn.disabled = true;
-    if (resetBtn) resetBtn.disabled = true;
+  /**
+   * Applies the one consistent successful rotation transition.
+   * Invoked ONLY after a confirmed HTTP 204 from POST /session.
+   * Clears old transcript, resets cost, stops old notices/timers, advances local generation,
+   * renders mode welcome, and marks sessionStatus = 'ready'.
+   * @param {string} mode
+   */
+  function applySuccessfulRotation(mode) {
+    isSessionOpInProgress = false;
+    chatState = resetChatState(chatState);
+    hasHistory = false;
+    clearActiveRateLimitTimers();
+
+    if (sessionCostEl) {
+      sessionCostEl.textContent = "$0.0000";
+    }
+
+    removeLoading();
     removeInitError();
 
+    const welcomeText = mode === "support"
+      ? "Welcome to the <strong>SupportGenius Signal Desk</strong>. How can I assist you with our documented policies or services today?"
+      : "Welcome to the <strong>SupportGenius Signal Desk</strong> demonstration. How can I assist you with our documented policies or services today?";
+
+    chatMessages.innerHTML = `
+      <div class="message ai-message">
+        <div class="avatar-mini" aria-hidden="true">SG</div>
+        <div class="bubble">
+          <p>${welcomeText}</p>
+        </div>
+      </div>
+    `;
+
+    inputField.value = "";
+    sessionStatus = "ready";
+    consoleOrb?.setState("idle");
+    window.__consoleOrbState = "idle";
+    updateControlState();
+    inputField.focus();
+  }
+
+  /**
+   * Bootstraps or recovers conversation session with 15000ms deadline.
+   */
+  async function bootstrapSession() {
+    if (sessionStatus === "chatPending" || isSessionOpInProgress) {
+      return;
+    }
+
+    const opId = ++activeOpId;
+    isSessionOpInProgress = true;
+    sessionStatus = "initializing";
+    updateControlState();
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      abortController.abort();
+    }, SESSION_OP_TIMEOUT_MS);
+
     try {
-      // 1. Fetch server capabilities
-      const capRes = await fetch("/capabilities", { credentials: "same-origin" });
+      // 1. Fetch server capabilities with deadline
+      const capRes = await fetch("/capabilities", {
+        signal: abortController.signal,
+        credentials: "same-origin"
+      });
       if (!capRes.ok) {
         throw new Error("Failed to load server capabilities");
       }
@@ -172,39 +278,107 @@ export function initConsole() {
       } catch {
         throw new Error("Invalid capabilities response format");
       }
-      if (!capData || (capData.mode !== "support" && capData.mode !== "demo")) {
-        throw new Error("Invalid or unsupported server mode");
+
+      if (!isValidCapabilities(capData)) {
+        throw new Error("Invalid or unsupported server capabilities");
       }
+
+      if (opId !== activeOpId) return;
+
       capabilities = capData;
       updateModeDisclosure(capData.mode);
 
-      // 2. Initialize anonymous server session
+      // 2. Initialize anonymous server session with deadline
       const sessRes = await fetch("/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: abortController.signal,
         credentials: "same-origin"
       });
       if (sessRes.status !== 204) {
         throw new Error(`Failed to initialize session (status: ${sessRes.status})`);
       }
 
-      isSessionInitialized = true;
-      inputField.disabled = false;
-      inputField.placeholder = "Ask a question or enter your query...";
-      if (sendBtn) sendBtn.disabled = false;
-      if (resetBtn) resetBtn.disabled = false;
-      inputField.focus();
+      if (opId !== activeOpId) return;
+
+      // Apply consistent successful rotation
+      applySuccessfulRotation(capData.mode);
     } catch (err) {
-      isSessionInitialized = false;
-      inputField.disabled = true;
-      inputField.placeholder = "Initialization failed";
-      if (sendBtn) sendBtn.disabled = true;
-      if (resetBtn) resetBtn.disabled = true;
-      if (modeBadge) modeBadge.textContent = "Unavailable";
-      if (modeText) {
-        modeText.textContent = "Configuration unavailable — automated actions unavailable";
+      if (opId !== activeOpId) return;
+
+      sessionStatus = "needsRecovery";
+      updateModeDisclosure("unavailable");
+      updateControlState();
+
+      const isTimeout = abortController.signal.aborted;
+      showInitError(isTimeout ? "Session initialization timed out. Please retry." : (err.message || "Failed to initialize conversation session."));
+    } finally {
+      clearTimeout(timeoutId);
+      isSessionOpInProgress = false;
+    }
+  }
+
+  /**
+   * Rotates server session via POST /session with 15000ms deadline.
+   */
+  async function handleReset() {
+    if (sessionStatus === "chatPending" || isSessionOpInProgress) {
+      return;
+    }
+
+    if (hasHistory) {
+      const confirmed = confirm("Start a new conversation? Current conversation history will be cleared.");
+      if (!confirmed) return;
+    }
+
+    if (activeAbortController) {
+      activeAbortController.abort();
+      activeAbortController = null;
+    }
+
+    const opId = ++activeOpId;
+    isSessionOpInProgress = true;
+    sessionStatus = "resetting";
+    updateControlState();
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      abortController.abort();
+    }, SESSION_OP_TIMEOUT_MS);
+
+    try {
+      const res = await fetch("/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: abortController.signal,
+        credentials: "same-origin"
+      });
+
+      if (res.status === 204) {
+        if (opId !== activeOpId) return;
+        applySuccessfulRotation(capabilities?.mode || "demo");
+      } else {
+        throw new Error(`Server failed to rotate session (status: ${res.status})`);
       }
-      showInitError(err.message || "Failed to initialize conversation session.");
+    } catch (err) {
+      if (opId !== activeOpId) return;
+
+      sessionStatus = "needsRecovery";
+      updateControlState();
+
+      appendMessage(
+        "Failed to reset session. Previous messages remain displayed, but the server session could not be confirmed.",
+        false,
+        true
+      );
+      showInitError(
+        abortController.signal.aborted
+          ? "Session reset timed out. Please retry initialization."
+          : "Server session could not be confirmed. Please retry initialization."
+      );
+    } finally {
+      clearTimeout(timeoutId);
+      isSessionOpInProgress = false;
     }
   }
 
@@ -241,85 +415,6 @@ export function initConsole() {
       if (statusBeacon) statusBeacon.style.backgroundColor = "var(--destructive, #F2A6A6)";
       if (statusText) statusText.textContent = "Server unreachable";
       if (knowledgeStatusText) knowledgeStatusText.textContent = "Knowledge status unknown";
-    }
-  }
-
-  if (typeof window !== "undefined") {
-    window.__checkServerHealth = checkServerHealth;
-    window.__bootstrapSession = bootstrapSession;
-  }
-
-  async function handleReset() {
-    if (isResetPending || state.pending !== null) {
-      return; // Disabled while chat is pending or reset is already in progress
-    }
-
-    if (hasHistory) {
-      const confirmed = confirm("Start a new conversation? Current conversation history will be cleared.");
-      if (!confirmed) return;
-    }
-
-    if (activeAbortController) {
-      activeAbortController.abort();
-      activeAbortController = null;
-    }
-
-    isResetPending = true;
-    if (resetBtn) {
-      resetBtn.disabled = true;
-      if (resetBtnText) resetBtnText.textContent = "Starting conversation...";
-    }
-    if (sendBtn) sendBtn.disabled = true;
-    inputField.disabled = true;
-
-    try {
-      const res = await fetch("/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin"
-      });
-
-      if (res.status === 204) {
-        state = resetChatState(state);
-        hasHistory = false;
-        isSessionInitialized = true;
-        consoleOrb?.setState("idle");
-        window.__consoleOrbState = "idle";
-
-        if (sessionCostEl) {
-          sessionCostEl.textContent = "$0.0000";
-        }
-
-        removeLoading();
-        removeInitError();
-        chatMessages.innerHTML = `
-          <div class="message ai-message">
-            <div class="avatar-mini" aria-hidden="true">SG</div>
-            <div class="bubble">
-              <p>Welcome to the <strong>SupportGenius Signal Desk</strong> demonstration. How can I assist you with our documented policies or services today?</p>
-            </div>
-          </div>
-        `;
-
-        inputField.value = "";
-      } else {
-        appendMessage("Failed to reset session. Your previous conversation history was retained.", false, true);
-        showInitError("Server failed to rotate session. Please retry.");
-      }
-    } catch (err) {
-      appendMessage("Failed to connect to server to reset session. Your previous conversation history was retained.", false, true);
-      showInitError("Network error while rotating session. Please retry.");
-    } finally {
-      isResetPending = false;
-      if (resetBtn) {
-        resetBtn.disabled = false;
-        if (resetBtnText) resetBtnText.textContent = "New conversation";
-      }
-      if (isSessionInitialized) {
-        if (sendBtn) sendBtn.disabled = false;
-        inputField.disabled = false;
-        inputField.focus();
-      }
     }
   }
 
@@ -474,12 +569,15 @@ export function initConsole() {
         retryBtn.textContent = `Retry in ${remaining}s`;
       } else {
         clearInterval(interval);
-        retryBtn.disabled = false;
+        activeRateLimitTimers.delete(interval);
+        retryBtn.disabled = (sessionStatus !== "ready");
         retryBtn.textContent = "Retry request";
       }
     }, 1000);
+    activeRateLimitTimers.add(interval);
 
     retryBtn.addEventListener("click", () => {
+      if (sessionStatus !== "ready") return;
       retryBtn.remove();
       handleSend(originalText, true);
     });
@@ -491,31 +589,29 @@ export function initConsole() {
   }
 
   async function handleSend(textOverride = null, isRetry = false) {
-    const text = (textOverride !== null ? textOverride : inputField.value).trim();
-    if (!text) return;
-
-    // Idempotency & session gate: if not initialized or already pending, block submission
-    if (!isSessionInitialized || state.pending !== null) {
+    if (sessionStatus !== "ready") {
       return;
     }
 
-    const requestId = generateId("req_");
-    const requestGeneration = state.generation;
+    const text = (textOverride !== null ? textOverride : inputField.value).trim();
+    if (!text) return;
 
-    state = beginRequest(state, requestId);
+    const requestId = generateId("req_");
+    const requestGeneration = chatState.generation;
+
+    chatState = beginRequest(chatState, requestId);
     hasHistory = true;
+    sessionStatus = "chatPending";
+    updateControlState();
+
     consoleOrb?.setState("pending");
     window.__consoleOrbState = "pending";
 
-    // Only append user message if not a retry of an already displayed turn
     if (!isRetry) {
       appendMessage(text, true);
       inputField.value = "";
     }
 
-    if (sendBtn) sendBtn.disabled = true;
-    inputField.disabled = true;
-    if (resetBtn) resetBtn.disabled = true; // New conversation is disabled while chat is pending
     const reqLoadingElement = showLoading();
 
     const abortController = new AbortController();
@@ -533,26 +629,21 @@ export function initConsole() {
         signal: abortController.signal
       });
 
-      // Check if this response is still accepted (session might have been reset)
-      if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
+      if (!acceptsReply(chatState, { requestId, generation: requestGeneration })) {
         reqLoadingElement.remove();
         return;
       }
 
       if (res.status === 401) {
-        // Session expired or required: require explicit session restart
-        isSessionInitialized = false;
         reqLoadingElement.remove();
+        sessionStatus = "needsRecovery";
         appendMessage("Session required or expired. Please start a new conversation.", false, true);
-        if (sendBtn) sendBtn.disabled = true;
-        inputField.disabled = true;
-        inputField.placeholder = "Session expired. Start a new conversation.";
-        if (resetBtn) resetBtn.disabled = false;
+        showInitError("Session expired. Please restart the conversation.");
+        updateControlState();
         return;
       }
 
       if (res.status === 409) {
-        // Single-flight contention: do not retry automatically
         reqLoadingElement.remove();
         appendMessage("A reply is already being processed. Please wait.", false, true);
         return;
@@ -580,7 +671,7 @@ export function initConsole() {
         }
         reqLoadingElement.remove();
 
-        if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
+        if (!acceptsReply(chatState, { requestId, generation: requestGeneration })) {
           return;
         }
 
@@ -595,7 +686,7 @@ export function initConsole() {
 
       if (!res.ok) {
         reqLoadingElement.remove();
-        if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
+        if (!acceptsReply(chatState, { requestId, generation: requestGeneration })) {
           return;
         }
         appendMessage(
@@ -609,7 +700,7 @@ export function initConsole() {
       const data = await res.json();
       reqLoadingElement.remove();
 
-      if (acceptsReply(state, { requestId, generation: requestGeneration })) {
+      if (acceptsReply(chatState, { requestId, generation: requestGeneration })) {
         appendMessage(data.reply, false);
         if (data.cost !== undefined && sessionCostEl) {
           sessionCostEl.textContent = `$${data.cost}`;
@@ -618,7 +709,7 @@ export function initConsole() {
     } catch (err) {
       reqLoadingElement.remove();
 
-      if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
+      if (!acceptsReply(chatState, { requestId, generation: requestGeneration })) {
         return;
       }
 
@@ -634,29 +725,88 @@ export function initConsole() {
         activeAbortController = null;
       }
 
-      // Re-enable reset button once chat request settles
-      if (resetBtn) {
-        resetBtn.disabled = false;
-      }
+      reqLoadingElement.remove();
 
-      if (acceptsReply(state, { requestId, generation: requestGeneration })) {
+      if (acceptsReply(chatState, { requestId, generation: requestGeneration })) {
+        chatState = completeRequest(chatState, { requestId, generation: requestGeneration });
         consoleOrb?.setState("idle");
         window.__consoleOrbState = "idle";
-        state = completeRequest(state, { requestId, generation: requestGeneration });
-        if (isSessionInitialized) {
-          if (sendBtn) sendBtn.disabled = false;
-          inputField.disabled = false;
+
+        // Only revert to ready if sessionStatus was still chatPending
+        if (sessionStatus === "chatPending") {
+          sessionStatus = "ready";
+          updateControlState();
           inputField.focus();
         }
       }
     }
   }
 
-  window.addEventListener("unload", () => {
+  // Form submit listener
+  if (chatForm) {
+    chatForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (sessionStatus !== "ready") return;
+      handleSend();
+    });
+  }
+
+  // Keydown listener for Enter / Shift+Enter respecting IME
+  inputField.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      if (e.isComposing || e.keyCode === 229) {
+        return; // Respect IME composition
+      }
+      e.preventDefault();
+      if (sessionStatus !== "ready") return;
+      handleSend();
+    }
+  });
+
+  // Wire suggestion chips
+  suggestionChips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      if (sessionStatus !== "ready") return;
+      const text = chip.textContent.trim();
+      if (!text) return;
+      inputField.value = text;
+      inputField.focus();
+      handleSend();
+    });
+  });
+
+  // Wire reset button
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      if (sessionStatus === "chatPending" || sessionStatus === "resetting" || sessionStatus === "initializing") {
+        return;
+      }
+      handleReset();
+    });
+  }
+
+  // Periodic health check
+  checkServerHealth();
+  const healthInterval = setInterval(checkServerHealth, 60000);
+
+  // Initialize control states immediately
+  updateControlState();
+
+  // Bootstrap session and capabilities on page load
+  bootstrapSession();
+
+  if (typeof window !== "undefined") {
+    window.__checkServerHealth = checkServerHealth;
+    window.__bootstrapSession = bootstrapSession;
+    window.__getSessionStatus = () => sessionStatus;
+  }
+
+  window.addEventListener("pagehide", () => {
     if (consoleOrb) {
       consoleOrb.destroy();
     }
     clearInterval(healthInterval);
+    clearActiveRateLimitTimers();
   });
 }
 

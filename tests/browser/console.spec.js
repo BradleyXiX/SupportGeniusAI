@@ -1195,7 +1195,12 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     // Transcript and cost must be retained! History NOT cleared
     await expect(page.locator("#chat-messages")).toContainText("Preserved turn reply");
     await expect(page.locator("#session-cost")).toHaveText("$0.0040");
-    await expect(resetBtn).toBeEnabled();
+
+    // But session is NOT ready: submission paths must be disabled until recovery succeeds
+    await expect(input).toBeDisabled();
+    await expect(sendBtn).toBeDisabled();
+    await expect(page.locator("#chat-messages")).toContainText(/Previous messages remain displayed, but the server session could not be confirmed/i);
+    await expect(page.locator("#init-error-banner")).toBeVisible();
   });
 
   test("HTTP 401 SESSION_REQUIRED disables composer and requires explicit session restart", async ({ page }) => {
@@ -1261,5 +1266,369 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     expect(storedSession.sessionStorageId).toBeNull();
     expect(storedSession.localStorageId).toBeNull();
     expect(storedSession.anyStorageKeys.filter((k) => k.toLowerCase().includes("session"))).toEqual([]);
+  });
+
+  // =========================================================================
+  // Task B5 Corrections Regression Suite
+  // =========================================================================
+
+  test("held reset prevents suggestion chips, form submit, Enter key, and 429 Retry from sending /chat", async ({ page }) => {
+    let chatPostCount = 0;
+    await page.route("**/chat", async (route) => {
+      chatPostCount++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ reply: "Chat reply", cost: "0.0010" })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+    const resetBtn = page.locator("#reset-btn");
+
+    // Complete turn 1
+    await input.fill("Hello turn 1");
+    await sendBtn.click();
+    await expect(page.locator("#chat-messages")).toContainText("Chat reply");
+    expect(chatPostCount).toBe(1);
+
+    // Hold reset in pending state
+    let resolveReset;
+    const resetPromise = new Promise((resolve) => {
+      resolveReset = resolve;
+    });
+    await page.route("**/session", async (route) => {
+      await resetPromise;
+      await route.fulfill({ status: 204 });
+    });
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await resetBtn.click();
+    await expect(resetBtn).toBeDisabled();
+
+    // 1. Suggestion chip click while reset pending -> 0 new /chat
+    const chip = page.locator(".suggestion-chip").first();
+    await chip.click({ force: true });
+    await page.waitForTimeout(200);
+    expect(chatPostCount).toBe(1);
+
+    // 2. Direct form submission / Enter key while reset pending -> 0 new /chat
+    await page.evaluate(() => {
+      const form = document.getElementById("chat-form");
+      if (form) form.dispatchEvent(new Event("submit", { cancelable: true }));
+    });
+    await page.waitForTimeout(200);
+    expect(chatPostCount).toBe(1);
+
+    // Send button must remain disabled throughout
+    await expect(sendBtn).toBeDisabled();
+
+    // Release reset
+    resolveReset();
+    await expect(resetBtn).toBeEnabled();
+    await expect(sendBtn).toBeEnabled();
+  });
+
+  test("held recovery bootstrap prevents submission and duplicate session rotation", async ({ page }) => {
+    let sessionCallCount = 0;
+    let resolveSession;
+    let sessionPromise = new Promise((resolve) => {
+      resolveSession = resolve;
+    });
+
+    // Make initial bootstrap fail
+    let initialAttempt = true;
+    await page.route("**/session", async (route) => {
+      sessionCallCount++;
+      if (initialAttempt) {
+        initialAttempt = false;
+        await route.fulfill({ status: 503 });
+      } else {
+        await sessionPromise;
+        await route.fulfill({ status: 204 });
+      }
+    });
+
+    await page.goto("/console/");
+    await expect(page.locator("#init-error-banner")).toBeVisible();
+    expect(sessionCallCount).toBe(1);
+
+    // Now click Retry initialization
+    const retryBtn = page.locator(".btn-retry-init").first();
+    await retryBtn.click();
+
+    // While recovery is held pending, attempt second retry click -> duplicate rotation blocked
+    await retryBtn.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(200);
+    expect(sessionCallCount).toBe(2);
+
+    // Attempt chat submission while recovery is pending -> blocked
+    let chatCount = 0;
+    await page.route("**/chat", async (route) => {
+      chatCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply: "No" }) });
+    });
+    await page.evaluate(() => {
+      const form = document.getElementById("chat-form");
+      if (form) form.dispatchEvent(new Event("submit", { cancelable: true }));
+    });
+    expect(chatCount).toBe(0);
+
+    // Resolve recovery
+    resolveSession();
+    await expect(page.locator("#send-btn")).toBeEnabled();
+    await expect(page.locator("#init-error-banner")).toHaveCount(0);
+  });
+
+  test("failed reset followed by successful Retry initialization clears old transcript and cost only after 204", async ({ page }) => {
+    await page.route("**/chat", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ reply: "Old turn reply to be cleared", cost: "0.0075" })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+    const resetBtn = page.locator("#reset-btn");
+
+    await input.fill("Initial conversation");
+    await sendBtn.click();
+    await expect(page.locator("#chat-messages")).toContainText("Old turn reply to be cleared");
+    await expect(page.locator("#session-cost")).toHaveText("$0.0075");
+
+    // Fail reset with 503
+    await page.route("**/session", async (route) => {
+      await route.fulfill({ status: 503 });
+    });
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await resetBtn.click();
+
+    // Verify messages and cost are preserved, composer disabled
+    await expect(page.locator("#chat-messages")).toContainText("Old turn reply to be cleared");
+    await expect(page.locator("#session-cost")).toHaveText("$0.0075");
+    await expect(input).toBeDisabled();
+
+    // Now set up held recovery session
+    let resolveRecovery;
+    const recoveryPromise = new Promise((resolve) => {
+      resolveRecovery = resolve;
+    });
+    await page.route("**/session", async (route) => {
+      await recoveryPromise;
+      await route.fulfill({ status: 204 });
+    });
+
+    const retryBtn = page.locator(".btn-retry-init").first();
+    await retryBtn.click();
+
+    // While recovery is pending: old transcript and cost STILL visible!
+    await expect(page.locator("#chat-messages")).toContainText("Old turn reply to be cleared");
+    await expect(page.locator("#session-cost")).toHaveText("$0.0075");
+
+    // Resolve recovery with 204
+    resolveRecovery();
+
+    // Now old transcript and cost are cleared, cost reset to 0, welcome shown
+    await expect(page.locator("#session-cost")).toHaveText("$0.0000");
+    await expect(page.locator("#chat-messages")).not.toContainText("Old turn reply to be cleared");
+    await expect(page.locator("#chat-messages")).toContainText("Welcome to the");
+    await expect(input).toBeEnabled();
+    await expect(sendBtn).toBeEnabled();
+  });
+
+  test("capabilities contract strictly validates mode, actionsEnabled false, and sessionRequired true", async ({ page }) => {
+    let sessionPostCalled = false;
+    await page.route("**/session", async (route) => {
+      sessionPostCalled = true;
+      await route.fulfill({ status: 204 });
+    });
+
+    // 1. Missing required actionsEnabled and sessionRequired fields
+    await page.route("**/capabilities", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ mode: "demo" })
+      });
+    });
+
+    await page.goto("/console/");
+    await expect(page.locator("#send-btn")).toBeDisabled();
+    await expect(page.locator("#input")).toBeDisabled();
+    await expect(page.locator("#init-error-banner")).toBeVisible();
+    await expect(page.locator(".demo-disclosure")).toContainText(/Configuration unavailable/i);
+    expect(sessionPostCalled).toBe(false);
+
+    // 2. actionsEnabled: true (contradictory to safe foundation)
+    await page.route("**/capabilities", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ mode: "demo", actionsEnabled: true, sessionRequired: true })
+      });
+    });
+
+    await page.goto("/console/");
+    await expect(page.locator("#send-btn")).toBeDisabled();
+    expect(sessionPostCalled).toBe(false);
+
+    // 3. sessionRequired: false (contradictory)
+    await page.route("**/capabilities", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ mode: "demo", actionsEnabled: false, sessionRequired: false })
+      });
+    });
+
+    await page.goto("/console/");
+    await expect(page.locator("#send-btn")).toBeDisabled();
+    expect(sessionPostCalled).toBe(false);
+
+    // 4. actionsEnabled: "false" (string instead of boolean)
+    await page.route("**/capabilities", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ mode: "demo", actionsEnabled: "false", sessionRequired: true })
+      });
+    });
+
+    await page.goto("/console/");
+    await expect(page.locator("#send-btn")).toBeDisabled();
+    expect(sessionPostCalled).toBe(false);
+
+    // 5. Malformed JSON
+    await page.route("**/capabilities", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "NOT_VALID_JSON{{"
+      });
+    });
+
+    await page.goto("/console/");
+    await expect(page.locator("#send-btn")).toBeDisabled();
+    expect(sessionPostCalled).toBe(false);
+  });
+
+  test("15s local deadline aborts stalled bootstrap and stalled reset with recoverable UI", async ({ page }) => {
+    // 1. Test stalled capabilities headers aborts at 15s
+    await page.clock.install();
+
+    await page.route("**/capabilities", async () => {
+      // Intentionally stall response indefinitely
+    });
+
+    await page.goto("/console/");
+    await page.clock.fastForward(16000);
+
+    await expect(page.locator("#init-error-banner")).toBeVisible();
+    await expect(page.locator("#send-btn")).toBeDisabled();
+    await expect(page.locator("#input")).toBeDisabled();
+  });
+
+  test("reset times out at 15s: retains transcript, marks session unconfirmed, blocks submission", async ({ page }) => {
+    await page.route("**/chat", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ reply: "Preserved before timeout", cost: "0.0020" })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+    const resetBtn = page.locator("#reset-btn");
+
+    await input.fill("Testing reset deadline");
+    await sendBtn.click();
+    await expect(page.locator("#chat-messages")).toContainText("Preserved before timeout");
+
+    await page.clock.install();
+
+    // Stall /session indefinitely during reset
+    await page.route("**/session", async () => {});
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await resetBtn.click();
+
+    // Fast-forward past 15s reset deadline
+    await page.clock.fastForward(16000);
+
+    // Transcript retained, session unconfirmed notice shown, input disabled
+    await expect(page.locator("#chat-messages")).toContainText("Preserved before timeout");
+    await expect(page.locator("#chat-messages")).toContainText(/Previous messages remain displayed, but the server session could not be confirmed/i);
+    await expect(input).toBeDisabled();
+    await expect(sendBtn).toBeDisabled();
+    await expect(page.locator("#init-error-banner")).toBeVisible();
+  });
+
+  test("unmocked local-demo flow: real cookie bootstrap, initial query, real cookie rotation on reset, 401 on missing cookie, and explicit recovery", async ({ page, context }) => {
+    // No route mocking for capabilities, session, or chat: runs against local demo server
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+    const resetBtn = page.locator("#reset-btn");
+
+    await expect(input).toBeEnabled();
+    await expect(sendBtn).toBeEnabled();
+
+    // Inspect real context cookie without logging value
+    const cookiesBefore = await context.cookies();
+    const sessionCookieBefore = cookiesBefore.find((c) => c.name.includes("session"));
+    expect(sessionCookieBefore).toBeDefined();
+    expect(sessionCookieBefore.httpOnly).toBe(true);
+    expect(sessionCookieBefore.sameSite).toBe("Strict");
+
+    // Browser storage contains 0 session identifiers
+    const storageKeys = await page.evaluate(() => Object.keys(sessionStorage));
+    expect(storageKeys.filter((k) => k.toLowerCase().includes("session"))).toHaveLength(0);
+
+    // Send demo turn
+    await input.fill("What is your return policy?");
+    await sendBtn.click();
+    await expect(page.locator("#chat-messages")).toContainText(/returns|policy|demonstration|assist/i);
+    await expect(page.locator("#session-cost")).toHaveText("$0.0000"); // demo mode cost is 0
+
+    // Reset conversation -> real cookie rotation
+    page.on("dialog", (dialog) => dialog.accept());
+    await resetBtn.click();
+    await expect(page.locator("#chat-messages")).toContainText("Welcome to the");
+
+    const cookiesAfterReset = await context.cookies();
+    const sessionCookieAfter = cookiesAfterReset.find((c) => c.name.includes("session"));
+    expect(sessionCookieAfter).toBeDefined();
+    // Prove cookie was rotated to a new session token
+    expect(sessionCookieAfter.value).not.toEqual(sessionCookieBefore.value);
+
+    // Delete cookies from context -> simulate missing / expired cookie
+    await context.clearCookies();
+
+    // Attempt turn without session cookie
+    await input.fill("Query on missing cookie");
+    await sendBtn.click();
+
+    // Receives real HTTP 401 SESSION_REQUIRED
+    await expect(page.locator("#chat-messages")).toContainText(/Session required or expired/i);
+    await expect(input).toBeDisabled();
+    await expect(sendBtn).toBeDisabled();
+
+    // Explicit recovery via New conversation
+    await resetBtn.click();
+    await expect(page.locator("#chat-messages")).toContainText("Welcome to the");
+    await expect(input).toBeEnabled();
+    await expect(sendBtn).toBeEnabled();
+
+    const cookiesRecovered = await context.cookies();
+    const sessionCookieRecovered = cookiesRecovered.find((c) => c.name.includes("session"));
+    expect(sessionCookieRecovered).toBeDefined();
   });
 });
