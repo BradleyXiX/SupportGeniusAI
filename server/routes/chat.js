@@ -1,7 +1,7 @@
 import express from "express";
 import crypto from "crypto";
 import * as agentService from "../services/agent.js";
-import { getSessionCost } from "../services/finops.js";
+import { getSessionCost, createUsageMetrics } from "../services/finops.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import { ChatPayloadSchema } from "../schemas/chatSchema.js";
 import {
@@ -41,7 +41,8 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
   const sessionId = req.session.id;
 
   // Enforce single-flight concurrency: immediate 409 SESSION_BUSY
-  if (!tryAcquireSessionLock(sessionId)) {
+  const lockLease = tryAcquireSessionLock(sessionId, req.sessionStore);
+  if (!lockLease) {
     const problem = sessionBusyError(req.originalUrl || "/chat");
     return res.status(problem.status).json(problem.toJSON());
   }
@@ -53,7 +54,7 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
   }, 30000);
 
   try {
-    // Initial verification that session exists in store
+    // Initial verification that session exists in store under acquired ownership
     const initialEntry = await getStoreEntry(req.sessionStore, sessionId);
     if (!initialEntry || !initialEntry.initialized) {
       suppressAutoSaveAndCookie(req, res);
@@ -61,9 +62,20 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
       return res.status(401).json(problem.toJSON());
     }
 
-    const expectedRevision = initialEntry.revision || req.session.revision;
-    const workingHistory = [...(req.session.history || [])];
-    const workingMetrics = { ...(req.session.metrics || {}) };
+    // Hydrate working context and req.session from the SAME fresh store snapshot under acquired ownership
+    const expectedRevision = initialEntry.revision || 1;
+    const workingHistory = Array.isArray(initialEntry.history)
+      ? [...initialEntry.history]
+      : [];
+    const workingMetrics = initialEntry.metrics
+      ? { ...initialEntry.metrics }
+      : createUsageMetrics();
+
+    // Synchronize req.session with fresh store snapshot so it never contains stale middleware payload
+    req.session.revision = expectedRevision;
+    req.session.history = workingHistory;
+    req.session.metrics = workingMetrics;
+
     const mode = process.env.APP_MODE || env.APP_MODE || "support";
 
     const response = await agentService.handleChat(message, {
@@ -141,7 +153,9 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
     res.status(fallbackProblem.status).json(fallbackProblem.toJSON());
   } finally {
     clearTimeout(routeTimer);
-    releaseSessionLock(sessionId);
+    if (lockLease) {
+      releaseSessionLock(lockLease, req.sessionStore);
+    }
   }
 });
 

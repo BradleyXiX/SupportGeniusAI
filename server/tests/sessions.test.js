@@ -577,4 +577,405 @@ describe("Task B4: Server-Owned Anonymous Sessions & Origin Enforcement", () => 
       }
     });
   });
+
+  describe("10. Lock Ownership, Fresh Snapshots & Scoped Cleanup (B4 Review Regressions)", () => {
+    it("Schedule A: rejected reset (409) does not release chat A's lock; chat C gets 409; A finishes with 200 and coherent history/usage; subsequent reset succeeds", async () => {
+      // Step 1: Bootstrap session
+      const initRes = await request(app)
+        .post("/session")
+        .set("Origin", TEST_ORIGIN)
+        .send({});
+      const cookie = initRes.headers["set-cookie"][0];
+
+      let chatAStartedResolve;
+      const chatAStarted = new Promise((resolve) => {
+        chatAStartedResolve = resolve;
+      });
+
+      let resolveChatA;
+      const chatAPromise = new Promise((resolve) => {
+        resolveChatA = resolve;
+      });
+
+      vi.spyOn(agentModule, "handleChat").mockImplementation(async (msg, opts) => {
+        chatAStartedResolve();
+        await chatAPromise;
+        const newHist = [...opts.history, { role: "user", content: msg }, { role: "assistant", content: "Reply A" }];
+        const newMetrics = { ...opts.metrics, promptTokens: 10, completionTokens: 20, cost: 0.005 };
+        return {
+          reply: "Reply A",
+          history: newHist,
+          metrics: newMetrics
+        };
+      });
+
+      // Start Chat A
+      const reqChatAPromise = new Promise((resolve, reject) => {
+        request(app)
+          .post("/chat")
+          .set("Origin", TEST_ORIGIN)
+          .set("Cookie", cookie)
+          .send({ message: "Turn A" })
+          .end((err, res) => {
+            if (err) reject(err);
+            else resolve(res);
+          });
+      });
+
+      await chatAStarted;
+
+      // Reset B arrives while Chat A is pending -> MUST return 409
+      const resetB = await request(app)
+        .post("/session")
+        .set("Origin", TEST_ORIGIN)
+        .set("Cookie", cookie)
+        .send({});
+      expect(resetB.status).toBe(409);
+      expect(resetB.body.code).toBe("SESSION_BUSY");
+
+      // Repeated Reset B2 arrives while Chat A is pending -> MUST return 409
+      const resetB2 = await request(app)
+        .post("/session")
+        .set("Origin", TEST_ORIGIN)
+        .set("Cookie", cookie)
+        .send({});
+      expect(resetB2.status).toBe(409);
+      expect(resetB2.body.code).toBe("SESSION_BUSY");
+
+      // Crucial assertion: Chat C arrives with same cookie while A is STILL pending!
+      // In uncorrected code, Reset B's finally released the lock, so Chat C was allowed through!
+      // In corrected code, Reset B never owned the lock, so Chat C must get 409!
+      const chatC = await request(app)
+        .post("/chat")
+        .set("Origin", TEST_ORIGIN)
+        .set("Cookie", cookie)
+        .send({ message: "Turn C" });
+      expect(chatC.status).toBe(409);
+      expect(chatC.body.code).toBe("SESSION_BUSY");
+
+      // Now resolve Chat A
+      resolveChatA();
+      const resChatA = await reqChatAPromise;
+      expect(resChatA.status).toBe(200);
+      expect(resChatA.body.reply).toBe("Reply A");
+
+      // Verify Chat A committed coherent history (2 entries)
+      const store = getSessionStore();
+      const sid = cookie.split(";")[0].split("=")[1].split(".")[0].replace(/^s%3A/, "");
+      const sessionAfterA = await new Promise((resolve) => store.get(sid, (err, s) => resolve(s)));
+      expect(sessionAfterA).toBeTruthy();
+      expect(sessionAfterA.history.length).toBe(2);
+      expect(sessionAfterA.history[0].content).toBe("Turn A");
+      expect(sessionAfterA.history[1].content).toBe("Reply A");
+      expect(sessionAfterA.metrics.cost).toBe(0.005);
+
+      // Now that Chat A has completed and released its lock, subsequent reset must succeed
+      const postChatReset = await request(app)
+        .post("/session")
+        .set("Origin", TEST_ORIGIN)
+        .set("Cookie", cookie)
+        .send({});
+      expect(postChatReset.status).toBe(204);
+    });
+
+    it("Schedule B: delayed middleware store snapshot rehydrates fresh state under lock and preserves both turns (4 entries) and accumulated usage", async () => {
+      const testStore = createSessionStore();
+      const { app: testApp, cleanup: testCleanup } = createApp({ sessionStore: testStore });
+
+      try {
+        // Bootstrap session
+        const initRes = await request(testApp)
+          .post("/session")
+          .set("Origin", TEST_ORIGIN)
+          .send({});
+        const cookie = initRes.headers["set-cookie"][0];
+
+        // Turn A implementation
+        let chatAStartedResolve;
+        const chatAStarted = new Promise((resolve) => {
+          chatAStartedResolve = resolve;
+        });
+        let resolveChatA;
+        const chatAPromise = new Promise((resolve) => {
+          resolveChatA = resolve;
+        });
+
+        let callCount = 0;
+        vi.spyOn(agentModule, "handleChat").mockImplementation(async (msg, opts) => {
+          callCount++;
+          if (callCount === 1) {
+            chatAStartedResolve();
+            await chatAPromise;
+            return {
+              reply: "Reply A",
+              history: [...opts.history, { role: "user", content: msg }, { role: "assistant", content: "Reply A" }],
+              metrics: { ...opts.metrics, promptTokens: 10, completionTokens: 20, cost: 0.005 }
+            };
+          } else {
+            return {
+              reply: "Reply B",
+              history: [...opts.history, { role: "user", content: msg }, { role: "assistant", content: "Reply B" }],
+              metrics: {
+                ...opts.metrics,
+                promptTokens: (opts.metrics.promptTokens || 0) + 15,
+                completionTokens: (opts.metrics.completionTokens || 0) + 25,
+                cost: (opts.metrics.cost || 0) + 0.007
+              }
+            };
+          }
+        });
+
+        // Start Chat A
+        const reqChatAPromise = new Promise((resolve, reject) => {
+          request(testApp)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookie)
+            .send({ message: "Turn A" })
+            .end((err, res) => {
+              if (err) reject(err);
+              else resolve(res);
+            });
+        });
+
+        await chatAStarted;
+
+        // Wrap store.get to delay Chat B's session middleware callback
+        const originalGet = testStore.get.bind(testStore);
+        let holdBStoreGetResolve;
+        const holdBStoreGet = new Promise((resolve) => {
+          holdBStoreGetResolve = resolve;
+        });
+        let bGetInterceptedResolve;
+        const bGetIntercepted = new Promise((resolve) => {
+          bGetInterceptedResolve = resolve;
+        });
+
+        let bCapturedSession = null;
+        let bGetCallCount = 0;
+        vi.spyOn(testStore, "get").mockImplementation((sid, cb) => {
+          bGetCallCount++;
+          if (bGetCallCount === 1) {
+            // This is Chat B's session middleware store.get while Chat A is pending
+            originalGet(sid, async (err, sess) => {
+              bCapturedSession = sess ? JSON.parse(JSON.stringify(sess)) : null;
+              bGetInterceptedResolve();
+              await holdBStoreGet; // Wait until Chat A commits and releases lock!
+              cb(err, sess); // Return the OLD session snapshot captured before A finished
+            });
+          } else {
+            originalGet(sid, cb);
+          }
+        });
+
+        // Dispatch Chat B
+        const reqChatBPromise = new Promise((resolve, reject) => {
+          request(testApp)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookie)
+            .send({ message: "Turn B" })
+            .end((err, res) => {
+              if (err) reject(err);
+              else resolve(res);
+            });
+        });
+
+        // Wait until B's middleware gets the old snapshot
+        await bGetIntercepted;
+
+        // Verify the snapshot captured by B's middleware has 0 history (old snapshot)
+        expect(bCapturedSession.history.length).toBe(0);
+
+        // Now resolve Chat A so it commits history (2 entries) and releases lock
+        resolveChatA();
+        const resChatA = await reqChatAPromise;
+        expect(resChatA.status).toBe(200);
+
+        // Now release B's delayed store.get callback!
+        // B will enter chatRoute with a stale req.session (history 0), BUT under acquired lock
+        // it must rehydrate from the fresh store snapshot and build working context from it!
+        holdBStoreGetResolve();
+
+        const resChatB = await reqChatBPromise;
+        expect(resChatB.status).toBe(200);
+        expect(resChatB.body.reply).toBe("Reply B");
+
+        // Inspect final session in store: MUST contain all 4 history entries and accumulated cost!
+        const sid = cookie.split(";")[0].split("=")[1].split(".")[0].replace(/^s%3A/, "");
+        const finalSession = await new Promise((resolve) => originalGet(sid, (err, s) => resolve(s)));
+
+        expect(finalSession.history.length).toBe(4);
+        expect(finalSession.history[0].content).toBe("Turn A");
+        expect(finalSession.history[1].content).toBe("Reply A");
+        expect(finalSession.history[2].content).toBe("Turn B");
+        expect(finalSession.history[3].content).toBe("Reply B");
+        expect(finalSession.metrics.cost).toBeCloseTo(0.012, 4);
+        expect(finalSession.revision).toBe(3);
+      } finally {
+        await testCleanup();
+      }
+    });
+
+    it("Schedule C / Fix 3: createApp.cleanup scopes lock cleanup to the owning app/store without unlocking other apps", async () => {
+      const storeA = createSessionStore();
+      const { app: testAppA, cleanup: cleanupA } = createApp({ sessionStore: storeA });
+
+      const storeB = createSessionStore();
+      const { app: testAppB, cleanup: cleanupB } = createApp({ sessionStore: storeB });
+
+      try {
+        // Bootstrap session on App A
+        const initResA = await request(testAppA)
+          .post("/session")
+          .set("Origin", TEST_ORIGIN)
+          .send({});
+        const cookieA = initResA.headers["set-cookie"][0];
+
+        let chatAStartedResolve;
+        const chatAStarted = new Promise((resolve) => {
+          chatAStartedResolve = resolve;
+        });
+        let resolveChatA;
+        const chatAPromise = new Promise((resolve) => {
+          resolveChatA = resolve;
+        });
+
+        vi.spyOn(agentModule, "handleChat").mockImplementation(async (msg, opts) => {
+          chatAStartedResolve();
+          await chatAPromise;
+          return {
+            reply: "App A Reply",
+            history: [{ role: "user", content: msg }, { role: "assistant", content: "App A Reply" }],
+            metrics: createUsageMetrics()
+          };
+        });
+
+        // Start Chat on App A (holds lock on storeA)
+        const reqChatAPromise = new Promise((resolve, reject) => {
+          request(testAppA)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookieA)
+            .send({ message: "App A Message" })
+            .end((err, res) => {
+              if (err) reject(err);
+              else resolve(res);
+            });
+        });
+
+        await chatAStarted;
+
+        // Clean up App B!
+        // In uncorrected code, cleanupB called global clearAllSessionLocks(), which cleared App A's lock!
+        await cleanupB();
+
+        // Second request on App A while the first chat is STILL in flight MUST still return 409!
+        const chatA2 = await request(testAppA)
+          .post("/chat")
+          .set("Origin", TEST_ORIGIN)
+          .set("Cookie", cookieA)
+          .send({ message: "Concurrent App A Message" });
+
+        expect(chatA2.status).toBe(409);
+        expect(chatA2.body.code).toBe("SESSION_BUSY");
+
+        // Release first chat on App A
+        resolveChatA();
+        const resChatA = await reqChatAPromise;
+        expect(resChatA.status).toBe(200);
+      } finally {
+        await cleanupA();
+      }
+    });
+
+    it("exceptions on busy/nonowner reset never release the owner's lock, and exceptions on owner reset cleanly release the lock", async () => {
+      const testStore = createSessionStore();
+      const { app: testApp, cleanup: testCleanup } = createApp({ sessionStore: testStore });
+
+      try {
+        const initRes = await request(testApp)
+          .post("/session")
+          .set("Origin", TEST_ORIGIN)
+          .send({});
+        const cookie = initRes.headers["set-cookie"][0];
+
+        let chatStartedResolve;
+        const chatStarted = new Promise((resolve) => {
+          chatStartedResolve = resolve;
+        });
+        let resolveChat;
+        const chatPromise = new Promise((resolve) => {
+          resolveChat = resolve;
+        });
+
+        vi.spyOn(agentModule, "handleChat").mockImplementation(async (msg, opts) => {
+          chatStartedResolve();
+          await chatPromise;
+          return {
+            reply: "Chat Reply",
+            history: [{ role: "user", content: msg }, { role: "assistant", content: "Chat Reply" }],
+            metrics: createUsageMetrics()
+          };
+        });
+
+        // Start chat holding lock
+        const chatReqPromise = new Promise((resolve, reject) => {
+          request(testApp)
+            .post("/chat")
+            .set("Origin", TEST_ORIGIN)
+            .set("Cookie", cookie)
+            .send({ message: "Hello" })
+            .end((err, res) => {
+              if (err) reject(err);
+              else resolve(res);
+            });
+        });
+
+        await chatStarted;
+
+        // Reset attempt returns 409
+        const resetRes = await request(testApp)
+          .post("/session")
+          .set("Origin", TEST_ORIGIN)
+          .set("Cookie", cookie)
+          .send({});
+        expect(resetRes.status).toBe(409);
+
+        // Chat still held, another chat gets 409
+        const chatRes2 = await request(testApp)
+          .post("/chat")
+          .set("Origin", TEST_ORIGIN)
+          .set("Cookie", cookie)
+          .send({ message: "Second Hello" });
+        expect(chatRes2.status).toBe(409);
+
+        // Finish first chat
+        resolveChat();
+        const chatRes1 = await chatReqPromise;
+        expect(chatRes1.status).toBe(200);
+
+        // Now test exception during owner reset: mock regenerateSession error
+        vi.spyOn(testStore, "set").mockImplementationOnce((sid, sess, cb) => {
+          cb(new Error("Fatal disk write failure during reset"));
+        });
+
+        const failingReset = await request(testApp)
+          .post("/session")
+          .set("Origin", TEST_ORIGIN)
+          .set("Cookie", cookie)
+          .send({});
+        expect(failingReset.status).toBe(503);
+
+        // Lock must have been cleanly released despite the exception: subsequent chat or reset does NOT get 409
+        const retryReset = await request(testApp)
+          .post("/session")
+          .set("Origin", TEST_ORIGIN)
+          .send({});
+        expect(retryReset.status).toBe(204);
+      } finally {
+        await testCleanup();
+      }
+    });
+  });
 });

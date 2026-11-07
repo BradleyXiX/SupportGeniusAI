@@ -14,13 +14,13 @@ import { sessionBusyError, sessionStoreUnavailableError } from "../utils/problem
 const router = express.Router();
 
 router.post("/", async (req, res, next) => {
-  let existingLockId = null;
+  let acquiredLease = null;
 
   try {
     // If an existing initialized session is present, acquire lock to prevent race with in-flight chat or rotation
     if (req.session && req.session.initialized) {
-      existingLockId = req.session.id;
-      if (!tryAcquireSessionLock(existingLockId)) {
+      acquiredLease = tryAcquireSessionLock(req.session.id, req.sessionStore);
+      if (!acquiredLease) {
         const problem = sessionBusyError(req.originalUrl || "/session");
         return res.status(409).json(problem.toJSON());
       }
@@ -30,8 +30,8 @@ router.post("/", async (req, res, next) => {
         await reloadSession(req);
       } catch (reloadErr) {
         // If expired or evicted from store, release lock and proceed to create new session
-        releaseSessionLock(existingLockId);
-        existingLockId = null;
+        releaseSessionLock(acquiredLease, req.sessionStore);
+        acquiredLease = null;
       }
     }
 
@@ -53,8 +53,9 @@ router.post("/", async (req, res, next) => {
     const problem = sessionStoreUnavailableError(req.originalUrl || "/session");
     res.status(503).json(problem.toJSON());
   } finally {
-    if (existingLockId) {
-      releaseSessionLock(existingLockId);
+    if (acquiredLease) {
+      releaseSessionLock(acquiredLease, req.sessionStore);
+      acquiredLease = null;
     }
   }
 });

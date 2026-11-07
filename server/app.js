@@ -10,7 +10,7 @@ import capabilitiesRoute from "./routes/capabilities.js";
 import sessionRoute from "./routes/session.js";
 import { createSessionStore, getSessionStore, cleanupSessionStore } from "./session/store.js";
 import { createSessionMiddleware, validateOrigin } from "./session/middleware.js";
-import { clearAllSessionLocks } from "./session/lifecycle.js";
+import { clearSessionLocks, clearAllSessionLocks } from "./session/lifecycle.js";
 import {
   rateLimitError,
   ProblemError,
@@ -171,7 +171,7 @@ export function createApp(options = {}) {
     app,
     sessionStore,
     cleanup: async () => {
-      clearAllSessionLocks();
+      clearSessionLocks(sessionStore);
       await cleanupSessionStore(sessionStore);
     }
   };
