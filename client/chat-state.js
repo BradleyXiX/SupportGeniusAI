@@ -8,7 +8,7 @@
  * @param {string} sessionId
  * @returns {{ sessionId: string, generation: number, pending: { requestId: string, generation: number } | null }}
  */
-export function createChatState(sessionId) {
+export function createChatState(sessionId = null) {
   return {
     sessionId,
     generation: 0,
@@ -42,7 +42,7 @@ export function beginRequest(state, requestId) {
  * @param {string} newSessionId
  * @returns {object}
  */
-export function resetSession(state, newSessionId) {
+export function resetSession(state, newSessionId = null) {
   return {
     sessionId: newSessionId,
     generation: state.generation + 1,

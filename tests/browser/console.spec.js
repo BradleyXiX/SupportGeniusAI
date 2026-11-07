@@ -409,7 +409,7 @@ test.describe("Task 2 / A2: Request & Session Safety", () => {
     await expect(messages).toContainText("Safe header");
   });
 
-  test("resetSession while mocked POST is delayed prevents old response and cost from updating state", async ({ page }) => {
+  test("New conversation button is disabled while chat is pending and re-enabled upon resolution", async ({ page }) => {
     let resolvePost;
     const postPromise = new Promise((resolve) => {
       resolvePost = resolve;
@@ -421,8 +421,8 @@ test.describe("Task 2 / A2: Request & Session Safety", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          reply: "Late stale response that should never appear",
-          cost: "0.9999"
+          reply: "Response from server",
+          cost: "0.0005"
         })
       });
     });
@@ -432,20 +432,16 @@ test.describe("Task 2 / A2: Request & Session Safety", () => {
     await input.fill("Question in session 1");
     await page.locator("#send-btn").click();
 
-    // Reset session while request is still pending
-    page.on("dialog", (dialog) => dialog.accept());
-    await page.locator("#reset-btn").click();
+    // While request is pending, reset button MUST be disabled
+    const resetBtn = page.locator("#reset-btn");
+    await expect(resetBtn).toBeDisabled();
 
-    // Now resolve the late POST
+    // Resolve post
     resolvePost();
-    await page.waitForTimeout(600);
+    await expect(page.locator("#chat-messages")).toContainText("Response from server");
 
-    // Stale reply must NOT appear in the new session
-    const messages = page.locator("#chat-messages");
-    await expect(messages).not.toContainText("Late stale response that should never appear");
-
-    // Session cost must remain $0.0000, NOT $0.9999
-    await expect(page.locator("#session-cost")).toHaveText("$0.0000");
+    // After response, reset button is enabled
+    await expect(resetBtn).toBeEnabled();
   });
 });
 
@@ -726,7 +722,17 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     await input.fill("Request A");
     await sendBtn.click();
 
-    // Reset session while A is waiting for body
+    // In B5, while A is waiting for body, reset button is disabled!
+    await expect(page.locator("#reset-btn")).toBeDisabled();
+
+    // Advance clock past 45s for Request A's deadline
+    await page.clock.fastForward(46000);
+    await page.waitForTimeout(200);
+
+    // After A is aborted by deadline, reset button is enabled
+    await expect(page.locator("#reset-btn")).toBeEnabled();
+
+    // Reset session after A settles
     page.on("dialog", (dialog) => dialog.accept());
     await page.locator("#reset-btn").click();
 
@@ -817,6 +823,19 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     await input.fill("Request A Rejection");
     await sendBtn.click();
 
+    // While A is in flight, reset button is disabled
+    await expect(page.locator("#reset-btn")).toBeDisabled();
+
+    // Reject Request A's body
+    await page.evaluate(() => {
+      if (window.__rejecters.rejectA) {
+        window.__rejecters.rejectA();
+      }
+    });
+
+    // After A rejects, reset button becomes enabled
+    await expect(page.locator("#reset-btn")).toBeEnabled();
+
     page.on("dialog", (dialog) => dialog.accept());
     await page.locator("#reset-btn").click();
 
@@ -827,13 +846,6 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     await expect(sendBtn).toBeDisabled();
     await expect(input).toBeDisabled();
     expect(await page.evaluate(() => window.__consoleOrbState)).toBe("pending");
-
-    // Reject Request A's body
-    await page.evaluate(() => {
-      if (window.__rejecters.rejectA) {
-        window.__rejecters.rejectA();
-      }
-    });
 
     // Request B MUST still remain pending!
     await expect(page.locator(".loading-status-text")).toBeVisible();
@@ -889,9 +901,8 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     await input.fill("Bad input before reset");
     await page.locator("#send-btn").click();
 
-    // Reset session while 422 body is delayed
-    page.on("dialog", (dialog) => dialog.accept());
-    await page.locator("#reset-btn").click();
+    // In B5, while 422 request is pending, reset button is disabled
+    await expect(page.locator("#reset-btn")).toBeDisabled();
 
     // Now resolve 422 body
     await page.evaluate(() => {
@@ -902,6 +913,13 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
         });
       }
     });
+
+    // After 422 completes, reset button is enabled
+    await expect(page.locator("#reset-btn")).toBeEnabled();
+
+    // Reset session
+    page.on("dialog", (dialog) => dialog.accept());
+    await page.locator("#reset-btn").click();
 
     await page.waitForTimeout(500);
 
@@ -996,5 +1014,252 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
 
     // Loading indicator is removed
     await expect(loadingEl).toHaveCount(0);
+  });
+
+  test("console initialization blocks Send until capabilities and session bootstrap succeed", async ({ page }) => {
+    let resolveSession;
+    const sessionPromise = new Promise((resolve) => {
+      resolveSession = resolve;
+    });
+
+    await page.route("**/session", async (route) => {
+      if (route.request().method() === "POST") {
+        await sessionPromise;
+        await route.fulfill({ status: 204 });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.goto("/console/");
+
+    const sendBtn = page.locator("#send-btn");
+    const input = page.locator("#input");
+    const resetBtn = page.locator("#reset-btn");
+
+    // Before session resolves, Send, Input, and Reset are disabled
+    await expect(sendBtn).toBeDisabled();
+    await expect(input).toBeDisabled();
+    await expect(resetBtn).toBeDisabled();
+    await expect(input).toHaveAttribute("placeholder", /Preparing conversation/i);
+
+    // Resolve POST /session
+    resolveSession();
+
+    // Now input and send become enabled
+    await expect(sendBtn).toBeEnabled();
+    await expect(input).toBeEnabled();
+    await expect(resetBtn).toBeEnabled();
+    await expect(input).toHaveAttribute("placeholder", /Ask a question/i);
+  });
+
+  test("failure / malformed capability remains visibly unavailable with Retry control and blocks Send", async ({ page }) => {
+    await page.route("**/capabilities", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ mode: "unknown_invalid_mode" })
+      });
+    });
+
+    await page.goto("/console/");
+
+    const sendBtn = page.locator("#send-btn");
+    const input = page.locator("#input");
+
+    await expect(sendBtn).toBeDisabled();
+    await expect(input).toBeDisabled();
+
+    // Mode disclosure displays unavailable
+    const modeBadge = page.locator("#mode-badge, .disclosure-badge");
+    await expect(modeBadge).toContainText(/unavailable/i);
+
+    // Clear Retry control is present
+    const retryBtn = page.locator(".btn-retry-init");
+    await expect(retryBtn).toBeVisible();
+
+    // Zero session storage tokens
+    const storedId = await page.evaluate(() => sessionStorage.getItem("supportGeniusSessionId"));
+    expect(storedId).toBeNull();
+  });
+
+  test("mode disclosure is populated accurately for demo and support modes", async ({ page }) => {
+    // Test Demo Mode
+    await page.route("**/capabilities", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ mode: "demo", actionsEnabled: false, sessionRequired: true })
+      });
+    });
+
+    await page.goto("/console/");
+    await expect(page.locator(".demo-disclosure")).toContainText(/Demonstration — simulated answers, no automated actions|Simulated answers/i);
+
+    // Test Support Mode
+    await page.route("**/capabilities", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ mode: "support", actionsEnabled: false, sessionRequired: true })
+      });
+    });
+
+    await page.goto("/console/");
+    await expect(page.locator(".demo-disclosure")).toContainText(/Document support — automated actions unavailable|Document support/i);
+  });
+
+  test("reset rotates server session via POST /session before clearing transcript and cost", async ({ page }) => {
+    let sessionPostCalled = false;
+    let resolveSession;
+    const sessionPromise = new Promise((resolve) => {
+      resolveSession = resolve;
+    });
+
+    await page.route("**/chat", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ reply: "First turn reply", cost: "0.0025" })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+    const resetBtn = page.locator("#reset-btn");
+
+    // Complete a turn first
+    await input.fill("Initial question");
+    await sendBtn.click();
+    await expect(page.locator("#chat-messages")).toContainText("First turn reply");
+    await expect(page.locator("#session-cost")).toHaveText("$0.0025");
+
+    // Intercept subsequent POST /session (reset rotation)
+    await page.route("**/session", async (route) => {
+      sessionPostCalled = true;
+      await sessionPromise;
+      await route.fulfill({ status: 204 });
+    });
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await resetBtn.click();
+
+    // While reset is pending: button shows Starting conversation..., Send is disabled, transcript NOT cleared yet!
+    await expect(resetBtn).toBeDisabled();
+    await expect(resetBtn).toContainText(/Starting conversation/i);
+    await expect(sendBtn).toBeDisabled();
+    await expect(page.locator("#chat-messages")).toContainText("First turn reply");
+
+    // Resolve POST /session rotation
+    resolveSession();
+
+    // Now transcript is cleared and cost reset
+    await expect(page.locator("#session-cost")).toHaveText("$0.0000");
+    await expect(page.locator("#chat-messages")).not.toContainText("First turn reply");
+    await expect(resetBtn).toBeEnabled();
+    await expect(resetBtn).toContainText(/New conversation/i);
+    expect(sessionPostCalled).toBe(true);
+  });
+
+  test("failed reset retains previous transcript and cost and presents retry affordance", async ({ page }) => {
+    await page.route("**/chat", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ reply: "Preserved turn reply", cost: "0.0040" })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+    const resetBtn = page.locator("#reset-btn");
+
+    await input.fill("Important query");
+    await sendBtn.click();
+    await expect(page.locator("#chat-messages")).toContainText("Preserved turn reply");
+
+    // Make reset fail with 503
+    await page.route("**/session", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "SESSION_STORE_UNAVAILABLE" })
+      });
+    });
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await resetBtn.click();
+
+    // Transcript and cost must be retained! History NOT cleared
+    await expect(page.locator("#chat-messages")).toContainText("Preserved turn reply");
+    await expect(page.locator("#session-cost")).toHaveText("$0.0040");
+    await expect(resetBtn).toBeEnabled();
+  });
+
+  test("HTTP 401 SESSION_REQUIRED disables composer and requires explicit session restart", async ({ page }) => {
+    await page.route("**/chat", async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "SESSION_REQUIRED", detail: "Session required or expired." })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+
+    await input.fill("Hello on expired session");
+    await sendBtn.click();
+
+    // Shows session required / expired message
+    await expect(page.locator("#chat-messages")).toContainText(/Session required or expired/i);
+
+    // Composer input and Send are disabled
+    await expect(input).toBeDisabled();
+    await expect(sendBtn).toBeDisabled();
+  });
+
+  test("HTTP 409 SESSION_BUSY displays honest waiting guidance without auto-retry", async ({ page }) => {
+    let postCount = 0;
+    await page.route("**/chat", async (route) => {
+      postCount++;
+      await route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "SESSION_BUSY", detail: "A reply is already being processed." })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    const sendBtn = page.locator("#send-btn");
+
+    await input.fill("Contention query");
+    await sendBtn.click();
+
+    // Message shows already processing guidance
+    await expect(page.locator("#chat-messages")).toContainText(/A reply is already being processed/i);
+
+    // Exactly 1 POST made (zero automatic retry)
+    await page.waitForTimeout(500);
+    expect(postCount).toBe(1);
+  });
+
+  test("zero session identifiers exist in browser storage", async ({ page }) => {
+    await page.goto("/console/");
+    const storedSession = await page.evaluate(() => {
+      return {
+        sessionStorageId: sessionStorage.getItem("supportGeniusSessionId"),
+        localStorageId: localStorage.getItem("supportGeniusSessionId"),
+        anyStorageKeys: Object.keys(sessionStorage)
+      };
+    });
+
+    expect(storedSession.sessionStorageId).toBeNull();
+    expect(storedSession.localStorageId).toBeNull();
+    expect(storedSession.anyStorageKeys.filter((k) => k.toLowerCase().includes("session"))).toEqual([]);
   });
 });

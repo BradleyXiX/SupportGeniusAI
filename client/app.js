@@ -1,7 +1,7 @@
 // ==========================================================================
 // SupportGeniusAI Console Controller (Signal Desk)
 // Pure ES Module • Strict CSP Compliant • Safe Rendering & Session State
-// Governed by Task 2 / A2 Specifications
+// Governed by Task 2 / A2 & B5 Specifications
 // ==========================================================================
 
 import {
@@ -23,46 +23,32 @@ function generateId(prefix = "id_") {
   return prefix + Math.random().toString(36).substring(2, 11) + "_" + Date.now().toString(36);
 }
 
-function getOrCreateSessionId() {
-  try {
-    let id = sessionStorage.getItem("supportGeniusSessionId");
-    if (!id || id.length > 64) {
-      id = generateId("sess_");
-      sessionStorage.setItem("supportGeniusSessionId", id);
-    }
-    return id;
-  } catch {
-    return generateId("sess_");
-  }
-}
-
 export function initConsole() {
   const chatMessages = document.getElementById("chat-messages");
   const inputField = document.getElementById("input");
   const sessionCostEl = document.getElementById("session-cost");
   const sendBtn = document.getElementById("send-btn");
   const resetBtn = document.getElementById("reset-btn");
+  const resetBtnText = document.getElementById("reset-btn-text") || resetBtn?.querySelector("span");
   const chatForm = document.getElementById("chat-form");
   const statusBeacon = document.querySelector(".status-beacon");
   const statusText = document.getElementById("connection-status-text");
+  const modeBadge = document.getElementById("mode-badge") || document.querySelector(".disclosure-badge");
+  const modeText = document.getElementById("mode-text");
 
   if (!chatMessages || !inputField) return;
 
-  let state = createChatState(getOrCreateSessionId());
+  let state = createChatState();
+  let isSessionInitialized = false;
+  let isResetPending = false;
   let hasHistory = false;
   let activeAbortController = null;
+  let capabilities = null;
 
   // Mount console status orb
   const consoleOrbCanvas = document.getElementById("console-orb");
   const consoleOrb = consoleOrbCanvas ? mountOrb(consoleOrbCanvas, { state: "idle" }) : null;
   window.__consoleOrbState = "idle";
-
-  // Auto-focus input on load
-  inputField.focus();
-
-  // Verify server reachability on page load
-  checkServerHealth();
-  const healthInterval = setInterval(checkServerHealth, 60000);
 
   // Form submit listener
   if (chatForm) {
@@ -87,6 +73,7 @@ export function initConsole() {
   const suggestionChips = document.querySelectorAll("[data-suggestion], .suggestion-chip");
   suggestionChips.forEach((chip) => {
     chip.addEventListener("click", () => {
+      if (!isSessionInitialized || state.pending !== null) return;
       const text = chip.textContent.trim();
       if (!text) return;
       inputField.value = text;
@@ -100,6 +87,125 @@ export function initConsole() {
     resetBtn.addEventListener("click", () => {
       handleReset();
     });
+  }
+
+  // Verify server reachability on page load
+  checkServerHealth();
+  const healthInterval = setInterval(checkServerHealth, 60000);
+
+  // Bootstrap session and capabilities on page load
+  bootstrapSession();
+
+  function updateModeDisclosure(mode) {
+    if (mode === "demo") {
+      if (modeBadge) modeBadge.textContent = "Demo";
+      if (modeText) {
+        modeText.textContent = "SupportGeniusAI demonstration • Demonstration — simulated answers, no automated actions";
+      }
+    } else if (mode === "support") {
+      if (modeBadge) modeBadge.textContent = "Support";
+      if (modeText) {
+        modeText.textContent = "Document support — automated actions unavailable";
+      }
+    } else {
+      if (modeBadge) modeBadge.textContent = "Unavailable";
+      if (modeText) {
+        modeText.textContent = "Configuration unavailable — automated actions unavailable";
+      }
+    }
+  }
+
+  function showInitError(messageText) {
+    removeInitError();
+    const banner = document.createElement("div");
+    banner.id = "init-error-banner";
+    banner.className = "message ai-message error-message init-error-banner";
+
+    const avatar = document.createElement("div");
+    avatar.className = "avatar-mini";
+    avatar.setAttribute("aria-hidden", "true");
+    avatar.textContent = "SG";
+    banner.appendChild(avatar);
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+
+    const msgP = document.createElement("p");
+    msgP.textContent = `⚠️ Initialization Error: ${messageText}`;
+    bubble.appendChild(msgP);
+
+    const retryBtn = document.createElement("button");
+    retryBtn.type = "button";
+    retryBtn.className = "btn-retry-init";
+    retryBtn.textContent = "Retry initialization";
+    retryBtn.addEventListener("click", () => {
+      bootstrapSession();
+    });
+    bubble.appendChild(retryBtn);
+
+    banner.appendChild(bubble);
+    chatMessages.appendChild(banner);
+    scrollTranscriptToBottom();
+  }
+
+  function removeInitError() {
+    const banner = document.getElementById("init-error-banner");
+    if (banner) banner.remove();
+  }
+
+  async function bootstrapSession() {
+    inputField.disabled = true;
+    inputField.placeholder = "Preparing conversation...";
+    if (sendBtn) sendBtn.disabled = true;
+    if (resetBtn) resetBtn.disabled = true;
+    removeInitError();
+
+    try {
+      // 1. Fetch server capabilities
+      const capRes = await fetch("/capabilities", { credentials: "same-origin" });
+      if (!capRes.ok) {
+        throw new Error("Failed to load server capabilities");
+      }
+      let capData;
+      try {
+        capData = await capRes.json();
+      } catch {
+        throw new Error("Invalid capabilities response format");
+      }
+      if (!capData || (capData.mode !== "support" && capData.mode !== "demo")) {
+        throw new Error("Invalid or unsupported server mode");
+      }
+      capabilities = capData;
+      updateModeDisclosure(capData.mode);
+
+      // 2. Initialize anonymous server session
+      const sessRes = await fetch("/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin"
+      });
+      if (sessRes.status !== 204) {
+        throw new Error(`Failed to initialize session (status: ${sessRes.status})`);
+      }
+
+      isSessionInitialized = true;
+      inputField.disabled = false;
+      inputField.placeholder = "Ask a question or enter your query...";
+      if (sendBtn) sendBtn.disabled = false;
+      if (resetBtn) resetBtn.disabled = false;
+      inputField.focus();
+    } catch (err) {
+      isSessionInitialized = false;
+      inputField.disabled = true;
+      inputField.placeholder = "Initialization failed";
+      if (sendBtn) sendBtn.disabled = true;
+      if (resetBtn) resetBtn.disabled = true;
+      if (modeBadge) modeBadge.textContent = "Unavailable";
+      if (modeText) {
+        modeText.textContent = "Configuration unavailable — automated actions unavailable";
+      }
+      showInitError(err.message || "Failed to initialize conversation session.");
+    }
   }
 
   async function checkServerHealth() {
@@ -140,9 +246,14 @@ export function initConsole() {
 
   if (typeof window !== "undefined") {
     window.__checkServerHealth = checkServerHealth;
+    window.__bootstrapSession = bootstrapSession;
   }
 
-  function handleReset() {
+  async function handleReset() {
+    if (isResetPending || state.pending !== null) {
+      return; // Disabled while chat is pending or reset is already in progress
+    }
+
     if (hasHistory) {
       const confirmed = confirm("Start a new conversation? Current conversation history will be cleared.");
       if (!confirmed) return;
@@ -153,34 +264,63 @@ export function initConsole() {
       activeAbortController = null;
     }
 
-    const newSessionId = generateId("sess_");
-    try {
-      sessionStorage.setItem("supportGeniusSessionId", newSessionId);
-    } catch {}
-
-    state = resetChatState(state, newSessionId);
-    hasHistory = false;
-    consoleOrb?.setState("idle");
-    window.__consoleOrbState = "idle";
-
-    if (sessionCostEl) {
-      sessionCostEl.textContent = "$0.0000";
+    isResetPending = true;
+    if (resetBtn) {
+      resetBtn.disabled = true;
+      if (resetBtnText) resetBtnText.textContent = "Starting conversation...";
     }
+    if (sendBtn) sendBtn.disabled = true;
+    inputField.disabled = true;
 
-    removeLoading();
-    chatMessages.innerHTML = `
-      <div class="message ai-message">
-        <div class="avatar-mini" aria-hidden="true">SG</div>
-        <div class="bubble">
-          <p>Welcome to the <strong>SupportGenius Signal Desk</strong> demonstration. How can I assist you with our documented policies or services today?</p>
-        </div>
-      </div>
-    `;
+    try {
+      const res = await fetch("/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin"
+      });
 
-    inputField.value = "";
-    if (sendBtn) sendBtn.disabled = false;
-    inputField.disabled = false;
-    inputField.focus();
+      if (res.status === 204) {
+        state = resetChatState(state);
+        hasHistory = false;
+        isSessionInitialized = true;
+        consoleOrb?.setState("idle");
+        window.__consoleOrbState = "idle";
+
+        if (sessionCostEl) {
+          sessionCostEl.textContent = "$0.0000";
+        }
+
+        removeLoading();
+        removeInitError();
+        chatMessages.innerHTML = `
+          <div class="message ai-message">
+            <div class="avatar-mini" aria-hidden="true">SG</div>
+            <div class="bubble">
+              <p>Welcome to the <strong>SupportGenius Signal Desk</strong> demonstration. How can I assist you with our documented policies or services today?</p>
+            </div>
+          </div>
+        `;
+
+        inputField.value = "";
+      } else {
+        appendMessage("Failed to reset session. Your previous conversation history was retained.", false, true);
+        showInitError("Server failed to rotate session. Please retry.");
+      }
+    } catch (err) {
+      appendMessage("Failed to connect to server to reset session. Your previous conversation history was retained.", false, true);
+      showInitError("Network error while rotating session. Please retry.");
+    } finally {
+      isResetPending = false;
+      if (resetBtn) {
+        resetBtn.disabled = false;
+        if (resetBtnText) resetBtnText.textContent = "New conversation";
+      }
+      if (isSessionInitialized) {
+        if (sendBtn) sendBtn.disabled = false;
+        inputField.disabled = false;
+        inputField.focus();
+      }
+    }
   }
 
   function showLoading() {
@@ -250,11 +390,8 @@ export function initConsole() {
     bubbleDiv.className = "bubble";
 
     if (isUser) {
-      // User message is always literal text
       bubbleDiv.textContent = text;
     } else {
-      // Markdown rendering with secure DOMPurify sanitization.
-      // If DOMPurify is missing/blocked, fail safe to textContent (NEVER raw innerHTML).
       if (typeof window.DOMPurify !== "undefined" && typeof window.marked !== "undefined") {
         try {
           const rawMarkup = window.marked.parse(text);
@@ -357,8 +494,8 @@ export function initConsole() {
     const text = (textOverride !== null ? textOverride : inputField.value).trim();
     if (!text) return;
 
-    // Idempotency check: if already pending, prevent duplicate submissions
-    if (state.pending !== null) {
+    // Idempotency & session gate: if not initialized or already pending, block submission
+    if (!isSessionInitialized || state.pending !== null) {
       return;
     }
 
@@ -378,6 +515,7 @@ export function initConsole() {
 
     if (sendBtn) sendBtn.disabled = true;
     inputField.disabled = true;
+    if (resetBtn) resetBtn.disabled = true; // New conversation is disabled while chat is pending
     const reqLoadingElement = showLoading();
 
     const abortController = new AbortController();
@@ -390,13 +528,33 @@ export function initConsole() {
       const res = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, sessionId: state.sessionId }),
+        credentials: "same-origin",
+        body: JSON.stringify({ message: text }),
         signal: abortController.signal
       });
 
       // Check if this response is still accepted (session might have been reset)
       if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
         reqLoadingElement.remove();
+        return;
+      }
+
+      if (res.status === 401) {
+        // Session expired or required: require explicit session restart
+        isSessionInitialized = false;
+        reqLoadingElement.remove();
+        appendMessage("Session required or expired. Please start a new conversation.", false, true);
+        if (sendBtn) sendBtn.disabled = true;
+        inputField.disabled = true;
+        inputField.placeholder = "Session expired. Start a new conversation.";
+        if (resetBtn) resetBtn.disabled = false;
+        return;
+      }
+
+      if (res.status === 409) {
+        // Single-flight contention: do not retry automatically
+        reqLoadingElement.remove();
+        appendMessage("A reply is already being processed. Please wait.", false, true);
         return;
       }
 
@@ -422,7 +580,6 @@ export function initConsole() {
         }
         reqLoadingElement.remove();
 
-        // Recheck ownership after awaiting body parse
         if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
           return;
         }
@@ -441,7 +598,6 @@ export function initConsole() {
         if (!acceptsReply(state, { requestId, generation: requestGeneration })) {
           return;
         }
-        // 5xx / gateway / upstream error: show approved honest uncertainty guidance with NO auto-retry
         appendMessage(
           "No reply received. An action may have completed. Verify with the business before repeating your request.",
           false,
@@ -453,7 +609,6 @@ export function initConsole() {
       const data = await res.json();
       reqLoadingElement.remove();
 
-      // Recheck ownership after awaiting body parse
       if (acceptsReply(state, { requestId, generation: requestGeneration })) {
         appendMessage(data.reply, false);
         if (data.cost !== undefined && sessionCostEl) {
@@ -467,7 +622,6 @@ export function initConsole() {
         return;
       }
 
-      // Network loss, timeout, or aborted fetch: approved uncertainty message with NO auto-retry
       appendMessage(
         "No reply received. An action may have completed. Verify with the business before repeating your request.",
         false,
@@ -480,20 +634,29 @@ export function initConsole() {
         activeAbortController = null;
       }
 
+      // Re-enable reset button once chat request settles
+      if (resetBtn) {
+        resetBtn.disabled = false;
+      }
+
       if (acceptsReply(state, { requestId, generation: requestGeneration })) {
         consoleOrb?.setState("idle");
         window.__consoleOrbState = "idle";
         state = completeRequest(state, { requestId, generation: requestGeneration });
-        if (sendBtn) sendBtn.disabled = false;
-        inputField.disabled = false;
-        inputField.focus();
+        if (isSessionInitialized) {
+          if (sendBtn) sendBtn.disabled = false;
+          inputField.disabled = false;
+          inputField.focus();
+        }
       }
     }
   }
+
   window.addEventListener("unload", () => {
     if (consoleOrb) {
       consoleOrb.destroy();
     }
+    clearInterval(healthInterval);
   });
 }
 

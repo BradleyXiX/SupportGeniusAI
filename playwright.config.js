@@ -23,6 +23,8 @@ export default defineConfig({
       NODE_ENV: "development",
       APP_MODE: "demo",
       PORT: String(TEST_PORT),
+      RATE_LIMIT_MAX_REQUESTS: "1000",
+      RATE_LIMIT_WINDOW_MS: "60000",
       SESSION_SECRET: "test-session-secret-at-least-32-chars-long",
       PUBLIC_ORIGIN: `http://localhost:${TEST_PORT}`,
       OPENAI_API_KEY: "",

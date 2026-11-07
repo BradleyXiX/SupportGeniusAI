@@ -1302,6 +1302,31 @@ body[data-page="console"] .btn-retry-429:disabled {
   cursor: not-allowed;
 }
 
+body[data-page="console"] .btn-retry-init {
+  margin-top: 10px;
+  display: inline-block;
+  background-color: #141C2E;
+  color: #F2C572;
+  border: 1px solid #293447;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+body[data-page="console"] .btn-retry-init:hover:not(:disabled) {
+  background-color: #1a253d;
+  border-color: #F2C572;
+}
+
+body[data-page="console"] .btn-retry-init:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 body[data-page="console"] .error-message .bubble {
   border-color: rgba(242, 166, 166, 0.4);
 }
