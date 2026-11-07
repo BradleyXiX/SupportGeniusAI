@@ -18,7 +18,23 @@ const envSchema = z.object({
     .default("http://localhost:3000,http://127.0.0.1:3000")
     .transform((val) => val.split(",").map((s) => s.trim())),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().positive().default(60000),
-  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().positive().default(10)
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().positive().default(10),
+  SESSION_SECRET: z.string().min(32, "SESSION_SECRET must be at least 32 characters long"),
+  PUBLIC_ORIGIN: z.string().url("PUBLIC_ORIGIN must be a valid URL").transform((val) => {
+    try {
+      return new URL(val).origin;
+    } catch {
+      return val;
+    }
+  })
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV === "production" && !data.PUBLIC_ORIGIN.startsWith("https://")) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "PUBLIC_ORIGIN must use HTTPS in production",
+      path: ["PUBLIC_ORIGIN"]
+    });
+  }
 });
 
 export function parseEnv(rawEnv = process.env) {

@@ -94,6 +94,12 @@ describe("Task B3 Corrections: Nonempty Model Text, Valid Vectors & Safe Logging
       delete process.env.OPENAI_API_KEY;
       delete process.env.GEMINI_API_KEY;
 
+      const initRes = await request(app)
+        .post("/session")
+        .set("Origin", "http://localhost:3000")
+        .send({});
+      const cookie = initRes.headers["set-cookie"][0];
+
       const llmService = await import("../services/llm.js");
       vi.spyOn(llmService, "callLLM").mockRejectedValue(
         new UpstreamError({
@@ -105,6 +111,8 @@ describe("Task B3 Corrections: Nonempty Model Text, Valid Vectors & Safe Logging
 
       const res = await request(app)
         .post("/chat")
+        .set("Origin", "http://localhost:3000")
+        .set("Cookie", cookie)
         .send({
           message: "What is your refund policy?",
           sessionId: "sess_empty_model_text"
@@ -183,6 +191,12 @@ describe("Task B3 Corrections: Nonempty Model Text, Valid Vectors & Safe Logging
       const USER_QUERY_SENTINEL = "CONFIDENTIAL_USER_SSN_999";
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
+      const initRes = await request(app)
+        .post("/session")
+        .set("Origin", "http://localhost:3000")
+        .send({});
+      const cookie = initRes.headers["set-cookie"][0];
+
       const agentService = await import("../services/agent.js");
       vi.spyOn(agentService, "handleChat").mockRejectedValue(
         new Error(`Database failure connecting to https://internal.db?token=${SECRET_SENTINEL} with ${USER_QUERY_SENTINEL}`)
@@ -190,6 +204,8 @@ describe("Task B3 Corrections: Nonempty Model Text, Valid Vectors & Safe Logging
 
       const res = await request(app)
         .post("/chat")
+        .set("Origin", "http://localhost:3000")
+        .set("Cookie", cookie)
         .send({
           message: "My query",
           sessionId: "sess_unexpected_leak_test"
@@ -218,6 +234,12 @@ describe("Task B3 Corrections: Nonempty Model Text, Valid Vectors & Safe Logging
       const UNTRUSTED_HEADER_ID = "untrusted-client-header-id-with-secret-ssn";
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
+      const initRes = await request(app)
+        .post("/session")
+        .set("Origin", "http://localhost:3000")
+        .send({});
+      const cookie = initRes.headers["set-cookie"][0];
+
       const agentService = await import("../services/agent.js");
       const customErr = new Error("Something broke");
       customErr.name = CUSTOM_ERR_NAME;
@@ -225,6 +247,8 @@ describe("Task B3 Corrections: Nonempty Model Text, Valid Vectors & Safe Logging
 
       const res = await request(app)
         .post("/chat")
+        .set("Origin", "http://localhost:3000")
+        .set("Cookie", cookie)
         .set("x-request-id", UNTRUSTED_HEADER_ID)
         .send({
           message: "My query",
@@ -253,6 +277,8 @@ describe("Task B3 Corrections: Nonempty Model Text, Valid Vectors & Safe Logging
 
       const res2 = await request(app)
         .post("/chat")
+        .set("Origin", "http://localhost:3000")
+        .set("Cookie", cookie)
         .set("x-request-id", UNTRUSTED_HEADER_ID)
         .send({
           message: "Query 2",

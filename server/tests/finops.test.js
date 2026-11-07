@@ -1,67 +1,64 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
+  createUsageMetrics,
   setModel,
   trackUsage,
   getSessionCost,
+  formatSessionCost,
   getSessionMetrics,
-  resetFinops,
   PRICING
 } from "../services/finops.js";
 
-describe("FinOps Telemetry & Bounded Memory Service", () => {
-  beforeEach(() => {
-    resetFinops();
-  });
-
+describe("FinOps Telemetry Service with Session Context", () => {
   it("calculates accurate session cost for gpt-4o-mini", () => {
-    const sessionId = "sess_test_1";
-    setModel(sessionId, "gpt-4o-mini");
+    const metrics = createUsageMetrics();
+    setModel(metrics, "gpt-4o-mini");
 
     // 1000 prompt tokens, 500 completion tokens
-    trackUsage(sessionId, 1000, 500);
+    trackUsage(metrics, 1000, 500);
 
     const expectedCost =
       (1000 / 1000) * PRICING["gpt-4o-mini"].prompt +
       (500 / 1000) * PRICING["gpt-4o-mini"].completion;
 
-    const cost = getSessionCost(sessionId);
+    const cost = getSessionCost(metrics);
     expect(cost).toBeCloseTo(expectedCost, 6);
+    expect(formatSessionCost(metrics)).toBe(`$${expectedCost.toFixed(4)}`);
   });
 
   it("tracks cumulative usage across multiple turns", () => {
-    const sessionId = "sess_test_2";
-    setModel(sessionId, "gemini-1.5-flash");
+    const metrics = createUsageMetrics();
+    setModel(metrics, "gemini-1.5-flash");
 
-    trackUsage(sessionId, 200, 100);
-    trackUsage(sessionId, 300, 150);
+    trackUsage(metrics, 200, 100);
+    trackUsage(metrics, 300, 150);
 
-    const metrics = getSessionMetrics(sessionId);
-    expect(metrics.promptTokens).toBe(500);
-    expect(metrics.completionTokens).toBe(250);
+    const snapshot = getSessionMetrics(metrics);
+    expect(snapshot.promptTokens).toBe(500);
+    expect(snapshot.completionTokens).toBe(250);
   });
 
-  it("returns zero cost for simulated model or non-existent session while tracking tokens", () => {
-    const sessionId = "sess_simulated";
-    setModel(sessionId, "simulated");
-    trackUsage(sessionId, 1000, 1000);
+  it("returns zero cost for simulated model while tracking tokens", () => {
+    const metrics = createUsageMetrics();
+    setModel(metrics, "simulated");
+    trackUsage(metrics, 1000, 1000);
 
-    expect(getSessionCost(sessionId)).toBe(0);
-    const metrics = getSessionMetrics(sessionId);
+    expect(getSessionCost(metrics)).toBe(0);
     expect(metrics.cost).toBe(0);
     expect(metrics.promptTokens).toBe(1000);
     expect(metrics.completionTokens).toBe(1000);
-    expect(getSessionCost("non_existent_id")).toBe(0);
+    expect(getSessionCost(null)).toBe(0);
 
     // Verify demo-simulated zero-cost alias
-    const demoSessionId = "sess_demo_alias";
-    setModel(demoSessionId, "demo-simulated");
-    trackUsage(demoSessionId, 500, 200);
-    expect(getSessionCost(demoSessionId)).toBe(0);
+    const demoMetrics = createUsageMetrics();
+    setModel(demoMetrics, "demo-simulated");
+    trackUsage(demoMetrics, 500, 200);
+    expect(getSessionCost(demoMetrics)).toBe(0);
 
-    // Verify unknown model falls back to non-zero llama3 rates
-    const unknownSessionId = "sess_unknown";
-    setModel(unknownSessionId, "unknown-model");
-    trackUsage(unknownSessionId, 1000, 1000);
-    expect(getSessionCost(unknownSessionId)).toBeGreaterThan(0);
+    // Verify unknown model falls back to non-zero rates
+    const unknownMetrics = createUsageMetrics();
+    setModel(unknownMetrics, "unknown-model");
+    trackUsage(unknownMetrics, 1000, 1000);
+    expect(getSessionCost(unknownMetrics)).toBeGreaterThan(0);
   });
 });

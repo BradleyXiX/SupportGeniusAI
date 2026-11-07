@@ -133,3 +133,47 @@ export function payloadTooLargeError(instance, message = "Request payload exceed
     instance
   });
 }
+
+export function forbiddenError(instance, message = "Cross-origin request rejected.", code = "ORIGIN_FORBIDDEN") {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/forbidden",
+    title: "Forbidden",
+    status: 403,
+    detail: message,
+    instance,
+    code
+  });
+}
+
+export function sessionRequiredError(instance, message = "Session required. Please initialize a session.", code = "SESSION_REQUIRED") {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/session-required",
+    title: "Session Required",
+    status: 401,
+    detail: message,
+    instance,
+    code
+  });
+}
+
+export function sessionBusyError(instance, message = "A reply is already being processed.", code = "SESSION_BUSY") {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/session-busy",
+    title: "Session Busy",
+    status: 409,
+    detail: message,
+    instance,
+    code
+  });
+}
+
+export function sessionStoreUnavailableError(instance, message = "Session store is temporarily unavailable.", code = "SESSION_STORE_UNAVAILABLE") {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/session-store-unavailable",
+    title: "Service Unavailable",
+    status: 503,
+    detail: message,
+    instance,
+    code
+  });
+}

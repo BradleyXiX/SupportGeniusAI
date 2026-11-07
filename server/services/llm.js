@@ -11,8 +11,17 @@ function isNonEmptyText(val) {
   return typeof val === "string" && val.trim().length > 0;
 }
 
-export async function callLLM(prompt, sessionId, { signal } = {}) {
-  const mode = process.env.APP_MODE || "support";
+export async function callLLM(prompt, options = {}) {
+  let metrics = options?.metrics;
+  let mode = options?.mode || process.env.APP_MODE || "support";
+  let signal = options?.signal;
+
+  if (typeof options === "string") {
+    // Backwards compatibility for legacy calls: callLLM(prompt, legacySessionId, maybeOptions)
+    metrics = null;
+    signal = arguments[2]?.signal;
+  }
+
   let responseText = "";
   let modelUsed = process.env.OLLAMA_CHAT_MODEL || "qwen2.5-coder:7b";
   let promptTokens = estimateTokens(prompt);
@@ -25,9 +34,9 @@ export async function callLLM(prompt, sessionId, { signal } = {}) {
     responseText = simResponse.startsWith("[Demo] ") ? simResponse : `[Demo] ${simResponse}`;
     completionTokens = estimateTokens(responseText);
 
-    if (sessionId) {
-      setModel(sessionId, modelUsed);
-      trackUsage(sessionId, promptTokens, completionTokens);
+    if (metrics) {
+      setModel(metrics, modelUsed);
+      trackUsage(metrics, promptTokens, completionTokens);
     }
     return responseText;
   }
@@ -130,10 +139,10 @@ export async function callLLM(prompt, sessionId, { signal } = {}) {
     });
   }
 
-  // Track tokens if sessionId is provided
-  if (sessionId) {
-    setModel(sessionId, modelUsed);
-    trackUsage(sessionId, promptTokens, completionTokens);
+  // Track tokens if metrics is provided
+  if (metrics) {
+    setModel(metrics, modelUsed);
+    trackUsage(metrics, promptTokens, completionTokens);
   }
 
   return responseText;

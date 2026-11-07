@@ -4,13 +4,22 @@ import app from "../index.js";
 import { unavailableActionReply } from "../services/agent.js";
 import * as llmService from "../services/llm.js";
 
+const TEST_ORIGIN = "http://localhost:3000";
+
 describe("POST /chat Route & RFC 7807 Contracts", () => {
   const originalEnv = { ...process.env };
+  let sessionCookie;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.restoreAllMocks();
     process.env = { ...originalEnv };
     process.env.APP_MODE = "demo";
+
+    const initRes = await request(app)
+      .post("/session")
+      .set("Origin", TEST_ORIGIN)
+      .send({});
+    sessionCookie = initRes.headers["set-cookie"][0];
   });
 
   afterEach(() => {
@@ -20,6 +29,8 @@ describe("POST /chat Route & RFC 7807 Contracts", () => {
   it("processes a valid customer question and returns 200 with reply and cost", async () => {
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .send({
         message: "What is your return policy?",
         sessionId: "sess_unit_test"
@@ -39,6 +50,8 @@ describe("POST /chat Route & RFC 7807 Contracts", () => {
 
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .send({
         message: "Where is my order 12345?",
         sessionId: "sess_order_test"
@@ -51,6 +64,8 @@ describe("POST /chat Route & RFC 7807 Contracts", () => {
   it("returns HTTP 422 RFC 7807 Problem Details for empty message", async () => {
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .send({
         message: "   ",
         sessionId: "sess_test"
@@ -68,6 +83,8 @@ describe("POST /chat Route & RFC 7807 Contracts", () => {
     const oversizedMessage = "A".repeat(2001);
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .send({
         message: oversizedMessage,
         sessionId: "sess_test"
@@ -81,6 +98,8 @@ describe("POST /chat Route & RFC 7807 Contracts", () => {
   it("returns HTTP 422 RFC 7807 for invalid sessionId characters", async () => {
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .send({
         message: "Valid question",
         sessionId: "sess<invalid>$$"

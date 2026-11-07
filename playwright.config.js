@@ -20,8 +20,11 @@ export default defineConfig({
     timeout: 30000,
     reuseExistingServer: false,
     env: {
-      NODE_ENV: "production",
+      NODE_ENV: "development",
+      APP_MODE: "demo",
       PORT: String(TEST_PORT),
+      SESSION_SECRET: "test-session-secret-at-least-32-chars-long",
+      PUBLIC_ORIGIN: `http://localhost:${TEST_PORT}`,
       OPENAI_API_KEY: "",
       GEMINI_API_KEY: "",
       CLIENT_WEBHOOK_URL: "",

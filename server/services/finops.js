@@ -1,12 +1,8 @@
 /**
  * FinOps Telemetry Service
- * Tracks token usage and inference cost with bounded LRU/TTL in-memory cache
+ * Tracks token usage and inference cost within cookie-owned session context.
+ * No global in-memory maps.
  */
-
-const MAX_SESSIONS = 5000;
-const SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
-
-const sessions = new Map();
 
 export const PRICING = {
   "gpt-4o-mini": { prompt: 0.00015, completion: 0.0006 },
@@ -17,86 +13,49 @@ export const PRICING = {
   "demo-simulated": { prompt: 0, completion: 0 }
 };
 
-function evictExpiredSessions() {
-  const now = Date.now();
-  for (const [id, session] of sessions.entries()) {
-    if (now - session.lastAccessed > SESSION_TTL_MS) {
-      sessions.delete(id);
-    }
-  }
-}
-
-function enforceCapacity() {
-  if (sessions.size >= MAX_SESSIONS) {
-    evictExpiredSessions();
-    // If still over capacity, evict oldest entry (LRU)
-    if (sessions.size >= MAX_SESSIONS) {
-      const oldestKey = sessions.keys().next().value;
-      if (oldestKey) sessions.delete(oldestKey);
-    }
-  }
-}
-
-export function setModel(sessionId, model) {
-  if (!sessionId) return;
-  enforceCapacity();
-
-  const session = sessions.get(sessionId) || {
+export function createUsageMetrics(initialModel = "qwen2.5-coder:7b") {
+  return {
+    model: initialModel,
     cost: 0,
-    model: "llama3",
     promptTokens: 0,
-    completionTokens: 0,
-    lastAccessed: Date.now()
+    completionTokens: 0
   };
-
-  session.model = model;
-  session.lastAccessed = Date.now();
-  sessions.set(sessionId, session);
 }
 
-export function trackUsage(sessionId, promptTokens = 0, completionTokens = 0) {
-  if (!sessionId) return;
-  enforceCapacity();
+export function setModel(metrics, model) {
+  if (!metrics || typeof metrics !== "object") return;
+  metrics.model = model;
+}
 
-  const session = sessions.get(sessionId) || {
-    cost: 0,
-    model: "llama3",
-    promptTokens: 0,
-    completionTokens: 0,
-    lastAccessed: Date.now()
-  };
+export function trackUsage(metrics, promptTokens = 0, completionTokens = 0) {
+  if (!metrics || typeof metrics !== "object") return;
 
-  const model = session.model || "llama3";
-  const rates = PRICING[model] || PRICING["llama3"];
+  const model = metrics.model || "qwen2.5-coder:7b";
+  const rates = PRICING[model] || PRICING["qwen2.5-coder:7b"] || { prompt: 0.0015, completion: 0.002 };
 
   const promptCost = (promptTokens / 1000) * rates.prompt;
   const completionCost = (completionTokens / 1000) * rates.completion;
 
-  session.cost += promptCost + completionCost;
-  session.promptTokens += promptTokens;
-  session.completionTokens += completionTokens;
-  session.lastAccessed = Date.now();
-
-  // Re-insert to keep LRU order
-  sessions.delete(sessionId);
-  sessions.set(sessionId, session);
+  metrics.cost = (metrics.cost || 0) + promptCost + completionCost;
+  metrics.promptTokens = (metrics.promptTokens || 0) + promptTokens;
+  metrics.completionTokens = (metrics.completionTokens || 0) + completionTokens;
 }
 
-export function getSessionCost(sessionId) {
-  if (!sessionId) return 0;
-  const session = sessions.get(sessionId);
-  if (!session) return 0;
-  session.lastAccessed = Date.now();
-  return session.cost;
+export function getSessionCost(metrics) {
+  if (!metrics) return 0;
+  return typeof metrics === "number" ? metrics : (metrics.cost || 0);
 }
 
-export function getSessionMetrics(sessionId) {
-  if (!sessionId) return null;
-  const session = sessions.get(sessionId);
-  if (!session) return null;
-  return { ...session };
+export function formatSessionCost(metrics) {
+  const cost = getSessionCost(metrics);
+  return `$${cost.toFixed(4)}`;
+}
+
+export function getSessionMetrics(metrics) {
+  if (!metrics || typeof metrics !== "object") return null;
+  return { ...metrics };
 }
 
 export function resetFinops() {
-  sessions.clear();
+  // Maintained for test lifecycle resets
 }

@@ -4,13 +4,22 @@ import http from "http";
 import app from "../index.js";
 import { UpstreamError } from "../utils/upstream.js";
 
+const TEST_ORIGIN = "http://localhost:3000";
+
 describe("Task B3: Safe Upstream Errors & Chat Route Gateway Guarantees", () => {
   const originalEnv = { ...process.env };
   let mockServer = null;
+  let sessionCookie;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.restoreAllMocks();
     process.env = { ...originalEnv };
+
+    const initRes = await request(app)
+      .post("/session")
+      .set("Origin", TEST_ORIGIN)
+      .send({});
+    sessionCookie = initRes.headers["set-cookie"][0];
   });
 
   afterEach(() => {
@@ -47,6 +56,8 @@ describe("Task B3: Safe Upstream Errors & Chat Route Gateway Guarantees", () => 
 
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .send({
         message: "Where is the policy?",
         sessionId: "sess_timeout_test"
@@ -72,6 +83,8 @@ describe("Task B3: Safe Upstream Errors & Chat Route Gateway Guarantees", () => 
 
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .send({
         message: "Tell me shipping details",
         sessionId: "sess_unavailable_test"
@@ -100,6 +113,8 @@ describe("Task B3: Safe Upstream Errors & Chat Route Gateway Guarantees", () => 
 
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .send({
         message: "Tell me your secret",
         sessionId: "sess_secret_test"
@@ -120,6 +135,8 @@ describe("Task B3: Safe Upstream Errors & Chat Route Gateway Guarantees", () => 
   it("maps malformed JSON request body to HTTP 400 Bad Request problem details", async () => {
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .set("Content-Type", "application/json")
       .send("{\"message\": invalid_json_syntax");
 
@@ -134,6 +151,8 @@ describe("Task B3: Safe Upstream Errors & Chat Route Gateway Guarantees", () => 
 
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .set("Content-Type", "application/json")
       .send(JSON.stringify({ message: oversized, sessionId: "sess_big" }));
 
@@ -145,6 +164,8 @@ describe("Task B3: Safe Upstream Errors & Chat Route Gateway Guarantees", () => 
   it("preserves RFC 7807 422 validation errors for empty message", async () => {
     const res = await request(app)
       .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
       .send({
         message: "   ",
         sessionId: "sess_valid_check"
@@ -155,4 +176,3 @@ describe("Task B3: Safe Upstream Errors & Chat Route Gateway Guarantees", () => 
     expect(res.body).toHaveProperty("invalidParams");
   });
 });
-

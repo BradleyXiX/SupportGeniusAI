@@ -1,32 +1,10 @@
 import { callLLM } from "./llm.js";
 import { retrieveContext } from "./rag.js";
 import { buildPrompt, buildToolResultPrompt } from "../utils/promptBuilder.js";
-
-// Multi-turn conversation history buffer (sliding window of max 6 turns per session)
-const sessionHistory = new Map();
-const MAX_TURNS = 6;
-
-function getSessionHistory(sessionId) {
-  if (!sessionId) return [];
-  return sessionHistory.get(sessionId) || [];
-}
-
-function appendToSessionHistory(sessionId, role, content) {
-  if (!sessionId) return;
-  const history = sessionHistory.get(sessionId) || [];
-  history.push({ role, content, timestamp: Date.now() });
-  if (history.length > MAX_TURNS) {
-    history.splice(0, history.length - MAX_TURNS);
-  }
-  sessionHistory.set(sessionId, history);
-}
+import { createUsageMetrics } from "./finops.js";
 
 export function clearAgentHistory(sessionId) {
-  if (sessionId) {
-    sessionHistory.delete(sessionId);
-  } else {
-    sessionHistory.clear();
-  }
+  // Maintained for backwards compatibility in test suites; state is session-owned
 }
 
 export const UNAVAILABLE_ACTION_REPLY =
@@ -75,29 +53,45 @@ export function parseToolAction(aiResponse = "") {
   return { actionName, params };
 }
 
-export async function handleChat(message, sessionId, { signal } = {}) {
-  const history = getSessionHistory(sessionId);
+export async function handleChat(message, options = {}) {
+  let history = options?.history || [];
+  let metrics = options?.metrics || createUsageMetrics();
+  let mode = options?.mode || process.env.APP_MODE || "support";
+  let signal = options?.signal;
+
+  if (typeof options === "string") {
+    // Backwards compatibility for legacy calls during transition
+    signal = arguments[2]?.signal;
+  }
+
   const context = await retrieveContext(message, { signal });
   const prompt = buildPrompt(message, context, history);
 
-  let aiResponse = await callLLM(prompt, sessionId, { signal });
+  const aiResponse = await callLLM(prompt, { metrics, mode, signal });
 
   // If the model produced any tool action (recognized, unknown, or malformed), refuse deterministically
   const isActionAttempt = /(?:ACTION:|PARAMS:)/i.test(aiResponse) || parseToolAction(aiResponse) !== null;
-  if (isActionAttempt) {
-    const refusal = unavailableActionReply();
-    if (sessionId) {
-      appendToSessionHistory(sessionId, "user", message);
-      appendToSessionHistory(sessionId, "assistant", refusal);
-    }
-    return refusal;
+  let reply = isActionAttempt ? unavailableActionReply() : aiResponse;
+
+  if (reply && reply.length > 8000) {
+    reply = reply.slice(0, 8000) + "\n... [Truncated: output exceeded 8000 characters]";
   }
 
-  // Update session history
-  if (sessionId) {
-    appendToSessionHistory(sessionId, "user", message);
-    appendToSessionHistory(sessionId, "assistant", aiResponse);
+  // Work on local copies of history
+  const updatedHistory = Array.isArray(history) ? [...history] : [];
+  const boundedMessage = message && message.length > 2000 ? message.slice(0, 2000) : message;
+
+  updatedHistory.push({ role: "user", content: boundedMessage });
+  updatedHistory.push({ role: "assistant", content: reply });
+
+  // Bound to 6 exchanges = 12 entries
+  while (updatedHistory.length > 12) {
+    updatedHistory.shift();
   }
 
-  return aiResponse;
+  return {
+    reply,
+    history: updatedHistory,
+    metrics
+  };
 }
