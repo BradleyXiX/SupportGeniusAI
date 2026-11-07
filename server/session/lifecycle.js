@@ -1,5 +1,9 @@
 import { createUsageMetrics } from "../services/finops.js";
-import { sessionBusyError, sessionStoreUnavailableError, sessionRequiredError } from "../utils/problemDetails.js";
+import {
+  sessionBusyError,
+  sessionStoreUnavailableError,
+  sessionRequiredError
+} from "../utils/problemDetails.js";
 
 // Active single-flight lock registry keyed by cookie-owned session ID
 const activeLocks = new Set();
@@ -28,6 +32,26 @@ export function releaseSessionLock(sessionId) {
 
 export function clearAllSessionLocks() {
   activeLocks.clear();
+}
+
+export function getStoreEntry(store, sessionId) {
+  return new Promise((resolve, reject) => {
+    if (!store || !sessionId) return resolve(null);
+    store.get(sessionId, (err, sess) => {
+      if (err) return reject(err);
+      resolve(sess || null);
+    });
+  });
+}
+
+export function suppressAutoSaveAndCookie(req, res) {
+  try {
+    res.removeHeader("Set-Cookie");
+  } catch {}
+  if (req) {
+    req.session = null;
+    req.sessionID = null;
+  }
 }
 
 export function reloadSession(req) {
@@ -77,4 +101,3 @@ export function regenerateSession(req) {
     });
   });
 }
-

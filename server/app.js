@@ -9,7 +9,8 @@ import healthRoute from "./routes/health.js";
 import capabilitiesRoute from "./routes/capabilities.js";
 import sessionRoute from "./routes/session.js";
 import { createSessionStore, getSessionStore, cleanupSessionStore } from "./session/store.js";
-import { createSessionMiddleware } from "./session/middleware.js";
+import { createSessionMiddleware, validateOrigin } from "./session/middleware.js";
+import { clearAllSessionLocks } from "./session/lifecycle.js";
 import {
   rateLimitError,
   ProblemError,
@@ -62,16 +63,22 @@ export function createApp(options = {}) {
     })
   );
 
-  // Safe CORS Origin Allowlist Configuration
+  // Safe CORS Origin Allowlist Configuration (fail closed without throwing unhandled exceptions)
   const corsOptions = {
     origin: (origin, callback) => {
-      if (!origin || env.NODE_ENV !== "production") {
+      if (!origin) {
         return callback(null, true);
       }
-      if (env.CORS_ALLOWED_ORIGINS.includes(origin)) {
+      let expectedOrigin;
+      try {
+        expectedOrigin = new URL(env.PUBLIC_ORIGIN).origin;
+      } catch {
+        expectedOrigin = env.PUBLIC_ORIGIN;
+      }
+      if (origin === expectedOrigin || (env.CORS_ALLOWED_ORIGINS && env.CORS_ALLOWED_ORIGINS.includes(origin))) {
         return callback(null, true);
       }
-      callback(new Error(`CORS Violation: Origin '${origin}' is not permitted.`));
+      return callback(null, false);
     },
     credentials: true,
     methods: ["GET", "POST", "OPTIONS"],
@@ -90,26 +97,44 @@ export function createApp(options = {}) {
   // Public capabilities descriptor (No session created)
   app.use("/capabilities", capabilitiesRoute);
 
-  // Session route (POST /session)
-  app.use("/session", sessionMiddleware, sessionRoute);
+  const rateLimitMax = options.rateLimitMax || env.RATE_LIMIT_MAX_REQUESTS;
+  const rateLimitWindow = options.rateLimitWindow || env.RATE_LIMIT_WINDOW_MS;
 
-  // AI Gateway Rate Limiter (sliding window with RFC 7807 response)
-  const chatLimiter = rateLimit({
-    windowMs: env.RATE_LIMIT_WINDOW_MS,
-    max: env.RATE_LIMIT_MAX_REQUESTS,
+  // Dedicated rate limiter for session bootstrap and reset (independent from /chat)
+  const sessionLimiter = rateLimit({
+    windowMs: rateLimitWindow,
+    max: rateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) => {
       const problem = rateLimitError(
         req.originalUrl || req.url,
-        `Rate limit exceeded (${env.RATE_LIMIT_MAX_REQUESTS} requests per minute). Please try again shortly.`
+        `Session rate limit exceeded (${rateLimitMax} requests per minute). Please try again shortly.`
       );
       res.status(problem.status).json(problem.toJSON());
     }
   });
 
-  // Protected AI Chat Route
-  app.use("/chat", sessionMiddleware, chatLimiter, chatRoute);
+  // Dedicated AI Gateway Rate Limiter for /chat
+  const chatLimiter = rateLimit({
+    windowMs: rateLimitWindow,
+    max: rateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+      const problem = rateLimitError(
+        req.originalUrl || req.url,
+        `Chat rate limit exceeded (${rateLimitMax} requests per minute). Please try again shortly.`
+      );
+      res.status(problem.status).json(problem.toJSON());
+    }
+  });
+
+  // Session route: validateOrigin FIRST, then sessionLimiter, then sessionMiddleware, then sessionRoute
+  app.use("/session", validateOrigin, sessionLimiter, sessionMiddleware, sessionRoute);
+
+  // Protected AI Chat Route: validateOrigin FIRST, then chatLimiter, then sessionMiddleware, then chatRoute
+  app.use("/chat", validateOrigin, chatLimiter, sessionMiddleware, chatRoute);
 
   // Universal RFC 7807 Fallback Error Handler
   app.use((err, req, res, next) => {
@@ -145,7 +170,10 @@ export function createApp(options = {}) {
   return {
     app,
     sessionStore,
-    cleanup: () => cleanupSessionStore(sessionStore)
+    cleanup: async () => {
+      clearAllSessionLocks();
+      await cleanupSessionStore(sessionStore);
+    }
   };
 }
 
@@ -154,4 +182,3 @@ const defaultAppInstance = createApp();
 export const app = defaultAppInstance.app;
 export const cleanup = defaultAppInstance.cleanup;
 export default app;
-

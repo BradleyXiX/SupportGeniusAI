@@ -9,23 +9,35 @@ import {
   providerTimeoutError,
   providerUnavailableError,
   sessionBusyError,
-  sessionRequiredError
+  sessionRequiredError,
+  sessionStoreUnavailableError
 } from "../utils/problemDetails.js";
 import { UpstreamError } from "../utils/upstream.js";
-import { validateOrigin, requireSession } from "../session/middleware.js";
 import {
   tryAcquireSessionLock,
   releaseSessionLock,
   reloadSession,
-  saveSession
+  saveSession,
+  getStoreEntry,
+  suppressAutoSaveAndCookie
 } from "../session/lifecycle.js";
 import { env } from "../config/env.js";
 
 const router = express.Router();
 
-router.post("/", validateOrigin, requireSession, validateRequest(ChatPayloadSchema), async (req, res, next) => {
+router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
   const { message } = req.body;
   const correlationId = crypto.randomUUID();
+
+  if (!req.session || !req.session.initialized) {
+    suppressAutoSaveAndCookie(req, res);
+    const problem = sessionRequiredError(
+      req.originalUrl || "/chat",
+      "Session required or expired. Please initialize a session."
+    );
+    return res.status(401).json(problem.toJSON());
+  }
+
   const sessionId = req.session.id;
 
   // Enforce single-flight concurrency: immediate 409 SESSION_BUSY
@@ -41,17 +53,15 @@ router.post("/", validateOrigin, requireSession, validateRequest(ChatPayloadSche
   }, 30000);
 
   try {
-    // Reload after lock acquisition to ensure fresh state from store
-    try {
-      await reloadSession(req);
-    } catch (reloadErr) {
-      if (reloadErr instanceof ProblemError) {
-        return res.status(reloadErr.status).json(reloadErr.toJSON());
-      }
+    // Initial verification that session exists in store
+    const initialEntry = await getStoreEntry(req.sessionStore, sessionId);
+    if (!initialEntry || !initialEntry.initialized) {
+      suppressAutoSaveAndCookie(req, res);
       const problem = sessionRequiredError(req.originalUrl || "/chat");
-      return res.status(problem.status).json(problem.toJSON());
+      return res.status(401).json(problem.toJSON());
     }
 
+    const expectedRevision = initialEntry.revision || req.session.revision;
     const workingHistory = [...(req.session.history || [])];
     const workingMetrics = { ...(req.session.metrics || {}) };
     const mode = process.env.APP_MODE || env.APP_MODE || "support";
@@ -63,13 +73,30 @@ router.post("/", validateOrigin, requireSession, validateRequest(ChatPayloadSche
       signal: routeController.signal
     });
 
+    // Verify session still exists and has not been evicted, destroyed, or rotated during processing
+    const currentInStore = await getStoreEntry(req.sessionStore, sessionId);
+    if (!currentInStore || !currentInStore.initialized || currentInStore.revision !== expectedRevision) {
+      suppressAutoSaveAndCookie(req, res);
+      const problem = sessionRequiredError(
+        req.originalUrl || "/chat",
+        "Session was expired, evicted, or rotated during request processing."
+      );
+      return res.status(401).json(problem.toJSON());
+    }
+
     // Commit to session payload
     req.session.history = response.history;
     req.session.metrics = response.metrics;
-    req.session.revision = (req.session.revision || 1) + 1;
+    req.session.revision = (expectedRevision || 1) + 1;
     req.session.touch();
 
-    await saveSession(req);
+    try {
+      await saveSession(req);
+    } catch (saveErr) {
+      suppressAutoSaveAndCookie(req, res);
+      const problem = sessionStoreUnavailableError(req.originalUrl || "/chat");
+      return res.status(503).json(problem.toJSON());
+    }
 
     const costNum = getSessionCost(req.session.metrics);
     res.json({

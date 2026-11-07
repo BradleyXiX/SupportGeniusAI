@@ -9,7 +9,8 @@ export default defineConfig({
     env: {
       SESSION_SECRET: "test-session-secret-at-least-32-chars-long",
       PUBLIC_ORIGIN: "http://localhost:3000",
-      APP_MODE: "support"
+      APP_MODE: "support",
+      RATE_LIMIT_MAX_REQUESTS: "100"
     },
     coverage: {
       provider: "v8",

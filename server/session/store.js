@@ -23,17 +23,22 @@ export function getSessionStore() {
   return sharedStore;
 }
 
-export function cleanupSessionStore(store = sharedStore) {
+export async function cleanupSessionStore(store = sharedStore) {
   if (store) {
     if (typeof store.stopInterval === "function") {
       store.stopInterval();
     }
     if (typeof store.clear === "function") {
-      store.clear();
+      await new Promise((resolve) => {
+        try {
+          store.clear(() => resolve());
+        } catch {
+          resolve();
+        }
+      });
     }
     if (store === sharedStore) {
       sharedStore = null;
     }
   }
 }
-
