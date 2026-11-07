@@ -6,6 +6,7 @@
 - **Prior HEAD**: `597815858fc92eb825316be3b1da24bf05973783` (B3 receipt commit)
 - **Initial B4 HEAD**: `8f6a51d54ebca7c5b6b801a2f6057a7eaec185ae`
 - **First Correction HEAD**: `d042404f16175e3eaaf36d0d489fc230ea084ec8`
+- **Final Correction HEAD**: `fe80cce206e00a0b152d5c2876c5207209b72757` (lifecycle hardening)
 - **Status**: Complete with lifecycle corrections. Pinned `express-session@1.19.0` and `memorystore@1.6.8`. Implemented bounded session store (500 max, 30m TTL, 60s prune), exact Origin admission validation prior to store access, single-flight session concurrency locks (409 `SESSION_BUSY`) with opaque `SessionLockLease` ownership tokens, fresh session snapshot hydration under lock, store-scoped lock registries, fail-closed persistence with cookie/auto-save suppression (503 `SESSION_STORE_UNAVAILABLE`), eviction/deletion guard during provider calls (401 `SESSION_REQUIRED`), independent `/session` rate limiter, final context interfaces (`handleChat`, `callLLM`, `createUsageMetrics`), session payload persistence (`initialized`, `revision`, `history`, `metrics`), and production cookie flags (`__Host-supportgenius_session`, `Secure`, `HttpOnly`, `SameSite=Strict`).
 
 ## Lifecycle Hardening & Controlled Schedule Corrections Applied
