@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SupportGenius AI • Signal Desk Console">
+  <title>SupportGenius AI • Signal Desk</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/styles.css">
+  
+  <!-- Vendored Markdown & Sanitizer (CSP Compliant) -->
+  <script src="/vendor/marked.min.js"></script>
+  <script src="/vendor/purify.min.js"></script>
+</head>
+<body data-page="console">
+  <a href="#chat-messages" class="skip-link">Skip to conversation</a>
+
+  <div class="console-layout" role="region" aria-label="SupportGenius Assistant Console">
+    <!-- Desktop Side Rail -->
+    <aside class="console-rail" aria-label="Console Navigation and Controls">
+      <div class="rail-header">
+        <div class="brand-badge">
+          <span class="brand-title">SupportGenius <span class="brand-accent">AI</span></span>
+          <span class="brand-edition">Signal Desk</span>
+        </div>
+        <div class="demo-disclosure" role="note" aria-label="Demonstration Disclosure">
+          <span class="disclosure-badge" id="mode-badge">Demo</span>
+          <span id="mode-text">SupportGeniusAI demonstration &bull; Demonstration — simulated answers, no automated actions</span>
+        </div>
+      </div>
+
+      <div class="rail-guidance">
+        <p class="rail-guidance-text" id="guidance-text">
+          A document-grounded support assistant configured around your verified knowledge and client workflows. No automated actions are performed.
+        </p>
+      </div>
+
+      <div class="rail-actions">
+        <button id="reset-btn" type="button" class="btn-new-conversation" aria-label="Start new conversation" title="Start new conversation" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <span id="reset-btn-text">New conversation</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Conversation Panel -->
+    <main class="console-main">
+      <header class="console-header">
+        <div class="header-status-group">
+          <canvas id="console-orb" width="28" height="28" aria-hidden="true" class="console-orb-canvas"></canvas>
+          <h1 class="console-heading">Support Assistant</h1>
+          <div class="connection-status" aria-live="polite">
+            <span class="status-beacon" aria-hidden="true"></span>
+            <span id="connection-status-text">Checking connection...</span>
+            <span class="status-separator" aria-hidden="true">&bull;</span>
+            <span id="knowledge-status-text" class="knowledge-status">Knowledge checking...</span>
+          </div>
+        </div>
+
+        <div class="finops-info" title="Estimated model API inference cost for this session" aria-label="Session estimate counter">
+          <span class="cost-label">Session estimate</span>
+          <span id="session-cost" class="cost-value">$0.0000</span>
+        </div>
+      </header>
+
+      <!-- Message Transcript -->
+      <section id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Conversation transcript">
+        <div class="message ai-message">
+          <div class="avatar-mini" aria-hidden="true">SG</div>
+          <div class="bubble">
+            <p>Welcome to the <strong>SupportGenius Signal Desk</strong> demonstration. How can I assist you with our documented policies or services today?</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Knowledge Suggestion Chips -->
+      <section class="suggestions-container" aria-label="Suggested questions from approved knowledge">
+        <span class="suggestions-label">Suggested:</span>
+        <div class="suggestions-scroll">
+          <button type="button" class="suggestion-chip" data-suggestion="true" disabled>What is your returns policy?</button>
+          <button type="button" class="suggestion-chip" data-suggestion="true" disabled>How long does shipping take?</button>
+          <button type="button" class="suggestion-chip" data-suggestion="true" disabled>What are your operating hours?</button>
+          <button type="button" class="suggestion-chip" data-suggestion="true" disabled>How do I update my account address?</button>
+        </div>
+      </section>
+
+      <!-- Composer Input -->
+      <footer class="console-composer">
+        <form id="chat-form" class="composer-form" action="#">
+          <label for="input" class="sr-only">Your support question</label>
+          <div class="composer-input-wrapper">
+            <textarea 
+              id="input" 
+              name="message" 
+              rows="1" 
+              maxlength="2000" 
+              placeholder="Preparing conversation..." 
+              autocomplete="off" 
+              aria-label="Your support query"
+              disabled
+            ></textarea>
+            <span class="keyboard-hint" aria-hidden="true"><kbd>↵</kbd></span>
+          </div>
+          <button type="submit" id="send-btn" aria-label="Send Query" title="Send (Enter)" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </form>
+      </footer>
+    </main>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
+

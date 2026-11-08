@@ -5,6 +5,13 @@ export default defineConfig({
     environment: "node",
     globals: true,
     testTimeout: 60000,
+    exclude: ["**/node_modules/**", "**/dist/**", "tests/browser/**"],
+    env: {
+      SESSION_SECRET: "test-session-secret-at-least-32-chars-long",
+      PUBLIC_ORIGIN: "http://localhost:3000",
+      APP_MODE: "support",
+      RATE_LIMIT_MAX_REQUESTS: "100"
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

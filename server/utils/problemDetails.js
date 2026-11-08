@@ -10,7 +10,9 @@ export class ProblemError extends Error {
     status = 500,
     detail = "An unexpected error occurred while processing the request.",
     instance = "",
-    invalidParams = []
+    invalidParams = [],
+    code = undefined,
+    correlationId = undefined
   }) {
     super(detail);
     this.name = "ProblemError";
@@ -20,6 +22,8 @@ export class ProblemError extends Error {
     this.detail = detail;
     this.instance = instance;
     this.invalidParams = invalidParams;
+    this.code = code;
+    this.correlationId = correlationId;
   }
 
   toJSON() {
@@ -30,6 +34,12 @@ export class ProblemError extends Error {
       detail: this.detail,
       instance: this.instance
     };
+    if (this.code) {
+      payload.code = this.code;
+    }
+    if (this.correlationId) {
+      payload.correlationId = this.correlationId;
+    }
     if (this.invalidParams && this.invalidParams.length > 0) {
       payload.invalidParams = this.invalidParams;
     }
@@ -78,12 +88,92 @@ export function rateLimitError(instance, message = "You have exceeded the rate l
   });
 }
 
-export function gatewayError(instance, message = "Upstream AI provider is temporarily unavailable.") {
+export function gatewayError(instance, message = "Upstream AI provider is temporarily unavailable.", correlationId = undefined) {
   return new ProblemError({
     type: "https://supportgenius.ai/errors/bad-gateway",
     title: "Gateway Unavailable",
     status: 502,
     detail: message,
+    instance,
+    code: "PROVIDER_UNAVAILABLE",
+    correlationId
+  });
+}
+
+export function providerTimeoutError(instance, message = "Upstream provider timed out.", correlationId = undefined) {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/provider-timeout",
+    title: "Gateway Timeout",
+    status: 504,
+    detail: message,
+    instance,
+    code: "PROVIDER_TIMEOUT",
+    correlationId
+  });
+}
+
+export function providerUnavailableError(instance, message = "Upstream provider is temporarily unavailable.", correlationId = undefined) {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/provider-unavailable",
+    title: "Gateway Unavailable",
+    status: 502,
+    detail: message,
+    instance,
+    code: "PROVIDER_UNAVAILABLE",
+    correlationId
+  });
+}
+
+export function payloadTooLargeError(instance, message = "Request payload exceeds allowed limit.") {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/payload-too-large",
+    title: "Payload Too Large",
+    status: 413,
+    detail: message,
     instance
+  });
+}
+
+export function forbiddenError(instance, message = "Cross-origin request rejected.", code = "ORIGIN_FORBIDDEN") {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/forbidden",
+    title: "Forbidden",
+    status: 403,
+    detail: message,
+    instance,
+    code
+  });
+}
+
+export function sessionRequiredError(instance, message = "Session required. Please initialize a session.", code = "SESSION_REQUIRED") {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/session-required",
+    title: "Session Required",
+    status: 401,
+    detail: message,
+    instance,
+    code
+  });
+}
+
+export function sessionBusyError(instance, message = "A reply is already being processed.", code = "SESSION_BUSY") {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/session-busy",
+    title: "Session Busy",
+    status: 409,
+    detail: message,
+    instance,
+    code
+  });
+}
+
+export function sessionStoreUnavailableError(instance, message = "Session store is temporarily unavailable.", code = "SESSION_STORE_UNAVAILABLE") {
+  return new ProblemError({
+    type: "https://supportgenius.ai/errors/session-store-unavailable",
+    title: "Service Unavailable",
+    status: 503,
+    detail: message,
+    instance,
+    code
   });
 }

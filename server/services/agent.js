@@ -1,100 +1,35 @@
-import fetch from "node-fetch";
 import { callLLM } from "./llm.js";
 import { retrieveContext } from "./rag.js";
 import { buildPrompt, buildToolResultPrompt } from "../utils/promptBuilder.js";
-
-// Multi-turn conversation history buffer (sliding window of max 6 turns per session)
-const sessionHistory = new Map();
-const MAX_TURNS = 6;
-
-function getSessionHistory(sessionId) {
-  if (!sessionId) return [];
-  return sessionHistory.get(sessionId) || [];
-}
-
-function appendToSessionHistory(sessionId, role, content) {
-  if (!sessionId) return;
-  const history = sessionHistory.get(sessionId) || [];
-  history.push({ role, content, timestamp: Date.now() });
-  if (history.length > MAX_TURNS) {
-    history.splice(0, history.length - MAX_TURNS);
-  }
-  sessionHistory.set(sessionId, history);
-}
+import { createUsageMetrics } from "./finops.js";
 
 export function clearAgentHistory(sessionId) {
-  if (sessionId) {
-    sessionHistory.delete(sessionId);
-  } else {
-    sessionHistory.clear();
-  }
+  // Maintained for backwards compatibility in test suites; state is session-owned
+}
+
+export const UNAVAILABLE_ACTION_REPLY =
+  "Automated actions are unavailable in this deployment. No order lookup, booking, address change or notification has been performed.";
+
+export function unavailableActionReply() {
+  return UNAVAILABLE_ACTION_REPLY;
 }
 
 export async function callWebhook(action, params = {}) {
-  const webhookUrl = process.env.CLIENT_WEBHOOK_URL;
-  if (!webhookUrl) return null;
-
-  try {
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "SupportGeniusAI-Agent/1.0"
-      },
-      body: JSON.stringify({ action, params })
-    });
-
-    if (!res.ok) {
-      console.warn(`Client webhook returned HTTP status ${res.status}`);
-      return null;
-    }
-
-    const contentType = res.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-      const data = await res.json();
-      if (typeof data === "string") return data;
-      if (data?.result && typeof data.result === "string") return data.result;
-      if (data?.message && typeof data.message === "string") return data.message;
-      if (data?.reply && typeof data.reply === "string") return data.reply;
-      if (data?.detail && typeof data.detail === "string") return data.detail;
-      return JSON.stringify(data);
-    }
-
-    const text = await res.text();
-    return text.trim() || null;
-  } catch (err) {
-    console.warn(`Client webhook dispatch failed (${err.message}), falling back to demo data.`);
-    return null;
-  }
+  // Real tool execution is unconditionally disabled in this phase.
+  // Fails closed and makes zero outbound HTTP requests regardless of environment or flags.
+  return null;
 }
 
 export async function checkOrderStatus(params = {}) {
-  const webhookResult = await callWebhook("checkOrderStatus", params);
-  if (webhookResult) return webhookResult;
-
-  const { orderId } = params;
-  return `Order ${orderId || "unknown"} is currently in transit and is scheduled to arrive today with signature required.`;
+  return unavailableActionReply();
 }
 
 export async function updateAddress(params = {}) {
-  const webhookResult = await callWebhook("updateAddress", params);
-  if (webhookResult) return webhookResult;
-
-  const { address } = params;
-  return `Address successfully verified and updated to: ${address || "unknown"}`;
+  return unavailableActionReply();
 }
 
 export async function bookAppointment(params = {}) {
-  const webhookResult = await callWebhook("bookAppointment", params);
-  if (webhookResult) return webhookResult;
-
-  const name = params.name || params.customerName || params.patientName || "Client";
-  const service = params.service || params.treatment || "Consultation";
-  const date = params.date || "tomorrow";
-  const time = params.time || "2:00 PM";
-  const appointmentId = params.appointmentId || `APT-${Math.floor(1000 + Math.random() * 9000)}`;
-
-  return `Appointment ${appointmentId} confirmed for ${name} for ${service} on ${date} at ${time}. Confirmation details sent via SMS.`;
+  return unavailableActionReply();
 }
 
 export function parseToolAction(aiResponse = "") {
@@ -118,38 +53,45 @@ export function parseToolAction(aiResponse = "") {
   return { actionName, params };
 }
 
-export async function handleChat(message, sessionId) {
-  const history = getSessionHistory(sessionId);
-  const context = await retrieveContext(message);
+export async function handleChat(message, options = {}) {
+  let history = options?.history || [];
+  let metrics = options?.metrics || createUsageMetrics();
+  let mode = options?.mode || process.env.APP_MODE || "support";
+  let signal = options?.signal;
+
+  if (typeof options === "string") {
+    // Backwards compatibility for legacy calls during transition
+    signal = arguments[2]?.signal;
+  }
+
+  const context = await retrieveContext(message, { signal });
   const prompt = buildPrompt(message, context, history);
 
-  let aiResponse = await callLLM(prompt, sessionId);
+  const aiResponse = await callLLM(prompt, { metrics, mode, signal });
 
-  // Parse potential tool action
-  const toolCall = parseToolAction(aiResponse);
-  if (toolCall) {
-    const { actionName, params } = toolCall;
-    let result = "Action not recognized.";
+  // If the model produced any tool action (recognized, unknown, or malformed), refuse deterministically
+  const isActionAttempt = /(?:ACTION:|PARAMS:)/i.test(aiResponse) || parseToolAction(aiResponse) !== null;
+  let reply = isActionAttempt ? unavailableActionReply() : aiResponse;
 
-    const actionLower = actionName.toLowerCase();
-    if (actionLower === "checkorderstatus") {
-      result = await checkOrderStatus(params);
-    } else if (actionLower === "updateaddress") {
-      result = await updateAddress(params);
-    } else if (actionLower === "bookappointment") {
-      result = await bookAppointment(params);
-    }
-
-    // Re-prompt the LLM with the tool result in a secure XML container
-    const toolPrompt = buildToolResultPrompt(message, context, actionName, result);
-    aiResponse = await callLLM(toolPrompt, sessionId);
+  if (reply && reply.length > 8000) {
+    reply = reply.slice(0, 8000) + "\n... [Truncated: output exceeded 8000 characters]";
   }
 
-  // Update session history
-  if (sessionId) {
-    appendToSessionHistory(sessionId, "user", message);
-    appendToSessionHistory(sessionId, "assistant", aiResponse);
+  // Work on local copies of history
+  const updatedHistory = Array.isArray(history) ? [...history] : [];
+  const boundedMessage = message && message.length > 2000 ? message.slice(0, 2000) : message;
+
+  updatedHistory.push({ role: "user", content: boundedMessage });
+  updatedHistory.push({ role: "assistant", content: reply });
+
+  // Bound to 6 exchanges = 12 entries
+  while (updatedHistory.length > 12) {
+    updatedHistory.shift();
   }
 
-  return aiResponse;
+  return {
+    reply,
+    history: updatedHistory,
+    metrics
+  };
 }

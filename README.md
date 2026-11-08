@@ -1,120 +1,144 @@
-# 🧠 SupportGeniusAI
+# SupportGeniusAI
 
-> An intelligent, context-aware customer support assistant MVP powered by RAG and Agentic workflows.
+A document-based customer support assistant with an editorial introduction and a focused support console. Built for customized client deployments using Express and vanilla JavaScript.
 
-SupportGeniusAI is a full-stack Retrieval-Augmented Generation (RAG) application designed to handle customer support inquiries autonomously. By integrating with local LLMs (via Ollama) and utilizing vector search, it provides accurate, context-rich responses based on your specific documentation, while also being capable of executing agentic actions.
+SupportGeniusAI combines document retrieval with configurable language-model providers. The current **Safe Support Foundation** adds explicit demo and support modes, server-owned anonymous sessions, bounded provider requests, and predictable recovery states.
 
-## ✨ Key Features
+**Release status:** implemented and locally verified on `feature/safe-support-foundation`. Staging provider connectivity and answer quality remain to be verified. This branch is not a claim about the version currently deployed on the public site.
 
-- **Retrieval-Augmented Generation (RAG):** Grounds AI responses in your custom documents and knowledge base to prevent hallucinations and provide accurate support.
-- **Local LLM Integration:** Built to communicate with local models via **Ollama** (e.g., Llama 3, Mistral) for privacy and zero API costs, with easy extensibility to OpenAI or Google Gemini.
-- **Agentic Actions:** Capable of handling function calls and specific agentic actions based on user intent.
-- **Vector Search:** Processes, chunks, and embeds text documents for semantic retrieval using a local vector store.
-- **Interactive UI:** A clean, responsive client-side chat interface built with vanilla HTML/CSS/JS.
+## What it does
 
-## 🏗️ Architecture & Tech Stack
+- **Signal Desk interface:** an introduction at `/` and a responsive support console at `/console/`, with keyboard interactions and reduced-motion support.
+- **Document Q&A:** retrieves context from local `.txt` and `.md` files before generating support replies. Retrieval helps ground answers; it does not guarantee factual accuracy.
+- **Explicit operating modes:** `demo` returns deterministic fixture replies without provider calls; `support` uses configured providers and reports failures rather than silently simulating success.
+- **Anonymous conversations:** signed, HttpOnly cookie sessions with bounded history and usage estimates. These sessions do not authenticate customers.
+- **Bounded requests:** provider timeouts, response-size limits, safe errors and per-session single-flight handling.
+- **Actions disabled:** order lookups, address changes and bookings are unavailable in every mode, even when a webhook URL is configured.
 
-- **Frontend:** Vanilla JavaScript, HTML5, CSS3
-- **Backend:** Node.js, Express.js
-- **AI/LLM:** Ollama (Local LLMs)
-- **Database/Vector Store:** Local Vector Store / ChromaDB integration
+## Quick start
 
-## 📂 Project Structure
+Use **Node.js 22.12+ within the Node 22 release line**, or a compatible Node 24 release, with npm. The installed Vitest version requires these newer runtimes; the existing Dockerfile still targets Node 20 and needs alignment before it is used as the development/test environment.
 
-```text
-support-genius/
-│
-├── server/
-│   ├── index.js              # Entry point (Express server)
-│   ├── routes/
-│   │   └── chat.js           # Chat API endpoint
-│   │
-│   ├── services/
-│   │   ├── llm.js            # AI interaction (Ollama/OpenAI/GoogleGemini)
-│   │   ├── rag.js            # Retrieval logic (vector search)
-│   │   ├── embeddings.js     # Text-to-vector embedding generation
-│   │   └── agent.js          # Handles agentic actions and function calling
-│   │
-│   ├── db/
-│   │   └── vectorStore.js    # Vector database integration
-│   │
-│   ├── utils/
-│   │   ├── chunkText.js      # Document parsing and chunking utility
-│   │   └── promptBuilder.js  # Context-aware prompt construction
-│   │
-│   └── data/
-│       └── docs/             # Knowledge base (PDFs, text files)
-│
-├── client/
-│   ├── index.html            # Chat interface
-│   ├── app.js                # Client-side logic
-│   └── styles.css            # UI Styling
-│
-├── package.json              # Dependencies and scripts
-└── README.md                 # Project documentation
+Use the existing local checkout on `feature/safe-support-foundation`. Check for uncommitted work before switching branches. Until the branch is published, a fresh clone of the default branch will not reproduce this version.
+
+```bash
+cd SupportGeniusAI
+git status --short
+git switch feature/safe-support-foundation
+npm ci
 ```
 
-## 🚀 Getting Started
+Copy `.env.example` to `.env`:
 
-### Prerequisites
+```bash
+# macOS / Linux
+cp .env.example .env
+```
 
-- **Node.js** (v16 or higher recommended)
-- **Ollama** (Installed and running locally for LLM support)
-  - Ensure you have pulled a model, e.g., `ollama run llama3`
+```powershell
+# Windows PowerShell
+Copy-Item .env.example .env
+```
 
-### Installation
+Generate a session secret locally:
 
-1. **Clone the repository** (if applicable) or navigate to the project directory:
-   ```bash
-   cd SupportGeniusAI
-   ```
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+Set the following values in your local `.env`. Replace the secret placeholder with the generated value; never commit it.
 
-3. **Configure Environment Variables:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your optional OPENAI_API_KEY or GEMINI_API_KEY
-   ```
+```dotenv
+NODE_ENV=development
+PORT=3000
+APP_MODE=demo
+PUBLIC_ORIGIN=http://localhost:3000
+SESSION_SECRET=<generated-secret-at-least-32-characters>
+```
 
-4. **Add your knowledge base:**
-   Place your support documents (`.txt` or `.md`) into the `server/data/docs/` directory. The RAG system will index and chunk these files at boot.
+Leave provider keys and `CLIENT_WEBHOOK_URL` blank for the demo. Then start the application:
 
-### Running the Application
-
-**Development Mode (with auto-reload):**
 ```bash
 npm run dev
 ```
 
-**Production Mode:**
-```bash
-npm start
+Open [localhost:3000](http://localhost:3000) for the introduction or [localhost:3000/console/](http://localhost:3000/console/) for the console. Use the configured hostname consistently: state-changing requests require an exact match with `PUBLIC_ORIGIN`.
+
+Demo replies are fixtures. Use support mode to evaluate real document retrieval and answer quality.
+
+## Support-mode configuration
+
+Set `APP_MODE=support` and configure the intended provider. Selection follows the current code:
+
+| Configuration | Chat provider | Embedding provider |
+| --- | --- | --- |
+| `OPENAI_API_KEY` set | OpenAI, `gpt-4o-mini` | OpenAI, `text-embedding-3-small` |
+| Only `GEMINI_API_KEY` set | Gemini, `gemini-1.5-flash` | Ollama |
+| Neither cloud key set | Ollama | Ollama |
+
+OpenAI takes precedence when both cloud keys are present. Model names above describe the implementation; availability must be checked with the selected provider before deployment.
+
+For local inference, configure `OLLAMA_URL` and install the models selected by `OLLAMA_CHAT_MODEL` and `OLLAMA_EMBED_MODEL`. Defaults are `qwen2.5-coder:7b` and `nomic-embed-text:latest`. Failed embedding requests may fall back to keyword retrieval; support mode does not fall back to simulated chat replies.
+
+Place support documents in `server/data/docs/`. The loader reads `.txt` and `.md` files at startup and reuses cached embeddings from `server/data/vector_cache.json`. PDF and DOCX ingestion are not implemented. Embedding-model migration and cache compatibility require separate validation; do not assume an existing cache is portable between providers.
+
+Use non-sensitive sample documents while evaluating the system. Real client knowledge and credentials require an appropriate deployment and data-handling arrangement.
+
+## Architecture
+
+```text
+client/                      Editorial introduction and Signal Desk console
+server/app.js                Express application and middleware composition
+server/index.js              Startup and process lifecycle
+server/routes/               Chat, session, capabilities and health endpoints
+server/session/              Cookie sessions, bounded store and lifecycle locks
+server/services/             Retrieval, provider adapters and usage estimates
+server/db/vectorStore.js     In-process document vectors and file-backed cache
+server/data/docs/            Local knowledge documents (.txt and .md)
+server/tests/                Unit and API contract tests
+tests/browser/               Playwright browser tests
+docs/                        Architecture, operations and release plans
 ```
 
-**Run Automated Quality Suite (Vitest):**
+The vector store uses local files and process memory. This release does not integrate ChromaDB or another external vector database.
+
+## Verification
+
 ```bash
 npm test
+npx playwright install chromium
+npm run test:browser
 ```
 
-### Health & Monitoring
-- **Health Check Probe**: `GET /health` returns JSON uptime, vector store readiness, and memory metrics for container orchestrators.
+The browser configuration starts an isolated demo server on port `3888`. Test coverage includes session ownership, origin checks, concurrency, provider deadlines, error handling, console recovery and reduced motion.
 
-## 🛣️ Roadmap / Future Enhancements
+The reviewed foundation recorded **116 unit/contract tests** and **62 browser tests** passing. These are recorded baseline results, not a live CI badge. Automated axe checks reported no serious or critical findings in tested states; they do not establish complete WCAG conformance.
 
-- [ ] Support for multiple document types (PDF, Markdown, DOCX)
-- [ ] Integration with cloud vector databases (Pinecone, Weaviate)
-- [ ] Advanced agentic workflows (e.g., triggering email sequences, booking meetings)
-- [ ] Authentication and user session management
-- [ ] Analytics dashboard for tracking support queries
+## Deployment and operating limits
 
-## 🤝 Contributing
+Read the [deployment guide](docs/deployment.md), [staging plan](docs/release/staging-plan.md) and [rollback plan](docs/release/rollback-plan.md) before releasing.
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on how to get started, open issues, and submit pull requests.
+- Run exactly **one application process**. Sessions are held in memory, capped at **500**, and expire after **30 minutes of inactivity**. Restarts discard them.
+- Conversation history is bounded to six exchanges. Token and cost values are estimates, not billing records.
+- Production requires HTTPS, an explicit `PUBLIC_ORIGIN`, and a random `SESSION_SECRET` of at least 32 characters.
+- Production cookies use `__Host-supportgenius_session` with Secure, HttpOnly and SameSite=Strict attributes.
+- The current `trust proxy: 1` configuration requires one trusted proxy, restricted backend ingress and sanitized forwarded headers.
+- `GET /health` reports process liveness and store statistics. HTTP 200 does not establish provider availability or answer quality.
+- Inspect live hosting branch tracking, automatic deployments and preview settings before publishing a branch or opening a release PR. Local manifests do not establish the live deployment policy.
 
-## 📜 License
+Customer authentication, durable transcripts, multi-tenant isolation, live integrations and source citations remain outside this release. Validate real-provider behavior and known-answer questions on staging before client rollout.
 
-This project is licensed under the MIT License.
+## Documentation
+
+- [Deployment and configuration](docs/deployment.md)
+- [Safe Support Foundation architecture](docs/adr/0002-safe-support-foundation-and-anonymous-sessions.md)
+- [Architecture decision index](docs/adr/README.md)
+- [Release PR draft](docs/release/safe-foundation-pr.md)
+- [Contribution guidelines](CONTRIBUTING.md)
+
+## License
+
+No repository license file is currently included. A license must be selected and added by the owner before the project is represented as MIT-licensed or distributed under those terms.
+
+
+

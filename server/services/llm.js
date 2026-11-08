@@ -1,38 +1,79 @@
-import fetch from "node-fetch";
 import { trackUsage, setModel } from "./finops.js";
 import { gatewayError } from "../utils/problemDetails.js";
+import { fetchJsonBounded, UpstreamError } from "../utils/upstream.js";
 
 // Basic token estimation fallback (1 token ~ 4 characters)
 export function estimateTokens(text = "") {
   return Math.ceil(text.length / 4) || 1;
 }
 
-export async function callLLM(prompt, sessionId) {
+function isNonEmptyText(val) {
+  return typeof val === "string" && val.trim().length > 0;
+}
+
+export async function callLLM(prompt, options = {}) {
+  let metrics = options?.metrics;
+  let mode = options?.mode || process.env.APP_MODE || "support";
+  let signal = options?.signal;
+
+  if (typeof options === "string") {
+    // Backwards compatibility for legacy calls: callLLM(prompt, legacySessionId, maybeOptions)
+    metrics = null;
+    signal = arguments[2]?.signal;
+  }
+
   let responseText = "";
   let modelUsed = process.env.OLLAMA_CHAT_MODEL || "qwen2.5-coder:7b";
   let promptTokens = estimateTokens(prompt);
   let completionTokens = 0;
 
+  // In demo mode: use deterministic local fixtures only, zero chat-provider/embedding/webhook requests.
+  if (mode === "demo") {
+    modelUsed = "simulated";
+    const simResponse = simulateLLM(prompt);
+    responseText = simResponse.startsWith("[Demo] ") ? simResponse : `[Demo] ${simResponse}`;
+    completionTokens = estimateTokens(responseText);
+
+    if (metrics) {
+      setModel(metrics, modelUsed);
+      trackUsage(metrics, promptTokens, completionTokens);
+    }
+    return responseText;
+  }
+
+  if (signal?.aborted) {
+    throw new UpstreamError({
+      kind: "timeout",
+      message: "LLM call aborted prior to execution",
+      providerLabel: "llm"
+    });
+  }
+
+  // Support mode: call configured provider or local Ollama using bounded fetch (20s budget)
   try {
     if (process.env.OPENAI_API_KEY) {
       modelUsed = "gpt-4o-mini";
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      const data = await fetchJsonBounded(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: modelUsed,
+            messages: [{ role: "user", content: prompt }]
+          })
         },
-        body: JSON.stringify({
-          model: modelUsed,
-          messages: [{ role: "user", content: prompt }]
-        })
-      });
+        {
+          timeoutMs: 20000,
+          signal,
+          providerLabel: "openai",
+          validateShape: (d) => isNonEmptyText(d?.choices?.[0]?.message?.content)
+        }
+      );
 
-      if (!res.ok) {
-        const errBody = await res.text();
-        throw new Error(`OpenAI API returned status ${res.status}: ${errBody}`);
-      }
-      const data = await res.json();
       responseText = data.choices[0].message.content;
       promptTokens = data.usage?.prompt_tokens ?? estimateTokens(prompt);
       completionTokens = data.usage?.completion_tokens ?? estimateTokens(responseText);
@@ -40,20 +81,24 @@ export async function callLLM(prompt, sessionId) {
     } else if (process.env.GEMINI_API_KEY) {
       modelUsed = "gemini-1.5-flash";
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
+      const data = await fetchJsonBounded(
+        url,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        },
+        {
+          timeoutMs: 20000,
+          signal,
+          providerLabel: "gemini",
+          validateShape: (d) => isNonEmptyText(d?.candidates?.[0]?.content?.parts?.[0]?.text)
+        }
+      );
 
-      if (!res.ok) {
-        const errBody = await res.text();
-        throw new Error(`Gemini API returned status ${res.status}: ${errBody}`);
-      }
-      const data = await res.json();
-      responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      responseText = data.candidates[0].content.parts[0].text;
       promptTokens = data.usageMetadata?.promptTokenCount ?? estimateTokens(prompt);
       completionTokens = data.usageMetadata?.candidatesTokenCount ?? estimateTokens(responseText);
 
@@ -61,80 +106,64 @@ export async function callLLM(prompt, sessionId) {
       // Local Ollama
       modelUsed = process.env.OLLAMA_CHAT_MODEL || "qwen2.5-coder:7b";
       const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
-      const res = await fetch(`${ollamaUrl}/api/generate`, {
-        method: "POST",
-        body: JSON.stringify({
-          model: modelUsed,
-          prompt: prompt,
-          stream: false
-        }),
-        headers: { "Content-Type": "application/json" }
-      });
+      const data = await fetchJsonBounded(
+        `${ollamaUrl}/api/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: modelUsed,
+            prompt: prompt,
+            stream: false
+          })
+        },
+        {
+          timeoutMs: 20000,
+          signal,
+          providerLabel: "ollama",
+          validateShape: (d) => isNonEmptyText(d?.response)
+        }
+      );
 
-      if (!res.ok) {
-        throw new Error(`Ollama API error with status ${res.status}`);
-      }
-      const data = await res.json();
       responseText = data.response;
       completionTokens = estimateTokens(responseText);
     }
   } catch (err) {
-    if (process.env.NODE_ENV === "production") {
-      console.error(`❌ Upstream LLM Failure in Production: ${err.message}`);
-      throw gatewayError("/chat", `AI Gateway upstream provider failed: ${err.message}`);
+    if (err instanceof UpstreamError) {
+      throw err;
     }
-
-    console.warn(`⚠️ API Unreachable (${err.message}). Using simulated response for demonstration.`);
-    responseText = simulateLLM(prompt);
-    completionTokens = estimateTokens(responseText);
-    modelUsed = "simulated";
+    throw new UpstreamError({
+      kind: "connection",
+      message: `Upstream LLM failure: ${err.message}`,
+      providerLabel: "llm"
+    });
   }
 
-  // Track tokens if sessionId is provided
-  if (sessionId) {
-    setModel(sessionId, modelUsed);
-    trackUsage(sessionId, promptTokens, completionTokens);
+  // Track tokens if metrics is provided
+  if (metrics) {
+    setModel(metrics, modelUsed);
+    trackUsage(metrics, promptTokens, completionTokens);
   }
 
   return responseText;
 }
 
 // Simulated LLM logic for demo & automated testing purposes
+// Illustrates document Q&A; does NOT invent appointment IDs, SMS, address changes, or order tracking
 export function simulateLLM(prompt = "") {
   const lowerPrompt = prompt.toLowerCase();
 
-  if (lowerPrompt.includes("order status") || lowerPrompt.includes("where is my order") || lowerPrompt.includes("order 12345")) {
-    if (!prompt.includes("<tool_result") && !prompt.includes("Tool Result")) {
-      return 'ACTION: checkOrderStatus\nPARAMS: { "orderId": "12345" }';
-    } else {
-      const resultMatch = prompt.match(/<tool_result[^>]*>\s*([\s\S]*?)\s*<\/tool_result>/) || prompt.match(/Tool Result.*:\s*(.*)/);
-      const result = resultMatch ? resultMatch[1] : "in transit and scheduled for delivery";
-      return `I checked our system, and ${result}. Is there anything else you need?`;
-    }
-  }
-
-  if (lowerPrompt.includes("address") || lowerPrompt.includes("update address")) {
-    if (!prompt.includes("<tool_result") && !prompt.includes("Tool Result")) {
-      return 'ACTION: updateAddress\nPARAMS: { "address": "123 Main St" }';
-    } else {
-      const resultMatch = prompt.match(/<tool_result[^>]*>\s*([\s\S]*?)\s*<\/tool_result>/) || prompt.match(/Tool Result.*:\s*(.*)/);
-      const result = resultMatch ? resultMatch[1] : "Address updated";
-      return `${result}. Let me know if you need any other help!`;
-    }
-  }
-
-  if (lowerPrompt.includes("appointment") || lowerPrompt.includes("booking") || lowerPrompt.includes("book") || lowerPrompt.includes("consultation") || lowerPrompt.includes("medspa") || lowerPrompt.includes("clinic")) {
-    if (!prompt.includes("<tool_result") && !prompt.includes("Tool Result")) {
-      return 'ACTION: bookAppointment\nPARAMS: { "name": "Jane Doe", "service": "HydraFacial Consultation", "date": "tomorrow", "time": "2:00 PM" }';
-    } else {
-      const resultMatch = prompt.match(/<tool_result[^>]*>\s*([\s\S]*?)\s*<\/tool_result>/) || prompt.match(/Tool Result.*:\s*(.*)/);
-      const result = resultMatch ? resultMatch[1] : "Appointment confirmed";
-      return `Your appointment request has been processed: ${result}. We look forward to seeing you!`;
-    }
-  }
-
-  if (lowerPrompt.includes("refund") || lowerPrompt.includes("shipping") || lowerPrompt.includes("warranty")) {
+  if (
+    lowerPrompt.includes("refund") ||
+    lowerPrompt.includes("shipping") ||
+    lowerPrompt.includes("warranty") ||
+    lowerPrompt.includes("return")
+  ) {
     return "Based on our company policy, refunds are processed within 3 business days and shipping takes 24 hours locally. Items must be returned in their original packaging within 14 days.";
+  }
+
+  if (lowerPrompt.includes("hours") || lowerPrompt.includes("location") || lowerPrompt.includes("contact")) {
+    return "Our support team is available Monday through Friday from 9:00 AM to 6:00 PM EST.";
   }
 
   return "I don't know based on the available information.";

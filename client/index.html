@@ -3,96 +3,192 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SupportGenius AI - Enterprise Customer Support Intelligence Copilot">
-  <title>SupportGenius AI • Support Copilot</title>
-  
-  <!-- Curated Font Hierarchy: Space Grotesk (Display), Plus Jakarta Sans (Body), JetBrains Mono (Telemetry) -->
+  <meta name="description" content="SupportGenius AI • Signal Desk. A support assistant configured around your documentation and workflows.">
+  <title>SupportGenius AI • Signal Desk</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="styles.css">
-  
-  <!-- Markdown Parsers & Sanitizer -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
+  <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
-  <div class="chat-container" role="region" aria-label="SupportGenius Assistant Window">
-    <header class="chat-header">
-      <div class="header-brand">
-        <div class="avatar" aria-hidden="true">
-          <svg class="avatar-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
-            <circle cx="9" cy="10" r="1"/>
-            <circle cx="15" cy="10" r="1"/>
-          </svg>
-        </div>
-        <div class="header-info">
-          <h1>SupportGenius <span class="badge-copilot">AI</span></h1>
-          <p class="status">
-            <span class="status-beacon" aria-hidden="true"></span>
-            <span>Online &bull; Enterprise Gateway</span>
+<body data-page="marketing">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Header Navigation -->
+  <header class="marketing-header">
+    <div class="marketing-header-container">
+      <div class="brand-badge">
+        <span class="brand-title">SupportGenius <span class="brand-accent">AI</span></span>
+        <span class="brand-edition">Signal Desk</span>
+      </div>
+
+      <nav class="marketing-nav" aria-label="Main Navigation">
+        <a href="#how-it-works" class="nav-anchor">How it works</a>
+        <a href="/console/" class="btn-primary-sm">Try the assistant</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content" class="marketing-main">
+    <!-- Hero Section -->
+    <section class="marketing-hero" aria-labelledby="hero-title">
+      <div class="marketing-hero-container">
+        <!-- Left: Editorial Headline & Actions -->
+        <div class="hero-content">
+          <div class="demo-disclosure" role="note" aria-label="Demonstration disclosure">
+            <span class="disclosure-badge">Demo</span>
+            <span>SupportGeniusAI demonstration &bull; Configured for demonstration purposes</span>
+          </div>
+
+          <h1 id="hero-title" class="hero-headline">
+            Your knowledge. A&nbsp;clearer&nbsp;answer.
+          </h1>
+
+          <p class="hero-lead">
+            A support assistant configured around your documentation and workflows. Questions enter as loose signals and resolve into clear, grounded answers.
           </p>
-        </div>
-      </div>
 
-      <div class="header-actions">
-        <div class="finops-info" title="Estimated OpenAI API inference cost for this session" aria-label="Session Cost Counter">
-          <span class="cost-label">Session Cost</span>
-          <span id="session-cost" class="cost-value">$0.0000</span>
+          <div class="hero-actions">
+            <a href="/console/" class="btn-primary">Try the assistant</a>
+            <a href="#how-it-works" class="btn-secondary">See how it works</a>
+          </div>
         </div>
-        <button id="reset-btn" class="header-action-btn" title="Reset Session Chat" aria-label="Reset Session Chat" onclick="resetChat()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
-          </svg>
-        </button>
-      </div>
-    </header>
-    
-    <main id="chat-messages" class="chat-messages" aria-live="polite">
-      <div class="message ai-message">
-        <div class="avatar-mini" aria-hidden="true">SG</div>
-        <div class="bubble">
-          <p>Hello! I am <strong>SupportGenius Copilot</strong>. I have instant access to our enterprise knowledge base and order management system.</p>
-          <p>How can I assist you today?</p>
-        </div>
-      </div>
-    </main>
 
-    <!-- Quick Action Suggestion Chips -->
-    <div class="suggestions-container" aria-label="Suggested Prompts">
-      <span class="suggestions-label">Suggested:</span>
-      <div class="suggestions-scroll">
-        <button class="suggestion-chip" onclick="handleSuggestion(this)">📦 Order status check</button>
-        <button class="suggestion-chip" onclick="handleSuggestion(this)">📍 Update delivery address</button>
-        <button class="suggestion-chip" onclick="handleSuggestion(this)">🛡️ Warranty & return policy</button>
-        <button class="suggestion-chip" onclick="handleSuggestion(this)">⚡ API rate limits & SLA</button>
+        <!-- Right: Signal Illustration -->
+        <div class="hero-visual">
+          <div class="signal-illustration-card" role="region" aria-label="Signal Desk Architecture Illustration">
+            <div class="illustration-header">
+              <span class="illustration-tag">Illustration</span>
+              <div class="orb-container" data-orb aria-hidden="true">
+                <!-- Static SVG Monochrome Orb -->
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="32" cy="32" r="30" stroke="#293447" stroke-width="1.5" stroke-dasharray="3 3"/>
+                  <circle cx="32" cy="32" r="22" stroke="#85D6BD" stroke-width="1.2" stroke-opacity="0.7"/>
+                  <circle cx="32" cy="32" r="14" stroke="#F8FAFC" stroke-width="1"/>
+                  <circle cx="32" cy="32" r="4" fill="#85D6BD"/>
+                  <line x1="32" y1="2" x2="32" y2="62" stroke="#293447" stroke-width="0.8"/>
+                  <line x1="2" y1="32" x2="62" y2="32" stroke="#293447" stroke-width="0.8"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="signal-flow">
+              <div class="signal-step">
+                <span class="step-label">Signal</span>
+                <p class="step-text">Question: "What is your returns policy?"</p>
+              </div>
+              <div class="signal-connector" aria-hidden="true">&darr;</div>
+              <div class="signal-step">
+                <span class="step-label">Knowledge</span>
+                <p class="step-text">Approved documentation: Return in original packaging within 14 days.</p>
+              </div>
+              <div class="signal-connector" aria-hidden="true">&darr;</div>
+              <div class="signal-step signal-resolution">
+                <span class="step-label">Answer</span>
+                <p class="step-text">Context-bounded answer delivered with verified cost estimate.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section (3 Stacked Rows) -->
+    <section id="how-it-works" class="marketing-section how-it-works-section" aria-labelledby="how-it-works-title">
+      <div class="marketing-section-container">
+        <div class="section-intro">
+          <span class="section-eyebrow">Architecture</span>
+          <h2 id="how-it-works-title" class="section-title">How it works</h2>
+          <p class="section-lead">A dependable, document-grounded approach designed for operational clarity.</p>
+        </div>
+
+        <div class="explanation-rows">
+          <article class="explanation-row">
+            <span class="row-num" aria-hidden="true">01</span>
+            <div class="row-body">
+              <h3 class="row-title">Connect approved knowledge</h3>
+              <p class="row-desc">
+                Documentation and policy texts are parsed, chunked, and embedded into a high-performance vector store with reproducible SHA-256 caching for fast, cold-start retrieval.
+              </p>
+            </div>
+          </article>
+
+          <article class="explanation-row">
+            <span class="row-num" aria-hidden="true">02</span>
+            <div class="row-body">
+              <h3 class="row-title">Answer with context</h3>
+              <p class="row-desc">
+                Every query is evaluated strictly against retrieved documentation chunks. If an inquiry falls outside approved material, the system refuses to speculate or invent unverified facts.
+              </p>
+            </div>
+          </article>
+
+          <article class="explanation-row">
+            <span class="row-num" aria-hidden="true">03</span>
+            <div class="row-body">
+              <h3 class="row-title">Connect verified actions</h3>
+              <p class="row-desc">
+                Execute client operations such as order status checks or dispatch notifications through validated endpoint webhooks. Please note: actions require client integration and verified business authorization.
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Deployment Strip -->
+    <section class="deployment-strip-section" aria-label="Deployment Options">
+      <div class="marketing-section-container">
+        <div class="deployment-strip">
+          <div class="strip-item">
+            <h4 class="strip-item-title">Configured for your business</h4>
+            <p class="strip-item-desc">Customized around your internal documents, brand voice, and support runbooks.</p>
+          </div>
+          <div class="strip-divider" aria-hidden="true"></div>
+          <div class="strip-item">
+            <h4 class="strip-item-title">Local or hosted model options</h4>
+            <p class="strip-item-desc">Deploy with on-premises models or private hosted providers based on privacy policy.</p>
+          </div>
+          <div class="strip-divider" aria-hidden="true"></div>
+          <div class="strip-item">
+            <h4 class="strip-item-title">Maintained with your documentation</h4>
+            <p class="strip-item-desc">Kept in sync as your policies, catalog, and operations change.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Closing CTA Section -->
+    <section class="closing-cta-section" aria-labelledby="closing-cta-title">
+      <div class="marketing-section-container">
+        <div class="closing-cta-card">
+          <h2 id="closing-cta-title" class="closing-cta-title">Test the Signal Desk Assistant</h2>
+          <p class="closing-cta-desc">
+            Explore the responsive console loaded with sample policies and order workflows.
+          </p>
+          <div class="closing-cta-actions">
+            <a href="/console/" class="btn-primary">Try the assistant</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="marketing-footer">
+    <div class="marketing-header-container">
+      <div class="footer-brand">
+        <span class="brand-title">SupportGenius <span class="brand-accent">AI</span></span>
+        <span class="footer-note">Enterprise customer support intelligence demonstration.</span>
+      </div>
+      <div class="footer-nav">
+        <a href="/console/" class="footer-link">Open Console</a>
+        <a href="#how-it-works" class="footer-link">How it works</a>
       </div>
     </div>
-    
-    <footer class="chat-input-area">
-      <div class="input-wrapper">
-        <input 
-          type="text" 
-          id="input" 
-          placeholder="Ask a question or enter an order ID..." 
-          onkeypress="handleKeyPress(event)" 
-          autocomplete="off" 
-          aria-label="Your support query"
-        />
-        <span class="keyboard-hint" aria-hidden="true"><kbd>↵</kbd></span>
-      </div>
-      <button onclick="send()" id="send-btn" aria-label="Send Query" title="Send (Enter)">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"></line>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-        </svg>
-      </button>
-    </footer>
-  </div>
+  </footer>
 
-  <script src="app.js"></script>
+  <script type="module" src="/landing.js"></script>
 </body>
 </html>

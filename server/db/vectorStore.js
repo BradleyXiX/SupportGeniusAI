@@ -97,9 +97,9 @@ export function clearStore() {
   vectorStore = [];
 }
 
-export async function getRelevantChunks(query, topK = 3) {
+export async function getRelevantChunks(query, topK = 3, { signal } = {}) {
   if (vectorStore.length === 0) return [];
-  const queryEmbedding = await getEmbedding(query);
+  const queryEmbedding = await getEmbedding(query, { signal });
   
   // If Ollama failed, use keyword scoring fallback
   if (!queryEmbedding) {
