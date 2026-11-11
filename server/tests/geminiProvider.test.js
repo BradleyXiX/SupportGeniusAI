@@ -221,6 +221,51 @@ describe("Task D1: Explicit Gemini Selection & Bounded Generation", () => {
       expect(metrics.cost).toBeGreaterThan(0);
     });
 
+    it("includes thoughtsTokenCount in completion tokens and cost while hiding thought text from replies", async () => {
+      nodeFetch.mockImplementation(async () => {
+        return new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    { text: "Internal thought trace...", thought: true },
+                    { text: "The warranty covers parts for 1 year." }
+                  ]
+                }
+              }
+            ],
+            usageMetadata: {
+              promptTokenCount: 20,
+              candidatesTokenCount: 12,
+              thoughtsTokenCount: 30
+            }
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      });
+
+      process.env.APP_MODE = "support";
+      process.env.LLM_PROVIDER = "gemini";
+      process.env.GEMINI_API_KEY = "test-key";
+      process.env.GEMINI_MODEL = "gemini-3.1-flash-lite";
+
+      const metrics = createUsageMetrics();
+      const reply = await callLLM("What is the warranty?", { metrics });
+
+      // Thought text must be hidden from reply
+      expect(reply).toBe("The warranty covers parts for 1 year.");
+      expect(reply).not.toContain("Internal thought trace");
+
+      // Completion tokens must include thoughtsTokenCount (12 + 30 = 42)
+      expect(metrics.completionTokens).toBe(42);
+      expect(metrics.promptTokens).toBe(20);
+      expect(metrics.costAvailable).toBe(true);
+
+      const expectedCost = (20 / 1000) * 0.00025 + (42 / 1000) * 0.0015;
+      expect(metrics.cost).toBeCloseTo(expectedCost, 6);
+    });
+
     it("blocked/empty response fails closed with UpstreamError (shape/provider_unavailable)", async () => {
       nodeFetch.mockImplementation(async () => {
         return new Response(

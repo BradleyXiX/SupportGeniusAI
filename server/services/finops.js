@@ -37,7 +37,7 @@ export function trackUsage(metrics, promptTokens = 0, completionTokens = 0) {
   }
 
   const model = metrics.model || "qwen2.5-coder:7b";
-  const rates = PRICING[model];
+  const rates = Object.hasOwn(PRICING, model) ? PRICING[model] : undefined;
 
   if (!rates) {
     // Unpriced or unknown model:

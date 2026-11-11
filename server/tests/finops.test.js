@@ -107,4 +107,19 @@ describe("FinOps Telemetry Service with Session Context", () => {
     expect(isCostAvailable(legacyMetrics)).toBe(true);
     expect(formatSessionCost(legacyMetrics)).toBe("$0.0500");
   });
+
+  it("treats inherited object prototype properties (e.g. constructor) as unpriced via own-property check", () => {
+    const metrics = createUsageMetrics();
+    setModel(metrics, "constructor");
+    trackUsage(metrics, 1000, 1000);
+
+    expect(metrics.costAvailable).toBe(false);
+    expect(isCostAvailable(metrics)).toBe(false);
+    expect(formatSessionCost(metrics)).toBe("Unavailable");
+
+    const toStringMetrics = createUsageMetrics();
+    setModel(toStringMetrics, "toString");
+    trackUsage(toStringMetrics, 1000, 1000);
+    expect(toStringMetrics.costAvailable).toBe(false);
+  });
 });

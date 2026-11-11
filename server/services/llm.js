@@ -170,7 +170,9 @@ export async function callLLM(prompt, options = {}) {
 
       responseText = extractGeminiText(data);
       promptTokens = data.usageMetadata?.promptTokenCount ?? estimateTokens(prompt);
-      completionTokens = data.usageMetadata?.candidatesTokenCount ?? estimateTokens(responseText);
+      const candidatesTokens = data.usageMetadata?.candidatesTokenCount ?? estimateTokens(responseText);
+      const thoughtsTokens = data.usageMetadata?.thoughtsTokenCount ?? 0;
+      completionTokens = candidatesTokens + thoughtsTokens;
 
     } else {
       // Local Ollama
