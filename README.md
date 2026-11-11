@@ -68,19 +68,28 @@ Demo replies are fixtures. Use support mode to evaluate real document retrieval 
 
 ## Support-mode configuration
 
-Set `APP_MODE=support` and configure the intended provider. Selection follows the current code:
+Set `APP_MODE=support` and configure the intended provider. Selection supports explicit routing via `LLM_PROVIDER` (`auto`, `openai`, `gemini`, `ollama`) or default automatic precedence (`auto`):
 
-| Configuration | Chat provider | Embedding provider |
+| Configuration | Chat provider | Embedding / Retrieval mode |
 | --- | --- | --- |
-| `OPENAI_API_KEY` set | OpenAI, `gpt-4o-mini` | OpenAI, `text-embedding-3-small` |
-| Only `GEMINI_API_KEY` set | Gemini, `gemini-1.5-flash` | Ollama |
-| Neither cloud key set | Ollama | Ollama |
+| `LLM_PROVIDER=gemini`, `RETRIEVAL_MODE=keyword` | Gemini (`GEMINI_MODEL`, default `gemini-3.1-flash-lite`) | Local keyword BM25 (no OpenAI key, no Ollama) |
+| `OPENAI_API_KEY` set (`LLM_PROVIDER=auto` or `openai`) | OpenAI, `gpt-4o-mini` | OpenAI, `text-embedding-3-small` (or keyword if `RETRIEVAL_MODE=keyword`) |
+| Only `GEMINI_API_KEY` set (`LLM_PROVIDER=auto` or `gemini`) | Gemini (`GEMINI_MODEL`, default `gemini-3.1-flash-lite`) | Ollama (if `RETRIEVAL_MODE=vector`) or keyword |
+| Neither cloud key set (`LLM_PROVIDER=auto` or `ollama`) | Ollama (`OLLAMA_CHAT_MODEL`) | Ollama (`OLLAMA_EMBED_MODEL`) or keyword |
 
-OpenAI takes precedence when both cloud keys are present. Model names above describe the implementation; availability must be checked with the selected provider before deployment.
+### Gemini-only Support Deployment
+Setting `LLM_PROVIDER=gemini` and `RETRIEVAL_MODE=keyword` allows running support mode using only `GEMINI_API_KEY`. In this configuration:
+- Chat inference calls Google Gemini via fixed-host, header-authenticated `POST /v1beta/models/${model}:generateContent`.
+- Model ID is configurable via `GEMINI_MODEL` (defaults to `gemini-3.1-flash-lite`). Legacy endpoints `gemini-1.5-flash` and `gemini-2.0-flash` have been officially deprecated/shut down by Google.
+- Knowledge retrieval parses markdown/text chunks at boot time and uses deterministic in-memory BM25-like scoring. Zero embedding API calls are made, zero embedding cache files are read or written, and no local Ollama service is required.
+- Cost telemetry displays list-price paid-tier estimates ($0.25/1M input tokens, $1.50/1M output tokens, including thinking tokens). When pricing is unavailable for custom models, the telemetry safely renders `"Unavailable"`.
 
-For local inference, configure `OLLAMA_URL` and install the models selected by `OLLAMA_CHAT_MODEL` and `OLLAMA_EMBED_MODEL`. Defaults are `qwen2.5-coder:7b` and `nomic-embed-text:latest`. Failed embedding requests may fall back to keyword retrieval; support mode does not fall back to simulated chat replies.
+> [!WARNING]
+> While Google documents a free-tier rate limit for text generateContent with `gemini-3.1-flash-lite`, free tier quotas, rate allowances, and account project access are never guaranteed. Production deployments should ensure billing is attached and verify quota health directly in Google Cloud Console.
 
-Place support documents in `server/data/docs/`. The loader reads `.txt` and `.md` files at startup and reuses cached embeddings from `server/data/vector_cache.json`. PDF and DOCX ingestion are not implemented. Embedding-model migration and cache compatibility require separate validation; do not assume an existing cache is portable between providers.
+For local inference with Ollama, configure `OLLAMA_URL` and install the models selected by `OLLAMA_CHAT_MODEL` and `OLLAMA_EMBED_MODEL`. Defaults are `qwen2.5-coder:7b` and `nomic-embed-text:latest`.
+
+Place support documents in `server/data/docs/`. In `vector` mode, the loader reads `.txt` and `.md` files at startup and reuses cached embeddings from `server/data/vector_cache.json`. In `keyword` mode, the cache is completely bypassed. PDF and DOCX ingestion are not implemented.
 
 Use non-sensitive sample documents while evaluating the system. Real client knowledge and credentials require an appropriate deployment and data-handling arrangement.
 

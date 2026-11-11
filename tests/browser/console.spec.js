@@ -280,10 +280,11 @@ test.describe("Task 2 / A2: Request & Session Safety", () => {
     await input.fill("What is my order status?");
     await page.locator("#send-btn").click();
 
-    // Approved uncertainty message:
-    // "No reply received. An action may have completed. Verify with the business before repeating your request."
+    // Approved failure message:
+    // "No reply received. Please try again. If the problem continues, contact support."
     const messages = page.locator("#chat-messages");
-    await expect(messages).toContainText("No reply received. An action may have completed. Verify with the business before repeating your request.");
+    await expect(messages).toContainText("No reply received. Please try again. If the problem continues, contact support.");
+    await expect(messages).not.toContainText("action may have completed");
 
     // Must not contain an auto-retry button
     await expect(page.locator("button:has-text('Retry')")).toHaveCount(0);
@@ -617,7 +618,8 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     await page.clock.fastForward(46000);
 
     const messages = page.locator("#chat-messages");
-    await expect(messages).toContainText("No reply received. An action may have completed. Verify with the business before repeating your request.");
+    await expect(messages).toContainText("No reply received. Please try again. If the problem continues, contact support.");
+    await expect(messages).not.toContainText("action may have completed");
     await expect(input).toBeEnabled();
     await expect(page.locator("#send-btn")).toBeEnabled();
     await expect(page.locator("button:has-text('Retry')")).toHaveCount(0);
@@ -656,7 +658,8 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     await page.clock.fastForward(46000);
 
     const messages = page.locator("#chat-messages");
-    await expect(messages).toContainText("No reply received. An action may have completed. Verify with the business before repeating your request.");
+    await expect(messages).toContainText("No reply received. Please try again. If the problem continues, contact support.");
+    await expect(messages).not.toContainText("action may have completed");
     await expect(input).toBeEnabled();
     await expect(page.locator("#send-btn")).toBeEnabled();
     await expect(page.locator("button:has-text('Retry')")).toHaveCount(0);
@@ -768,7 +771,8 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     await page.clock.fastForward(46000);
 
     // Request B's deadline aborts B and recovers!
-    await expect(messages).toContainText("No reply received. An action may have completed. Verify with the business before repeating your request.");
+    await expect(messages).toContainText("No reply received. Please try again. If the problem continues, contact support.");
+    await expect(messages).not.toContainText("action may have completed");
     await expect(input).toBeEnabled();
     await expect(sendBtn).toBeEnabled();
     expect(await page.evaluate(() => window.__consoleOrbState)).toBe("idle");
@@ -861,7 +865,8 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     await page.clock.fastForward(46000);
 
     // B recovers
-    await expect(messages).toContainText("No reply received. An action may have completed. Verify with the business before repeating your request.");
+    await expect(messages).toContainText("No reply received. Please try again. If the problem continues, contact support.");
+    await expect(messages).not.toContainText("action may have completed");
     await expect(input).toBeEnabled();
     await expect(sendBtn).toBeEnabled();
     expect(await page.evaluate(() => window.__consoleOrbState)).toBe("idle");
@@ -1782,5 +1787,61 @@ test.describe("Task A7 / Review Remediation: Lifecycle, Stale Overlap & Telemetr
     await retryBtn.click();
     await expect(page.locator("#chat-messages")).toContainText("Retry succeeded");
     expect(chatCallCount).toBe(3); // 1 (429) + 1 (Turn B) + 1 (Retry)
+  });
+
+  test("displays 'Unavailable' on #session-cost when costAvailable is false or cost is null, never $null or $0.0000", async ({ page }) => {
+    await page.route("**/chat", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          reply: "Response from unpriced model",
+          cost: null,
+          costAvailable: false
+        })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    await input.fill("What is your policy?");
+    await page.locator("#send-btn").click();
+
+    await expect(page.locator("#chat-messages")).toContainText("Response from unpriced model");
+    const costEl = page.locator("#session-cost");
+    await expect(costEl).toHaveText("Unavailable");
+    await expect(costEl).not.toContainText("$null");
+    await expect(costEl).not.toContainText("$0.0000");
+
+    // Reset recovers session cost to $0.0000
+    page.on("dialog", (dialog) => dialog.accept());
+    await page.locator("#reset-btn").click();
+    await expect(costEl).toHaveText("$0.0000");
+  });
+
+  test("provider failure shows exact new copy without claiming an action may have completed", async ({ page }) => {
+    await page.route("**/chat", async (route) => {
+      await route.fulfill({
+        status: 502,
+        contentType: "application/problem+json",
+        body: JSON.stringify({
+          type: "https://supportgenius.ai/errors/provider-unavailable",
+          title: "Provider Unavailable",
+          status: 502,
+          detail: "Upstream provider is temporarily down."
+        })
+      });
+    });
+
+    await page.goto("/console/");
+    const input = page.locator("#input");
+    await input.fill("Hello");
+    await page.locator("#send-btn").click();
+
+    const messages = page.locator("#chat-messages");
+    await expect(messages).toContainText("No reply received. Please try again. If the problem continues, contact support.");
+    await expect(messages).not.toContainText("action may have completed");
+    await expect(input).toBeEnabled();
+    await expect(page.locator("#send-btn")).toBeEnabled();
   });
 });
