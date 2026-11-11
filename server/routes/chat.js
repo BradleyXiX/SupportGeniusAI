@@ -1,7 +1,7 @@
 import express from "express";
 import crypto from "crypto";
 import * as agentService from "../services/agent.js";
-import { getSessionCost, createUsageMetrics } from "../services/finops.js";
+import { getSessionCost, createUsageMetrics, isCostAvailable } from "../services/finops.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import { ChatPayloadSchema } from "../schemas/chatSchema.js";
 import {
@@ -107,10 +107,12 @@ router.post("/", validateRequest(ChatPayloadSchema), async (req, res, next) => {
       return res.status(503).json(problem.toJSON());
     }
 
+    const costAvailable = isCostAvailable(req.session.metrics);
     const costNum = getSessionCost(req.session.metrics);
     res.json({
       reply: response.reply,
-      cost: Number(costNum).toFixed(4)
+      cost: costAvailable ? Number(costNum).toFixed(4) : null,
+      costAvailable
     });
   } catch (err) {
     // Prevent response-end automatic persistence and Set-Cookie on EVERY unsuccessful route exit

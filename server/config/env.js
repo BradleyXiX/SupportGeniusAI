@@ -3,12 +3,17 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const bareModelRegex = /^[a-zA-Z0-9_.-]+$/;
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   APP_MODE: z.enum(["support", "demo"]).default("support"),
+  LLM_PROVIDER: z.enum(["auto", "openai", "gemini", "ollama"]).default("auto"),
+  RETRIEVAL_MODE: z.enum(["vector", "keyword"]).default("vector"),
   PORT: z.coerce.number().positive().default(3000),
   OPENAI_API_KEY: z.string().optional().default(""),
   GEMINI_API_KEY: z.string().optional().default(""),
+  GEMINI_MODEL: z.string().optional().default("").transform((s) => (s ? s.trim() : "")),
   OLLAMA_URL: z.string().url().default("http://localhost:11434"),
   OLLAMA_EMBED_MODEL: z.string().optional().default("nomic-embed-text:latest"),
   OLLAMA_CHAT_MODEL: z.string().optional().default("qwen2.5-coder:7b"),
@@ -34,6 +39,57 @@ const envSchema = z.object({
       message: "PUBLIC_ORIGIN must use HTTPS in production",
       path: ["PUBLIC_ORIGIN"]
     });
+  }
+
+  // Reject URL/path/query/whitespace characters in GEMINI_MODEL if specified
+  if (data.GEMINI_MODEL && !bareModelRegex.test(data.GEMINI_MODEL)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "GEMINI_MODEL must be a trimmed bare model ID without URL, path, or query characters",
+      path: ["GEMINI_MODEL"]
+    });
+  }
+
+  // In support mode, check provider credentials and model requirements
+  if (data.APP_MODE === "support") {
+    const provider = data.LLM_PROVIDER;
+
+    if (provider === "gemini") {
+      if (!data.GEMINI_API_KEY || data.GEMINI_API_KEY.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "GEMINI_API_KEY is required when LLM_PROVIDER is gemini in support mode",
+          path: ["GEMINI_API_KEY"]
+        });
+      }
+      if (!data.GEMINI_MODEL || data.GEMINI_MODEL.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "GEMINI_MODEL is required when LLM_PROVIDER is gemini in support mode",
+          path: ["GEMINI_MODEL"]
+        });
+      }
+    } else if (provider === "openai") {
+      if (!data.OPENAI_API_KEY || data.OPENAI_API_KEY.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "OPENAI_API_KEY is required when LLM_PROVIDER is openai in support mode",
+          path: ["OPENAI_API_KEY"]
+        });
+      }
+    } else if (provider === "auto") {
+      const hasOpenAI = Boolean(data.OPENAI_API_KEY && data.OPENAI_API_KEY.trim().length > 0);
+      const hasGemini = Boolean(data.GEMINI_API_KEY && data.GEMINI_API_KEY.trim().length > 0);
+      if (!hasOpenAI && hasGemini) {
+        if (!data.GEMINI_MODEL || data.GEMINI_MODEL.trim().length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "GEMINI_MODEL is required when auto provider resolves to Gemini in support mode",
+            path: ["GEMINI_MODEL"]
+          });
+        }
+      }
+    }
   }
 });
 

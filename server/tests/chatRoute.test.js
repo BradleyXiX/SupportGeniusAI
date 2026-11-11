@@ -41,6 +41,31 @@ describe("POST /chat Route & RFC 7807 Contracts", () => {
     expect(typeof res.body.reply).toBe("string");
     expect(res.body.reply).toContain("[Demo]");
     expect(res.body).toHaveProperty("cost");
+    expect(res.body.costAvailable).toBe(true);
+  });
+
+  it("serializes cost: null and costAvailable: false when session metrics have unpriced model usage", async () => {
+    vi.spyOn(llmService, "callLLM").mockImplementation(async (prompt, options) => {
+      if (options?.metrics) {
+        options.metrics.model = "unpriced-custom-model";
+        options.metrics.costAvailable = false;
+      }
+      return "Here is your unpriced answer";
+    });
+
+    const res = await request(app)
+      .post("/chat")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", sessionCookie)
+      .send({
+        message: "Tell me something",
+        sessionId: "sess_unpriced_test"
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.reply).toBe("Here is your unpriced answer");
+    expect(res.body.cost).toBeNull();
+    expect(res.body.costAvailable).toBe(false);
   });
 
   it("returns safe deterministic refusal when model output contains an action attempt", async () => {

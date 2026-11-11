@@ -1,6 +1,7 @@
 import { trackUsage, setModel } from "./finops.js";
-import { gatewayError } from "../utils/problemDetails.js";
 import { fetchJsonBounded, UpstreamError } from "../utils/upstream.js";
+
+const BARE_MODEL_REGEX = /^[a-zA-Z0-9_.-]+$/;
 
 // Basic token estimation fallback (1 token ~ 4 characters)
 export function estimateTokens(text = "") {
@@ -9,6 +10,47 @@ export function estimateTokens(text = "") {
 
 function isNonEmptyText(val) {
   return typeof val === "string" && val.trim().length > 0;
+}
+
+export function extractGeminiText(data) {
+  const candidate = data?.candidates?.[0];
+  if (!candidate) return null;
+  const parts = candidate.content?.parts;
+  if (!Array.isArray(parts)) return null;
+
+  const validTexts = parts
+    .filter((p) => !p.thought && typeof p?.text === "string" && p.text.length > 0)
+    .map((p) => p.text);
+
+  if (validTexts.length === 0) return null;
+  const combined = validTexts.join("");
+  return combined.trim().length > 0 ? combined : null;
+}
+
+export function resolveLLMProvider(options = {}) {
+  const mode = options?.mode || process.env.APP_MODE || "support";
+  if (mode === "demo") return "demo";
+
+  const providerSetting = (process.env.LLM_PROVIDER || "auto").toLowerCase().trim();
+
+  if (providerSetting === "gemini") {
+    return "gemini";
+  }
+  if (providerSetting === "openai") {
+    return "openai";
+  }
+  if (providerSetting === "ollama") {
+    return "ollama";
+  }
+
+  // "auto" precedence: openai -> gemini -> ollama
+  if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) {
+    return "openai";
+  }
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) {
+    return "gemini";
+  }
+  return "ollama";
 }
 
 export async function callLLM(prompt, options = {}) {
@@ -49,10 +91,19 @@ export async function callLLM(prompt, options = {}) {
     });
   }
 
+  const provider = resolveLLMProvider({ mode });
+
   // Support mode: call configured provider or local Ollama using bounded fetch (20s budget)
   try {
-    if (process.env.OPENAI_API_KEY) {
-      modelUsed = "gpt-4o-mini";
+    if (provider === "openai") {
+      if (!process.env.OPENAI_API_KEY || !process.env.OPENAI_API_KEY.trim()) {
+        throw new UpstreamError({
+          kind: "connection",
+          message: "OPENAI_API_KEY is not configured",
+          providerLabel: "openai"
+        });
+      }
+      modelUsed = process.env.OPENAI_MODEL || "gpt-4o-mini";
       const data = await fetchJsonBounded(
         "https://api.openai.com/v1/chat/completions",
         {
@@ -78,14 +129,33 @@ export async function callLLM(prompt, options = {}) {
       promptTokens = data.usage?.prompt_tokens ?? estimateTokens(prompt);
       completionTokens = data.usage?.completion_tokens ?? estimateTokens(responseText);
 
-    } else if (process.env.GEMINI_API_KEY) {
-      modelUsed = "gemini-1.5-flash";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    } else if (provider === "gemini") {
+      if (!process.env.GEMINI_API_KEY || !process.env.GEMINI_API_KEY.trim()) {
+        throw new UpstreamError({
+          kind: "connection",
+          message: "GEMINI_API_KEY is not configured",
+          providerLabel: "gemini"
+        });
+      }
+      const geminiModel = (process.env.GEMINI_MODEL || "").trim();
+      if (!geminiModel || !BARE_MODEL_REGEX.test(geminiModel)) {
+        throw new UpstreamError({
+          kind: "connection",
+          message: "Valid GEMINI_MODEL bare ID is required",
+          providerLabel: "gemini"
+        });
+      }
+
+      modelUsed = geminiModel;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`;
       const data = await fetchJsonBounded(
         url,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": process.env.GEMINI_API_KEY
+          },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }]
           })
@@ -94,11 +164,11 @@ export async function callLLM(prompt, options = {}) {
           timeoutMs: 20000,
           signal,
           providerLabel: "gemini",
-          validateShape: (d) => isNonEmptyText(d?.candidates?.[0]?.content?.parts?.[0]?.text)
+          validateShape: (d) => Boolean(extractGeminiText(d))
         }
       );
 
-      responseText = data.candidates[0].content.parts[0].text;
+      responseText = extractGeminiText(data);
       promptTokens = data.usageMetadata?.promptTokenCount ?? estimateTokens(prompt);
       completionTokens = data.usageMetadata?.candidatesTokenCount ?? estimateTokens(responseText);
 

@@ -6,6 +6,7 @@ import {
   getSessionCost,
   formatSessionCost,
   getSessionMetrics,
+  isCostAvailable,
   PRICING
 } from "../services/finops.js";
 
@@ -24,6 +25,20 @@ describe("FinOps Telemetry Service with Session Context", () => {
     const cost = getSessionCost(metrics);
     expect(cost).toBeCloseTo(expectedCost, 6);
     expect(formatSessionCost(metrics)).toBe(`$${expectedCost.toFixed(4)}`);
+    expect(isCostAvailable(metrics)).toBe(true);
+  });
+
+  it("calculates accurate session cost for nominated gemini-3.1-flash-lite", () => {
+    const metrics = createUsageMetrics();
+    setModel(metrics, "gemini-3.1-flash-lite");
+
+    // Pricing: $0.25/1M input ($0.00025/1K), $1.50/1M output ($0.0015/1K)
+    trackUsage(metrics, 1000000, 1000000);
+
+    expect(metrics.cost).toBeCloseTo(1.75, 4);
+    expect(getSessionCost(metrics)).toBeCloseTo(1.75, 4);
+    expect(formatSessionCost(metrics)).toBe("$1.7500");
+    expect(isCostAvailable(metrics)).toBe(true);
   });
 
   it("tracks cumulative usage across multiple turns", () => {
@@ -36,6 +51,7 @@ describe("FinOps Telemetry Service with Session Context", () => {
     const snapshot = getSessionMetrics(metrics);
     expect(snapshot.promptTokens).toBe(500);
     expect(snapshot.completionTokens).toBe(250);
+    expect(isCostAvailable(metrics)).toBe(true);
   });
 
   it("returns zero cost for simulated model while tracking tokens", () => {
@@ -45,20 +61,50 @@ describe("FinOps Telemetry Service with Session Context", () => {
 
     expect(getSessionCost(metrics)).toBe(0);
     expect(metrics.cost).toBe(0);
+    expect(metrics.costAvailable).toBe(true);
     expect(metrics.promptTokens).toBe(1000);
     expect(metrics.completionTokens).toBe(1000);
     expect(getSessionCost(null)).toBe(0);
+    expect(formatSessionCost(metrics)).toBe("$0.0000");
 
     // Verify demo-simulated zero-cost alias
     const demoMetrics = createUsageMetrics();
     setModel(demoMetrics, "demo-simulated");
     trackUsage(demoMetrics, 500, 200);
     expect(getSessionCost(demoMetrics)).toBe(0);
+    expect(demoMetrics.costAvailable).toBe(true);
+    expect(formatSessionCost(demoMetrics)).toBe("$0.0000");
+  });
 
-    // Verify unknown model falls back to non-zero rates
+  it("handles unknown/unpriced models safely with costAvailable: false without Qwen fallback", () => {
     const unknownMetrics = createUsageMetrics();
-    setModel(unknownMetrics, "unknown-model");
+    setModel(unknownMetrics, "unknown-gemini-preview-model");
     trackUsage(unknownMetrics, 1000, 1000);
-    expect(getSessionCost(unknownMetrics)).toBeGreaterThan(0);
+
+    // Must NOT fall back to Qwen rates ($0.0015 / $0.002)
+    expect(unknownMetrics.costAvailable).toBe(false);
+    expect(isCostAvailable(unknownMetrics)).toBe(false);
+    expect(formatSessionCost(unknownMetrics)).toBe("Unavailable");
+    // Token counters must still increment
+    expect(unknownMetrics.promptTokens).toBe(1000);
+    expect(unknownMetrics.completionTokens).toBe(1000);
+
+    // Sticky unpriced behavior: once an unpriced model contributes, costAvailable remains false until reset
+    setModel(unknownMetrics, "gpt-4o-mini");
+    trackUsage(unknownMetrics, 500, 200);
+    expect(unknownMetrics.costAvailable).toBe(false);
+    expect(formatSessionCost(unknownMetrics)).toBe("Unavailable");
+    expect(unknownMetrics.promptTokens).toBe(1500);
+  });
+
+  it("preserves costAvailable: true for legacy sessions lacking the field", () => {
+    const legacyMetrics = {
+      model: "gpt-4o-mini",
+      cost: 0.05,
+      promptTokens: 100,
+      completionTokens: 50
+    };
+    expect(isCostAvailable(legacyMetrics)).toBe(true);
+    expect(formatSessionCost(legacyMetrics)).toBe("$0.0500");
   });
 });
