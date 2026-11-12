@@ -718,7 +718,7 @@ export function initConsole() {
           return;
         }
         appendMessage(
-          "No reply received. An action may have completed. Verify with the business before repeating your request.",
+          "No reply received. Please try again. If the problem continues, contact support.",
           false,
           true
         );
@@ -730,8 +730,12 @@ export function initConsole() {
 
       if (acceptsReply(chatState, { requestId, generation: requestGeneration })) {
         appendMessage(data.reply, false);
-        if (data.cost !== undefined && sessionCostEl) {
-          sessionCostEl.textContent = `$${data.cost}`;
+        if (sessionCostEl) {
+          if (data.costAvailable === false || data.cost === null) {
+            sessionCostEl.textContent = "Unavailable";
+          } else if (data.cost !== undefined && data.cost !== null) {
+            sessionCostEl.textContent = `$${data.cost}`;
+          }
         }
       }
     } catch (err) {
@@ -742,7 +746,7 @@ export function initConsole() {
       }
 
       appendMessage(
-        "No reply received. An action may have completed. Verify with the business before repeating your request.",
+        "No reply received. Please try again. If the problem continues, contact support.",
         false,
         true
       );

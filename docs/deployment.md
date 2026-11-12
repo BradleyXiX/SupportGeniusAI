@@ -21,11 +21,14 @@ All environment variables are strictly validated on boot using Zod schemas in `s
 | :--- | :--- | :--- | :--- | :--- |
 | `NODE_ENV` | `development` \| `test` \| `production` | `development` | **Required**: Set to `production` | Enables production security controls, strict cookie `Secure` flags, and strict error sanitization. |
 | `APP_MODE` | `support` \| `demo` | `support` | **Required**: Choose based on tier | `support`: Real vector retrieval & LLM provider inference.<br>`demo`: Zero-cost, zero-network deterministic customer simulation. |
+| `LLM_PROVIDER` | `auto` \| `openai` \| `gemini` \| `ollama` | `auto` | Optional | Selection strategy for chat inference. Set to `gemini` for explicit Gemini routing. |
+| `RETRIEVAL_MODE` | `vector` \| `keyword` | `vector` | Optional | `vector`: OpenAI/Ollama vector embeddings.<br>`keyword`: Deterministic BM25 keyword retrieval; eliminates all embedding models/APIs/caches. |
 | `PUBLIC_ORIGIN` | URL (string) | N/A | **Required**: e.g., `https://supportgenius.onrender.com` | Canonical public origin. Must use `https://` in production. Enforced strictly on all state-mutating requests (`/chat`, `/session`). |
 | `SESSION_SECRET` | String (≥32 chars) | N/A | **Required**: 32+ character random secret | Cryptographic key used to sign anonymous session cookies. Never commit or log this value. |
 | `PORT` | Positive integer | `3000` | Optional (Render injects `PORT=10000`) | Network port on which the Express HTTP server listens. |
 | `OPENAI_API_KEY` | String | `""` | Optional (Required if using OpenAI in `support` mode) | Secret API key for OpenAI LLM (`gpt-4o-mini`) and embeddings (`text-embedding-3-small`). |
-| `GEMINI_API_KEY` | String | `""` | Optional (Required if using Gemini in `support` mode) | Secret API key for Google Gemini LLM (`gemini-1.5-flash`). |
+| `GEMINI_API_KEY` | String | `""` | Optional (Required if using Gemini in `support` mode) | Secret API key for Google Gemini LLM API (`POST /v1beta/models/${model}:generateContent`). |
+| `GEMINI_MODEL` | Bare model identifier | N/A (no default) | **Required** if support mode selects Gemini | Bare model ID without URL/path/query chars (e.g. `gemini-3.1-flash-lite`). Has no working default in `server/config/env.js` and cannot be omitted when Gemini is selected in support mode. Legacy `gemini-1.5-flash` and `gemini-2.0-flash` are deprecated/shut down by Google. |
 | `OLLAMA_URL` | URL (string) | `http://localhost:11434` | Optional | URL for local Ollama daemon if running open-weights inference. |
 | `RATE_LIMIT_WINDOW_MS` | Positive integer | `60000` | Optional (Default: 60,000ms / 1 min) | Time window for IP-based AI Gateway rate limiter. |
 | `RATE_LIMIT_MAX_REQUESTS` | Positive integer | `10` | Optional (Default: 10 requests) | Maximum requests per IP per time window. |
@@ -122,15 +125,28 @@ When configuring a Web Service on Render:
 3. **Start Command**: `npm start`
 4. **Instance Type**: Single Instance (e.g., Starter or Standard — **do not enable autoscaling**).
 5. **Environment Variables**:
+   > [!IMPORTANT]
+   > Render operators must select **Save Changes** only when preparing variables before deployment (do not trigger automatic deployment). Preserve existing production `SESSION_SECRET`, `PUBLIC_ORIGIN`, and `PORT` settings.
    - `NODE_ENV`: `production`
    - `APP_MODE`: `support` (or `demo` for marketing demonstrations)
-   - `PUBLIC_ORIGIN`: `https://<your-service-name>.onrender.com`
-   - `SESSION_SECRET`: `<generated-32-char-hex-secret>`
-   - `OPENAI_API_KEY` or `GEMINI_API_KEY`: `<your-llm-provider-api-key>` (if in `support` mode)
-   - `PORT`: `10000` (Render default)
+   - `PUBLIC_ORIGIN`: `https://<your-service-name>.onrender.com` (preserve existing production setting)
+   - `SESSION_SECRET`: `<generated-32-char-hex-secret>` (preserve existing production setting)
+   - `PORT`: `10000` (Render default; preserve existing production setting)
+   - **For Gemini-Only Support Mode (Recommended minimal footprint)**:
+     - `LLM_PROVIDER`: `gemini`
+     - `GEMINI_API_KEY`: `<your-gemini-api-key>`
+     - `GEMINI_MODEL`: `gemini-3.1-flash-lite` (Required: has no working default in `server/config/env.js`; cannot be omitted)
+     - `RETRIEVAL_MODE`: `keyword`
+     *(Zero OpenAI dependency, zero Ollama process, zero embedding cache file writes)*
+   - **For OpenAI Support Mode**:
+     - `LLM_PROVIDER`: `openai` (or `auto`)
+     - `OPENAI_API_KEY`: `<your-openai-key>`
 6. **Health Check Path**: `/health` (strictly a container liveness/status endpoint; returns HTTP 200 with process uptime and memory metrics).
 
-### 6.3 Staging Smoke Check for Knowledge Availability
+> [!IMPORTANT]
+> **Free Tier & Quota Caveat**: While Google lists a free-tier rate limit for `gemini-3.1-flash-lite`, free tier availability, quota limits, and account permissions are not guaranteed. Cost telemetry displays list-price paid-tier estimates ($0.25/1M input, $1.50/1M output including thoughts). Before relying on Gemini in production, confirm billing and quota allowances in the Google Cloud Console.
+
+### 6.3 Staging Smoke Check for Knowledge Availability & Session Bootstrap
 The `GET /health` endpoint confirms HTTP process liveness and that the vector store structure is initialized in memory, but it does **not** prove that custom knowledge documents are accurate, that upstream LLM providers are reachable, or that model answers are usable.
 
 Before promoting any build to production, perform an explicit staging smoke test:
@@ -144,11 +160,14 @@ Before promoting any build to production, perform an explicit staging smoke test
    curl -s https://<staging-app>.onrender.com/capabilities | jq .
    # Verify: mode matches configured APP_MODE, actionsEnabled === false, sessionRequired === true
    ```
-3. **End-to-End Query Verification**:
+3. **Session Bootstrap Verification**:
+   - Verify session bootstrap separately: `POST /session` returns HTTP 204 and sets the `__Host-supportgenius_session` cookie in production, with `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`, and no `Domain` attribute.
+4. **End-to-End Query Verification**:
    - Open `/console/` in a browser.
    - Verify connection beacon turns green and initial welcome loads.
    - Send a domain question covered by `server/data/docs/` (e.g., "What is your return policy?").
-   - Confirm that the assistant provides a grounded, non-empty response, that inference latency is reasonable, and that no 502/504 errors appear in the browser console.
+   - Confirm that a successful `POST /chat` returns HTTP 200 and the expected grounded reply, that inference latency is reasonable, and that no 502/504 errors appear in the browser console.
+   - *(Note: Do not make Set-Cookie on chat a pass condition or record cookie values; the session cookie is established during POST /session bootstrap).*
 
 ---
 

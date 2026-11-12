@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { chunkText } from "../utils/chunkText.js";
 import { getEmbedding, cosineSimilarity, calculateKeywordScore } from "../services/embeddings.js";
+import { UpstreamError } from "../utils/upstream.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DOCS_DIR = path.join(__dirname, "../data/docs");
@@ -47,6 +48,28 @@ export async function initializeStore() {
       return;
     }
 
+    const retrievalMode = (process.env.RETRIEVAL_MODE || "vector").toLowerCase().trim();
+
+    if (retrievalMode === "keyword") {
+      // Keyword mode: do NOT read vector cache, do NOT call getEmbedding, do NOT write cache.
+      const files = fs.readdirSync(DOCS_DIR);
+      for (const file of files) {
+        if (file.endsWith(".txt") || file.endsWith(".md")) {
+          const text = fs.readFileSync(path.join(DOCS_DIR, file), "utf-8");
+          const chunks = chunkText(text, 40, 10);
+          for (const chunk of chunks) {
+            vectorStore.push({
+              text: chunk,
+              embedding: null
+            });
+          }
+        }
+      }
+      console.log(`Loaded ${vectorStore.length} chunks into memory (keyword mode).`);
+      return;
+    }
+
+    // Vector mode (default / existing behavior preserved)
     const cache = loadVectorCache();
     let cacheUpdated = false;
 
@@ -98,21 +121,51 @@ export function clearStore() {
 }
 
 export async function getRelevantChunks(query, topK = 3, { signal } = {}) {
+  if (signal?.aborted) {
+    throw new UpstreamError({
+      kind: "timeout",
+      message: "Retrieval request aborted prior to scoring",
+      providerLabel: "retrieval"
+    });
+  }
+
   if (vectorStore.length === 0) return [];
+
+  const retrievalMode = (process.env.RETRIEVAL_MODE || "vector").toLowerCase().trim();
+
+  if (retrievalMode === "keyword") {
+    const scored = vectorStore.map((doc) => ({
+      text: doc.text,
+      score: calculateKeywordScore(query, doc.text)
+    }));
+    scored.sort((a, b) => b.score - a.score);
+    const results = scored.slice(0, topK).map((d) => d.text);
+
+    if (signal?.aborted) {
+      throw new UpstreamError({
+        kind: "timeout",
+        message: "Retrieval request aborted after scoring",
+        providerLabel: "retrieval"
+      });
+    }
+
+    return results;
+  }
+
+  // Vector mode: query embedding with fallback to keyword scoring if embedding unavailable
   const queryEmbedding = await getEmbedding(query, { signal });
   
-  // If Ollama failed, use keyword scoring fallback
   if (!queryEmbedding) {
-     const scored = vectorStore.map(doc => ({
+     const scored = vectorStore.map((doc) => ({
        text: doc.text,
        score: calculateKeywordScore(query, doc.text)
      }));
      scored.sort((a, b) => b.score - a.score);
-     return scored.slice(0, topK).map(d => d.text);
+     return scored.slice(0, topK).map((d) => d.text);
   }
 
   // Normal semantic vector search using cosine similarity
-  const scored = vectorStore.map(doc => {
+  const scored = vectorStore.map((doc) => {
     if (!doc.embedding) return { text: doc.text, score: 0 }; 
     return {
       text: doc.text,
@@ -121,5 +174,5 @@ export async function getRelevantChunks(query, topK = 3, { signal } = {}) {
   });
   
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, topK).map(d => d.text);
+  return scored.slice(0, topK).map((d) => d.text);
 }
