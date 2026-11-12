@@ -57,17 +57,16 @@ Two new behavioral Playwright tests were added to `tests/browser/console.spec.js
 
 1. **`.env.example`**:
    - Documented `LLM_PROVIDER=auto|openai|gemini|ollama` (default `auto`, preserves existing precedence).
-   - Documented `GEMINI_MODEL=gemini-3.1-flash-lite` (bare model identifier requirement).
+   - Documented `GEMINI_MODEL=gemini-3.1-flash-lite` (required bare model identifier whenever support mode selects Gemini; has no working default in `server/config/env.js` and cannot be omitted).
    - Documented `RETRIEVAL_MODE=vector|keyword` (default `vector`; keyword eliminates all embedding calls).
    - Documented that setting `LLM_PROVIDER=gemini` + `RETRIEVAL_MODE=keyword` allows running support mode using `GEMINI_API_KEY` alone.
    - Explicit caveat: Free tier availability and account quota allowances are not guaranteed; list-price estimates ($0.25/1M input, $1.50/1M output including thoughts) apply.
 2. **`README.md`**:
-   - Updated Support-mode configuration table with explicit providers and retrieval modes.
-   - Added dedicated "Gemini-only Support Deployment" section documenting zero-embedding setup, model lifecycle status (active `gemini-3.1-flash-lite`, deprecated 1.5/2.0), and quota caveat.
+   - Updated Support-mode configuration table with explicit providers and retrieval modes, noting `GEMINI_MODEL` is required (e.g. `gemini-3.1-flash-lite`) without a default.
+   - Added dedicated "Gemini-only Support Deployment" section documenting zero-embedding setup, model lifecycle status (active `gemini-3.1-flash-lite`, deprecated 1.5/2.0), model requirement, and quota caveat.
 3. **`docs/deployment.md`**:
-   - Added `LLM_PROVIDER`, `GEMINI_MODEL`, and `RETRIEVAL_MODE` to the environment variables specification table.
-   - Updated the Render deployment checklist with Gemini-only keyword configuration guidance.
-   - Added warnings regarding Google Cloud Console quota verification.
+   - Added `LLM_PROVIDER`, `GEMINI_MODEL`, and `RETRIEVAL_MODE` to the environment variables specification table, clarifying `GEMINI_MODEL` is required with no default when Gemini is selected.
+   - Updated the Render deployment checklist and smoke check guidance: operators must select **Save Changes** only when preparing variables before deployment, preserve existing production settings (`SESSION_SECRET`, `PUBLIC_ORIGIN`, `PORT`), verify session bootstrap separately (`POST /session` returns 204 with `__Host-supportgenius_session` cookie in production), verify successful `POST /chat` returns 200 with expected reply, and not treat `Set-Cookie` on `/chat` as a pass condition nor record cookie values.
 
 ---
 
@@ -97,25 +96,30 @@ Two new behavioral Playwright tests were added to `tests/browser/console.spec.js
 ### Manual Render Configuration Checklist (Save Only — Do Not Auto-Deploy)
 To configure the web service on Render without triggering uninspected deploys:
 1. Navigate to the SupportGeniusAI Web Service settings in the Render Dashboard.
-2. Under **Environment Variables**, configure:
+2. Under **Environment Variables**, configure / verify (Render operators must select **Save Changes** only; preserve existing production settings):
    - `NODE_ENV`: `production`
    - `APP_MODE`: `support`
-   - `LLM_PROVIDER`: `gemini`
-   - `GEMINI_API_KEY`: `<your-gemini-api-key>`
-   - `GEMINI_MODEL`: `gemini-3.1-flash-lite`
-   - `RETRIEVAL_MODE`: `keyword`
-   - `PUBLIC_ORIGIN`: `https://<your-service-name>.onrender.com`
-   - `SESSION_SECRET`: `<generated-32-char-random-hex-string>`
-   - `PORT`: `10000`
-3. Click **Save Changes** (do NOT click "Manual Deploy" until configuration is verified).
+   - `PUBLIC_ORIGIN`: `https://<your-service-name>.onrender.com` (preserve existing production setting)
+   - `SESSION_SECRET`: `<generated-32-char-random-hex-string>` (preserve existing production setting)
+   - `PORT`: `10000` (Render default; preserve existing production setting)
+   - **For Gemini-Only Support Mode (Recommended minimal footprint)**:
+     - `LLM_PROVIDER`: `gemini`
+     - `GEMINI_API_KEY`: `<your-gemini-api-key>`
+     - `GEMINI_MODEL`: `gemini-3.1-flash-lite` (Required: has no working default in `server/config/env.js`; cannot be omitted)
+     - `RETRIEVAL_MODE`: `keyword`
+3. Click **Save Changes** only (do NOT click "Manual Deploy" until configuration is verified).
 
 ### Authorized Single-Request Support Smoke
 Once deployment is manually initiated and completed, verify end-to-end operation with a single request:
-1. Open `https://<your-service-name>.onrender.com/console/` in an incognito browser window.
-2. Verify the status beacon indicates connected and initial welcome appears.
-3. Submit a single domain question covered by `server/data/docs/` (e.g., *"What is your return policy?"*).
-4. Verify:
-   - A grounded reply is generated.
+1. **Session Bootstrap Verification**:
+   - Verify session bootstrap separately: `POST /session` returns HTTP 204 and sets the `__Host-supportgenius_session` cookie in production, with `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`, and no `Domain` attribute.
+2. **Console Verification**:
+   - Open `https://<your-service-name>.onrender.com/console/` in an incognito browser window.
+   - Verify the status beacon indicates connected and initial welcome appears.
+3. **Chat Query Verification**:
+   - Submit a single domain question covered by `server/data/docs/` (e.g., *"What is your return policy?"*).
+   - Verify a successful `POST /chat` returns HTTP 200 and the expected grounded reply.
    - Cost telemetry displays an accurate list-price estimate (or `"Unavailable"` if model is unrecognized).
-   - HTTP status in network tab is `200 OK` with `Set-Cookie` containing signed `sg_session` (`HttpOnly; SameSite=Strict; Secure`).
    - No 502/504 errors appear in the browser console.
+   - *(Note: Do not make Set-Cookie on chat a pass condition or record cookie values; the session cookie is established during POST /session bootstrap).*
+

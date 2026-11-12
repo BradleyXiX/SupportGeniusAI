@@ -72,15 +72,15 @@ Set `APP_MODE=support` and configure the intended provider. Selection supports e
 
 | Configuration | Chat provider | Embedding / Retrieval mode |
 | --- | --- | --- |
-| `LLM_PROVIDER=gemini`, `RETRIEVAL_MODE=keyword` | Gemini (`GEMINI_MODEL`, default `gemini-3.1-flash-lite`) | Local keyword BM25 (no OpenAI key, no Ollama) |
+| `LLM_PROVIDER=gemini`, `RETRIEVAL_MODE=keyword` | Gemini (`GEMINI_MODEL` required, e.g. `gemini-3.1-flash-lite`) | Local keyword BM25 (no OpenAI key, no Ollama) |
 | `OPENAI_API_KEY` set (`LLM_PROVIDER=auto` or `openai`) | OpenAI, `gpt-4o-mini` | OpenAI, `text-embedding-3-small` (or keyword if `RETRIEVAL_MODE=keyword`) |
-| Only `GEMINI_API_KEY` set (`LLM_PROVIDER=auto` or `gemini`) | Gemini (`GEMINI_MODEL`, default `gemini-3.1-flash-lite`) | Ollama (if `RETRIEVAL_MODE=vector`) or keyword |
+| Only `GEMINI_API_KEY` set (`LLM_PROVIDER=auto` or `gemini`) | Gemini (`GEMINI_MODEL` required, e.g. `gemini-3.1-flash-lite`) | Ollama (if `RETRIEVAL_MODE=vector`) or keyword |
 | Neither cloud key set (`LLM_PROVIDER=auto` or `ollama`) | Ollama (`OLLAMA_CHAT_MODEL`) | Ollama (`OLLAMA_EMBED_MODEL`) or keyword |
 
 ### Gemini-only Support Deployment
 Setting `LLM_PROVIDER=gemini` and `RETRIEVAL_MODE=keyword` allows running support mode using only `GEMINI_API_KEY`. In this configuration:
 - Chat inference calls Google Gemini via fixed-host, header-authenticated `POST /v1beta/models/${model}:generateContent`.
-- Model ID is configurable via `GEMINI_MODEL` (defaults to `gemini-3.1-flash-lite`). Legacy endpoints `gemini-1.5-flash` and `gemini-2.0-flash` have been officially deprecated/shut down by Google.
+- Model ID is required and configurable via `GEMINI_MODEL` (e.g. `gemini-3.1-flash-lite`). `GEMINI_MODEL` has no working default in `server/config/env.js` and cannot be omitted when Gemini is selected in support mode. Legacy endpoints `gemini-1.5-flash` and `gemini-2.0-flash` have been officially deprecated/shut down by Google.
 - Knowledge retrieval parses markdown/text chunks at boot time and uses deterministic in-memory BM25-like scoring. Zero embedding API calls are made, zero embedding cache files are read or written, and no local Ollama service is required.
 - Cost telemetry displays list-price paid-tier estimates ($0.25/1M input tokens, $1.50/1M output tokens, including thinking tokens). When pricing is unavailable for custom models, the telemetry safely renders `"Unavailable"`.
 
