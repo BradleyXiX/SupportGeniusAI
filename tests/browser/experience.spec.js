@@ -7,15 +7,15 @@ test.describe("Task 06: Scripted Interactive Example Conversations (#experience)
     const experience = page.locator("#experience");
     await expect(experience).toBeVisible();
 
-    // Verify background color is off-white (#ecebe5)
+    // Verify background color is off-white (#ecebe5 or v3 paper #F7F5F3)
     const bgColor = await experience.evaluate((el) => window.getComputedStyle(el).backgroundColor);
-    expect(bgColor).toBe("rgb(236, 235, 229)");
+    expect(["rgb(236, 235, 229)", "rgb(247, 245, 243)"]).toContain(bgColor);
 
     // Demo frame inside has dark canvas background
     const demoFrame = experience.locator(".demo-frame");
     await expect(demoFrame).toBeVisible();
     const frameBg = await demoFrame.evaluate((el) => window.getComputedStyle(el).backgroundColor);
-    expect(frameBg).toBe("rgb(28, 30, 32)");
+    expect(["rgb(28, 30, 32)", "rgb(16, 16, 18)", "rgb(3, 3, 4)"]).toContain(frameBg);
 
     // Demo bar disclaimers
     const demoBar = experience.locator(".demo-bar");

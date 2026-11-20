@@ -1325,8 +1325,8 @@ body[data-page="console"] .btn-retry-init {
 }
 
 body[data-page="console"] .btn-retry-init:hover:not(:disabled) {
-  background-color: #1a253d;
-  border-color: #F2C572;
+  background-color: rgba(187, 23, 41, 0.16);
+  border-color: #bb1729;
 }
 
 body[data-page="console"] .btn-retry-init:disabled {
@@ -1335,7 +1335,7 @@ body[data-page="console"] .btn-retry-init:disabled {
 }
 
 body[data-page="console"] .error-message .bubble {
-  border-color: rgba(242, 166, 166, 0.4);
+  border-color: #bb1729;
 }
 
 

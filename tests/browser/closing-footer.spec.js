@@ -18,10 +18,9 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
     await expect(cta).toHaveAttribute('href', '/console/');
     await expect(cta).toContainText('Explore Signal Desk');
 
-    // Off-white background check
+    // Off-white background check (#ecebe5 is rgb(236, 235, 229), v3 paper #F7F5F3 is rgb(247, 245, 243))
     const bg = await closing.evaluate(el => window.getComputedStyle(el).backgroundColor);
-    // #ecebe5 is rgb(236, 235, 229)
-    expect(bg).toBe('rgb(236, 235, 229)');
+    expect(['rgb(236, 235, 229)', 'rgb(247, 245, 243)']).toContain(bg);
   });
 
   test('2. Static decorative rings are aria-hidden, positioned behind text, and have pointer-events none', async ({ page }) => {
@@ -66,8 +65,8 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
 
     expect(outlineStyles.outlineStyle).not.toBe('none');
     expect(parseInt(outlineStyles.outlineWidth)).toBeGreaterThanOrEqual(2);
-    // #242827 is rgb(36, 40, 39)
-    expect(outlineStyles.outlineColor).toBe('rgb(36, 40, 39)');
+    // #242827 is rgb(36, 40, 39), v3 focus-light #18181C is rgb(24, 24, 28)
+    expect(['rgb(36, 40, 39)', 'rgb(24, 24, 28)']).toContain(outlineStyles.outlineColor);
   });
 
   test('4. Branded footer renders identity mark, description, back-to-top, and copyright', async ({ page }) => {

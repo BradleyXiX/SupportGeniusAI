@@ -85,21 +85,21 @@ export function mountOrb(canvas, options = {}) {
     // Outer boundary ring
     ctx.beginPath();
     ctx.arc(cx, cy, baseR, 0, Math.PI * 2);
-    ctx.strokeStyle = "#293447";
+    ctx.strokeStyle = "#26262a";
     ctx.lineWidth = 1.5 * dpr;
     ctx.stroke();
 
     // Signal ring (accent)
     ctx.beginPath();
     ctx.arc(cx, cy, baseR * 0.65, 0, Math.PI * 2);
-    ctx.strokeStyle = currentState === "pending" ? "#F2C572" : "#85D6BD";
+    ctx.strokeStyle = currentState === "pending" ? "#BB1729" : "#C0BCC0";
     ctx.lineWidth = 1.2 * dpr;
     ctx.stroke();
 
     // Core point
     ctx.beginPath();
     ctx.arc(cx, cy, 3 * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = currentState === "pending" ? "#F2C572" : "#85D6BD";
+    ctx.fillStyle = currentState === "pending" ? "#BB1729" : "#F7F7F5";
     ctx.fill();
   }
 
@@ -123,7 +123,7 @@ export function mountOrb(canvas, options = {}) {
     ctx.rotate(t * 0.1);
     ctx.beginPath();
     ctx.arc(0, 0, baseR, 0, Math.PI * 2);
-    ctx.strokeStyle = "#293447";
+    ctx.strokeStyle = "#26262a";
     ctx.lineWidth = 1.2 * dpr;
     ctx.setLineDash([4 * dpr, 4 * dpr]);
     ctx.stroke();
@@ -139,28 +139,28 @@ export function mountOrb(canvas, options = {}) {
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.lineTo(nx, ny);
-    ctx.strokeStyle = currentState === "pending" ? "rgba(242, 197, 114, 0.4)" : "rgba(133, 214, 189, 0.3)";
+    ctx.strokeStyle = currentState === "pending" ? "rgba(187, 23, 41, 0.45)" : "rgba(247, 247, 245, 0.2)";
     ctx.lineWidth = 1 * dpr;
     ctx.stroke();
 
     // Orbit ring
     ctx.beginPath();
     ctx.arc(cx, cy, orbitR, 0, Math.PI * 2);
-    ctx.strokeStyle = currentState === "pending" ? "rgba(242, 197, 114, 0.25)" : "rgba(133, 214, 189, 0.2)";
+    ctx.strokeStyle = currentState === "pending" ? "rgba(187, 23, 41, 0.25)" : "rgba(247, 247, 245, 0.12)";
     ctx.lineWidth = 1 * dpr;
     ctx.stroke();
 
     // Orbiting node
     ctx.beginPath();
     ctx.arc(nx, ny, 2.5 * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = currentState === "pending" ? "#F2C572" : "#85D6BD";
+    ctx.fillStyle = currentState === "pending" ? "#BB1729" : "#F7F7F5";
     ctx.fill();
 
     // Core point
     const corePulse = currentState === "pending" ? 3.5 + Math.sin(t * 4) * 0.8 : 3;
     ctx.beginPath();
     ctx.arc(cx, cy, corePulse * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = currentState === "pending" ? "#F2C572" : "#85D6BD";
+    ctx.fillStyle = currentState === "pending" ? "#BB1729" : "#F7F7F5";
     ctx.fill();
 
     rafId = requestAnimationFrame(render);
