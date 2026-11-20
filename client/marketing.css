@@ -784,6 +784,92 @@ body[data-page="marketing"] .sample-conversation > .text-link {
   color: var(--accent, #e4b95b);
 }
 
+/* Deployment Section */
+body[data-page="marketing"] .deployment-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  border: 1px solid var(--line, #3b3e3e);
+}
+
+body[data-page="marketing"] .deployment-grid article {
+  padding: 36px;
+  overflow: hidden;
+}
+
+body[data-page="marketing"] .deployment-grid .mono {
+  color: var(--accent, #e4b95b);
+  font-size: 9px;
+  letter-spacing: 0.09em;
+}
+
+body[data-page="marketing"] .deployment-grid h3 {
+  margin-top: 26px;
+  font-size: 30px;
+  font-family: var(--display, 'Space Grotesk', sans-serif);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: var(--ink, #f3f0e8);
+}
+
+body[data-page="marketing"] .deployment-grid p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--muted, #b0b7b4);
+  max-width: 360px;
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
+body[data-page="marketing"] .deploy-main {
+  position: relative;
+  min-height: 490px;
+}
+
+body[data-page="marketing"] .deploy-main h3 {
+  font-size: 45px;
+  letter-spacing: -0.045em;
+}
+
+body[data-page="marketing"] .deploy-side {
+  border-left: 1px solid var(--line, #3b3e3e);
+}
+
+body[data-page="marketing"] .deploy-side article + article {
+  border-top: 1px solid var(--line, #3b3e3e);
+}
+
+body[data-page="marketing"] .document-stack {
+  margin-top: 34px;
+  max-width: 350px;
+  transform: perspective(700px) rotateX(10deg) rotateY(-9deg);
+}
+
+body[data-page="marketing"] .document-stack > div {
+  border: 1px solid #59645b;
+  background: #292e2b;
+  margin-top: -5px;
+  padding: 15px 20px;
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--ink, #f3f0e8);
+}
+
+body[data-page="marketing"] .document-stack > div:nth-child(2) {
+  margin-left: 20px;
+}
+
+body[data-page="marketing"] .document-stack > div:nth-child(3) {
+  margin-left: 40px;
+}
+
+body[data-page="marketing"] .document-stack span {
+  color: var(--accent, #e4b95b);
+}
+
 @media (max-width: 1100px) {
   body[data-page="marketing"] .hero {
     min-height: 660px;
@@ -959,6 +1045,25 @@ body[data-page="marketing"] .sample-conversation > .text-link {
   body[data-page="marketing"] .sample-conversation > .text-link {
     margin-left: 0;
   }
+  body[data-page="marketing"] .deployment-grid {
+    grid-template-columns: 1fr;
+  }
+  body[data-page="marketing"] .deployment-grid article {
+    padding: 26px;
+  }
+  body[data-page="marketing"] .deploy-main {
+    min-height: 420px;
+  }
+  body[data-page="marketing"] .deploy-main h3 {
+    font-size: 39px;
+  }
+  body[data-page="marketing"] .deploy-side {
+    border-left: 0;
+    border-top: 1px solid var(--line, #3b3e3e);
+  }
+  body[data-page="marketing"] .deployment-grid h3 {
+    font-size: 28px;
+  }
 }
 
 @media (max-width: 370px) {
@@ -1054,5 +1159,28 @@ body[data-page="marketing"] .site-footer .copyright {
   }
   body[data-page="marketing"] .demo-disclosure span:not(.disclosure-badge) {
     word-break: break-word;
+  }
+  body[data-page="marketing"] .deployment-grid article {
+    padding: 20px 14px;
+  }
+  body[data-page="marketing"] .document-stack {
+    max-width: 100%;
+  }
+  body[data-page="marketing"] .document-stack > div {
+    padding: 12px 14px;
+    font-size: 10px;
+  }
+  body[data-page="marketing"] .document-stack > div:nth-child(2) {
+    margin-left: 12px;
+  }
+  body[data-page="marketing"] .document-stack > div:nth-child(3) {
+    margin-left: 24px;
+  }
+}
+
+/* Reduced Motion: flatten perspective */
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="marketing"] .document-stack {
+    transform: none;
   }
 }
