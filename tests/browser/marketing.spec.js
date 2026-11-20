@@ -66,6 +66,29 @@ test.describe("Marketing Editorial Introduction (GET /)", () => {
     await expect(targetSection).toBeVisible();
   });
 
+  test("preserves native anchor URL fragments, history, and browser back", async ({ page }) => {
+    await page.goto("/");
+
+    const systemLink = page.locator("a[href='#system']").first();
+    await systemLink.click();
+
+    // Verify URL fragment updated in address bar
+    await expect(page).toHaveURL(/#system$/);
+
+    // Verify focus moved to target section
+    const systemSection = page.locator("#system");
+    await expect(systemSection).toBeFocused();
+
+    // Verify browser back restores previous history state
+    await page.goBack();
+    expect(page.url()).not.toContain("#system");
+
+    // Verify direct navigation with hash /#system
+    await page.goto("/#system");
+    await expect(page).toHaveURL(/#system$/);
+    await expect(systemSection).toBeVisible();
+  });
+
   test("displays three system chapters and capability strip items", async ({ page }) => {
     await page.goto("/");
 
@@ -85,13 +108,32 @@ test.describe("Marketing Editorial Introduction (GET /)", () => {
     await expect(page.getByText(/FOCUSED CONVERSATIONS/i)).toBeVisible();
   });
 
-  test("content remains visible and complete with JavaScript disabled", async ({ browser }) => {
+  test("content remains visible and complete with JavaScript disabled and unhydrated controls disabled", async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
 
     await page.goto("/");
     await expect(page.locator("h1")).toContainText("Your knowledge. A clearer answer.");
     await expect(page.getByText(/Start with your knowledge/i)).toBeVisible();
+
+    // Enhancement controls are disabled before JS executes
+    const motionToggle = page.locator("#motion-toggle");
+    await expect(motionToggle).toBeDisabled();
+
+    const scenarioButtons = page.locator("button[data-example]");
+    const buttonCount = await scenarioButtons.count();
+    expect(buttonCount).toBe(3);
+    for (let i = 0; i < buttonCount; i++) {
+      await expect(scenarioButtons.nth(i)).toBeDisabled();
+    }
+
+    // Static default content remains visible and legible
+    await expect(page.locator("#sample-question")).toHaveText("What is your returns policy?");
+    await expect(page.locator("#sample-answer")).toContainText("return an unused item in its original packaging");
+
+    // Native disclosures remain fully accessible and open by default
+    const details = page.locator("#system details").first();
+    await expect(details).toHaveAttribute("open", "");
 
     const consoleLink = page.locator("a[href='/console/'], a[href='/console']").first();
     await expect(consoleLink).toBeVisible();

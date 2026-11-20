@@ -360,4 +360,19 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     // No errors occurred during transition/cleanup
     expect(consoleErrors).toEqual([]);
   });
+
+  test("13. Failed enhancement module disables control and displays static artwork text", async ({ page }) => {
+    // Abort dynamic import of WebGL module
+    await page.route("**/marketing/signal-core.js", (route) => route.abort());
+
+    await page.goto("/");
+    const toggle = page.locator("#motion-toggle");
+    await expect(toggle).toBeEnabled();
+
+    await toggle.click();
+    await expect(toggle).toHaveText("Static artwork active");
+    await expect(toggle).toBeDisabled();
+    await expect(page.locator("#core-poster")).toBeVisible();
+    await expect(page.locator("#signal-core")).toBeHidden();
+  });
 });

@@ -42,6 +42,7 @@ export function initExamples(container = document) {
 
   const handlers = [];
   buttons.forEach((btn) => {
+    btn.disabled = false;
     const onClick = () => handleSelect(btn.dataset.example);
     btn.addEventListener("click", onClick);
     handlers.push({ btn, onClick });

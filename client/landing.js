@@ -8,7 +8,28 @@ import { initChapters } from './marketing/chapters.js';
 import { initExamples } from './marketing/examples.js';
 
 export function initLanding() {
-  // Smooth in-page anchor navigation using native scrolling & accessible focus
+  // Smooth in-page anchor navigation preserving native URL fragments & history
+  const scrollToTarget = (targetEl, updateHistory = false, targetId = '') => {
+    if (!targetEl) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    targetEl.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start'
+    });
+    if (targetEl.getAttribute('tabindex') === null && !/^(a|button|input|textarea|select)$/i.test(targetEl.tagName)) {
+      targetEl.setAttribute('tabindex', '-1');
+    }
+    targetEl.focus({ preventScroll: true });
+
+    if (updateHistory && targetId) {
+      if (typeof history.pushState === 'function') {
+        history.pushState(null, '', '#' + targetId);
+      } else {
+        window.location.hash = targetId;
+      }
+    }
+  };
+
   const anchorLinks = document.querySelectorAll('a[href^="#"]');
   anchorLinks.forEach((link) => {
     link.addEventListener('click', (e) => {
@@ -18,18 +39,31 @@ export function initLanding() {
       const targetEl = document.getElementById(targetId);
       if (targetEl) {
         e.preventDefault();
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        targetEl.scrollIntoView({
-          behavior: prefersReducedMotion ? 'auto' : 'smooth',
-          block: 'start'
-        });
-        if (targetEl.getAttribute('tabindex') === null && !/^(a|button|input|textarea|select)$/i.test(targetEl.tagName)) {
-          targetEl.setAttribute('tabindex', '-1');
-        }
-        targetEl.focus({ preventScroll: true });
+        scrollToTarget(targetEl, true, targetId);
       }
     });
   });
+
+  // Handle browser back/forward (popstate) to restore section focus
+  window.addEventListener('popstate', () => {
+    const hash = window.location.hash;
+    if (hash && hash.length > 1) {
+      const targetId = hash.substring(1);
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        scrollToTarget(targetEl, false);
+      }
+    }
+  });
+
+  // Direct load with hash: ensure accessible focus
+  if (window.location.hash && window.location.hash.length > 1) {
+    const targetId = window.location.hash.substring(1);
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) {
+      setTimeout(() => scrollToTarget(targetEl, false), 50);
+    }
+  }
 
   // Signal Core 3D Point Sculpture Controller (Hero motion)
   initSignalCore();
@@ -55,7 +89,18 @@ export function initSignalCore() {
     teardown = null;
     toggle.textContent = 'Enable motion';
     toggle.setAttribute('aria-pressed', 'false');
+    toggle.disabled = false;
   };
+
+  // Guard initial control state: enable only if reduced motion is inactive
+  if (reduced.matches) {
+    toggle.textContent = 'Reduced motion enabled';
+    toggle.setAttribute('aria-pressed', 'false');
+    toggle.disabled = true;
+  } else {
+    toggle.disabled = false;
+    toggle.textContent = 'Enable motion';
+  }
 
   toggle.addEventListener('click', async () => {
     const attempt = ++generation;
@@ -67,6 +112,7 @@ export function initSignalCore() {
     if (reduced.matches) {
       toggle.textContent = 'Reduced motion enabled';
       toggle.setAttribute('aria-pressed', 'false');
+      toggle.disabled = true;
       return;
     }
 
@@ -77,17 +123,19 @@ export function initSignalCore() {
         if (reduced.matches) {
           toggle.textContent = 'Reduced motion enabled';
           toggle.setAttribute('aria-pressed', 'false');
+          toggle.disabled = true;
         }
         return;
       }
       teardown = mountCore(canvas, poster, { onDispose: resetMotionControl });
+      toggle.disabled = false;
       toggle.textContent = 'Pause motion';
       toggle.setAttribute('aria-pressed', 'true');
     } catch {
+      // Failed enhancement module must not leave a fake working control
       toggle.textContent = 'Static artwork active';
       toggle.setAttribute('aria-pressed', 'false');
-    } finally {
-      toggle.disabled = false;
+      toggle.disabled = true;
     }
   });
 
@@ -99,8 +147,10 @@ export function initSignalCore() {
       }
       toggle.textContent = 'Reduced motion enabled';
       toggle.setAttribute('aria-pressed', 'false');
+      toggle.disabled = true;
     } else {
       if (!teardown) {
+        toggle.disabled = false;
         toggle.textContent = 'Enable motion';
         toggle.setAttribute('aria-pressed', 'false');
       }
