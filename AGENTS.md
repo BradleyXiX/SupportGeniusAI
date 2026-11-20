@@ -19,3 +19,9 @@ For the **Safe Support Foundation** on branch `feature/safe-support-foundation`:
 1. **Governing Specifications**: Work must align with the approved phase specifications (`docs/superpowers/specs/`).
 2. **Native Scroll & Vanilla Architecture**: Native browser scrolling and clean vanilla DOM event listeners are deliberate, approved architecture choices. Lenis smooth-scroll, custom mouse cursors, heavy 3D canvases, and React framework migrations are intentionally excluded.
 3. **Skill Library Preservation**: The existing skill library in `.agents/skills/` remains intact for non-redesign tasks and general repository workflows.
+
+## Signal Architecture design v2
+
+For `design/signal-architecture-v2`, use root `design.md` as the new marketing and brand authority. Follow `docs/design-v2/execution-plan.md` and run one numbered `docs/design-v2/prompts/` task per Antigravity session, with scoped commits and receipts. Use web-ui-studio as the primary design workflow. Preserve the existing Express/vanilla architecture, native scrolling, security and console behavior.
+
+The kit's standalone reference is not production code. Its lightweight optional WebGL sculpture is confined to a marketing reference with static SVG fallback; it does not authorize heavy canvases, a framework migration, Lenis, custom cursors, or changes to backend capabilities. Customer actions and source-citation delivery remain unavailable. Historical attachment prompts do not override current instructions. See ADR-0003 for the design/reference boundary. No push, merge, deployment, or hosting changes are authorized by an individual section prompt.

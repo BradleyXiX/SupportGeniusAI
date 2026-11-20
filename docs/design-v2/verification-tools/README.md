@@ -1,0 +1,1 @@
+Verification scripts retained as exact task evidence. They contain local runtime/source paths and local server ports from this machine; adapt those paths to rerun elsewhere. They are not production modules or CI configuration. Main pass followed by affected correction pass produced verification.json.
