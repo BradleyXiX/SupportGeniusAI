@@ -47,4 +47,3 @@ record('no uncaught page errors',report.consoleErrors.length===0,report.consoleE
 for(const filename of ['reference.js','signal-core.js','styles.css']){const content=fs.readFileSync(path.join(root,'reference',filename));report.measurements[filename]={rawBytes:content.length,gzipBytes:zlib.gzipSync(content).length};}
 }catch(error){report.fatal=error.stack;record('verification completed',false,error.message);}finally{await browser.close();fs.writeFileSync(path.join(root,'verification.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({checks:report.checks,fatal:report.fatal,metrics:report.measurements.reference?.metrics},null,2));}
 if(report.checks.some(c=>!c.passed)||report.fatal)process.exitCode=1;
-

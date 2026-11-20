@@ -208,8 +208,8 @@
     "sha256": "5d6cd1091a488dc4b3ef097f33c244e1d40882747f247da17274168809d5aa9a"
   },
   "verification-tools/verify.mjs": {
-    "bytes": 12204,
-    "sha256": "c6ef888801302c602512084dc3467516ba27e6af3d89c7ad13287f3bce15dcac"
+    "bytes": 12251,
+    "sha256": "8eb0d1a3cdba0c8c1befafa71a140482a43d7df5834547571cdd35a1a85d4782"
   },
   "verification-tools/verify_corrections.mjs": {
     "bytes": 2674,
@@ -232,11 +232,11 @@
     "sha256": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb"
   },
   "assets/fonts/plusjakartasans-OFL.txt": {
-    "bytes": 4402,
-    "sha256": "995c7199cab65954f545996326755daee7b63cc6b42b06c13da1f9502ab08a99"
+    "bytes": 4494,
+    "sha256": "90c9fd564e155debe3fab219193666646114461598b52d21ccfdfceda473d891"
   },
   "assets/fonts/spacegrotesk-OFL.txt": {
-    "bytes": 4495,
-    "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72"
+    "bytes": 4494,
+    "sha256": "c9a6f76d065b19ee383e42c8a114915e733bcbaed9759de41f4016b64d502cd5"
   }
 }
