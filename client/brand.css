@@ -418,9 +418,86 @@ body[data-page="console"] .btn-retry-init:focus-visible {
   outline-offset: 3px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   body[data-page="console"] .console-rail {
     border-right: 0;
     border-bottom: 1px solid var(--line, #3b3e3e);
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+    box-sizing: border-box;
+  }
+
+  body[data-page="console"] .rail-header {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  body[data-page="console"] .rail-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  body[data-page="console"] .btn-new-conversation {
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  body[data-page="console"] .rail-back-link {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  body[data-page="console"] .console-rail {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  body[data-page="console"] .rail-header {
+    width: 100%;
+  }
+
+  body[data-page="console"] .demo-disclosure {
+    word-break: break-word;
+  }
+
+  body[data-page="console"] .rail-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  body[data-page="console"] .btn-new-conversation {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  body[data-page="console"] .rail-back-link {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  body[data-page="console"] .rail-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  body[data-page="console"] .rail-back-link {
+    justify-content: center;
+    min-height: 36px;
   }
 }

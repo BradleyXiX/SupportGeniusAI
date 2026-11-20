@@ -4,6 +4,10 @@
    Scoped strictly to body[data-page="marketing"]
    ========================================================================== */
 
+html:has(body[data-page="marketing"]) {
+  scroll-padding-top: 24px;
+}
+
 /* Outer Body Frame */
 body[data-page="marketing"] {
   margin: 0;
@@ -483,10 +487,10 @@ body[data-page="marketing"] .strip-index {
 }
 
 /* ==========================================================================
-   The System Section (#system) & Ordered Disclosures
+   Shared Marketing Section Vertical Rhythm & The System Section (#system)
    ========================================================================== */
 
-body[data-page="marketing"] .system.section {
+body[data-page="marketing"] .section {
   padding-block: 110px;
 }
 
@@ -888,7 +892,12 @@ body[data-page="marketing"] .closing .eyebrow {
 }
 
 body[data-page="marketing"] .closing h2 {
+  font-family: var(--display, 'Space Grotesk', sans-serif);
+  font-weight: 500;
   font-size: clamp(48px, 6vw, 88px);
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+  margin: 0;
   position: relative;
   z-index: 1;
 }
@@ -1016,7 +1025,7 @@ body[data-page="marketing"] .closing-rings {
   body[data-page="marketing"] .strip-index {
     display: none;
   }
-  body[data-page="marketing"] .system.section {
+  body[data-page="marketing"] .section {
     padding-block: 66px;
   }
   body[data-page="marketing"] .section-head {

@@ -532,6 +532,45 @@ test.describe("Task 4 / A4: Responsive Console & Accessibility Polish", () => {
     expect(overflow).toBe(false);
   });
 
+  test("mobile viewport (320x800) has zero horizontal document overflow in empty and answered states", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto("/console/");
+    await expect(page.locator("#chat-messages")).toBeVisible();
+
+    // Verify key rail controls remain visible and readable at 320px
+    const modeBadge = page.locator("#mode-badge");
+    await expect(modeBadge).toBeVisible();
+
+    const resetBtn = page.locator("#reset-btn");
+    await expect(resetBtn).toBeVisible();
+
+    const backLink = page.locator(".rail-back-link");
+    await expect(backLink).toBeVisible();
+    await expect(backLink).toHaveAttribute("href", "/");
+
+    // Check empty state document overflow without overflow:hidden masking
+    const emptyOverflow = await page.evaluate(() => {
+      const doc = document.documentElement;
+      return doc.scrollWidth > doc.clientWidth;
+    });
+    expect(emptyOverflow).toBe(false);
+
+    // Send query and verify answered state
+    await page.fill("#input", "What is your return policy?");
+    await page.click("#send-btn");
+    await expect(page.locator(".message.user-message")).toBeVisible();
+    await expect(page.locator("#loading-message")).toBeHidden();
+    const reply = page.locator(".message.ai-message:not(#loading-message)").nth(1);
+    await expect(reply).toBeVisible();
+
+    // Check answered state document overflow
+    const answeredOverflow = await page.evaluate(() => {
+      const doc = document.documentElement;
+      return doc.scrollWidth > doc.clientWidth;
+    });
+    expect(answeredOverflow).toBe(false);
+  });
+
   test("touch controls on mobile target at least 44px height", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/console/");
