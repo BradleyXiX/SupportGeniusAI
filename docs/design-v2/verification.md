@@ -36,4 +36,35 @@ A separate code reviewer identified four medium issues: reduced-motion/import ra
 
 Figma file creation succeeded; Starter-plan MCP quota prevented saving a completed design. Three editable SVG boards are provided for import. They are not auto-layout/token-bound Figma components.
 
-Remaining work: integrate the sections through the Antigravity prompts; run the existing full browser suite on that integrated branch; measure a throttled production-like trace and real-device behavior; check actual hosting preview/deploy policy before publishing; verify real-provider quality in staging separately. No award, performance compliance, or production-readiness claim is made for an unintegrated reference.
+## Task 10 Integrated Production Verification
+
+On branch `design/signal-architecture-v2`, the integrated application was tested across the entire browser and unit test suites:
+
+- **Vitest unit suite**: 16 test files passed, 151/151 tests passed (exit 0).
+- **Playwright browser suite**: 8 test suites passed, 108/108 tests passed (exit 0):
+  - `closing-footer.spec.js` (9/9)
+  - `console.spec.js` (49/49)
+  - `deployment.spec.js` (8/8)
+  - `experience.spec.js` (9/9)
+  - `marketing.spec.js` (7/7 — 4 stale Phase 1 assertions reconciled to v2 specification while preserving all behavioral coverage)
+  - `orb.spec.js` (8/8)
+  - `signal-core.spec.js` (12/12 — verified web-first auto-retry for asynchronous media query change)
+  - `system-chapters.spec.js` (7/7)
+- **Axe-core accessibility**: 0 serious or critical violations on `/` and `/console/`.
+- **Responsive verification**: 1440×1000, 390×844, and 320×800 viewports with zero horizontal document overflow.
+- **Motion & fallbacks**: SVG first paint, explicit WebGL activation, pause, context loss recovery, runtime reduced-motion teardown, and 100% no-JS operability.
+- **Lab performance observations** (unthrottled local Chrome):
+  - Landing (`/`): Lab LCP 484 ms, Lab CLS 0.003
+  - Console (`/console/`): Lab LCP 160 ms, Lab CLS 0.0119
+  - *Distinction*: These are local lab observations and do not establish field INP or throttled mobile network conditions.
+- **Production asset sizes**:
+  - `client/index.html`: 11.34 KB (3.30 KB gzip)
+  - `client/brand.css`: 11.98 KB (2.00 KB gzip)
+  - `client/marketing.css`: 28.24 KB (4.82 KB gzip)
+  - `client/landing.js`: 4.40 KB (1.34 KB gzip)
+  - `client/marketing/signal-core.js`: 5.45 KB (2.08 KB gzip)
+  - `client/marketing/chapters.js`: 1.01 KB (0.45 KB gzip)
+  - `client/marketing/examples.js`: 1.84 KB (0.77 KB gzip)
+  - `client/console/index.html`: 6.11 KB (2.00 KB gzip)
+  - `client/app.js`: 28.64 KB (6.59 KB gzip)
+  - `client/chat-state.js`: 2.25 KB (0.68 KB gzip)

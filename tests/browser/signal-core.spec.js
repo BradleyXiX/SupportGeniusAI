@@ -164,8 +164,7 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     await expect(toggle).toHaveText("Reduced motion enabled");
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect(canvas).toBeHidden();
-    const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
-    expect(posterVis).toBe("visible");
+    await expect(poster).toBeVisible();
   });
 
   test("7. Reduced-motion changes during async module loading aborts mounting", async ({ page }) => {
