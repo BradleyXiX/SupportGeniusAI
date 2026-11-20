@@ -374,5 +374,109 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     await expect(toggle).toBeDisabled();
     await expect(page.locator("#core-poster")).toBeVisible();
     await expect(page.locator("#signal-core")).toBeHidden();
+
+    // Verify visibility changes and pagehide/pageshow do NOT re-enable the failed control
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("pagehide"));
+      window.dispatchEvent(new Event("pageshow"));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await expect(toggle).toHaveText("Static artwork active");
+    await expect(toggle).toBeDisabled();
+  });
+
+  test("14. Pagehide during delayed import cancels activation and return restores usable control ready for re-enable", async ({ page }) => {
+    let resolveFirstRoute;
+    const firstRoutePromise = new Promise((resolve) => {
+      resolveFirstRoute = resolve;
+    });
+
+    let routeCallCount = 0;
+    await page.route("**/marketing/signal-core.js", async (route) => {
+      routeCallCount++;
+      if (routeCallCount === 1) {
+        // Hold the first route response
+        await firstRoutePromise;
+        await route.continue();
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.goto("/");
+    const toggle = page.locator("#motion-toggle");
+    const canvas = page.locator("#signal-core");
+    const poster = page.locator("#core-poster");
+
+    // Click Enable motion while normal motion is active
+    await toggle.click();
+
+    // While module is in-flight, trigger pagehide (e.g. user navigation away)
+    await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+
+    // Release the first route response
+    resolveFirstRoute();
+
+    // Canvas should NOT be mounted, poster remains visible
+    await expect(canvas).toBeHidden();
+    await expect(poster).toBeVisible();
+
+    // Trigger pageshow (user returns to page)
+    await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
+
+    // Control must be restored to accurate, usable state
+    await expect(toggle).toHaveText("Enable motion");
+    await expect(toggle).toBeEnabled();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    // User can now re-enable motion cleanly
+    await toggle.click();
+    await expect(toggle).toHaveText("Pause motion");
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(canvas).toBeVisible();
+  });
+
+  test("15. Temporary document visibility change during delayed import cancels activation and restores usable control", async ({ page }) => {
+    let resolveRoute;
+    const routePromise = new Promise((resolve) => {
+      resolveRoute = resolve;
+    });
+
+    await page.route("**/marketing/signal-core.js", async (route) => {
+      await routePromise;
+      await route.continue();
+    });
+
+    await page.goto("/");
+    const toggle = page.locator("#motion-toggle");
+    const canvas = page.locator("#signal-core");
+    const poster = page.locator("#core-poster");
+
+    // Click Enable motion
+    await toggle.click();
+
+    // Temporarily switch visibility to hidden while import is in-flight
+    await page.evaluate(() => {
+      Object.defineProperty(document, "hidden", { value: true, configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    // Release delayed route while hidden
+    resolveRoute();
+
+    // WebGL should not mount
+    await expect(canvas).toBeHidden();
+    await expect(poster).toBeVisible();
+
+    // Restore visibility to visible
+    await page.evaluate(() => {
+      Object.defineProperty(document, "hidden", { value: false, configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    // Control must be restored to accurate, usable state
+    await expect(toggle).toHaveText("Enable motion");
+    await expect(toggle).toBeEnabled();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 });

@@ -84,6 +84,7 @@ export function initSignalCore() {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   let teardown = null;
   let generation = 0;
+  let failed = false;
 
   const resetMotionControl = () => {
     teardown = null;
@@ -96,6 +97,7 @@ export function initSignalCore() {
   toggle.disabled = false;
 
   toggle.addEventListener('click', async () => {
+    if (failed) return;
     const attempt = ++generation;
     if (teardown) {
       teardown();
@@ -111,19 +113,28 @@ export function initSignalCore() {
     toggle.disabled = true;
     try {
       const { mountCore } = await import('./marketing/signal-core.js');
+      // Cancellation check: was activation invalidated while import was in flight?
       if (attempt !== generation || reduced.matches || document.hidden) {
         if (reduced.matches) {
           toggle.textContent = 'Reduced motion enabled';
           toggle.setAttribute('aria-pressed', 'false');
+          toggle.disabled = false;
+        } else {
+          toggle.textContent = 'Enable motion';
+          toggle.setAttribute('aria-pressed', 'false');
+          toggle.disabled = false;
         }
         return;
       }
+
+      // Successful activation
       teardown = mountCore(canvas, poster, { onDispose: resetMotionControl });
       toggle.disabled = false;
       toggle.textContent = 'Pause motion';
       toggle.setAttribute('aria-pressed', 'true');
     } catch {
       // Failed enhancement module must not leave a fake working control
+      failed = true;
       toggle.textContent = 'Static artwork active';
       toggle.setAttribute('aria-pressed', 'false');
       toggle.disabled = true;
@@ -136,10 +147,13 @@ export function initSignalCore() {
       if (teardown) {
         teardown();
       }
-      toggle.textContent = 'Reduced motion enabled';
-      toggle.setAttribute('aria-pressed', 'false');
+      if (!failed) {
+        toggle.textContent = 'Reduced motion enabled';
+        toggle.setAttribute('aria-pressed', 'false');
+        toggle.disabled = false;
+      }
     } else {
-      if (!teardown) {
+      if (!teardown && !failed) {
         toggle.disabled = false;
         toggle.textContent = 'Enable motion';
         toggle.setAttribute('aria-pressed', 'false');
@@ -157,10 +171,46 @@ export function initSignalCore() {
     generation++;
     if (teardown) {
       teardown();
+    } else if (!failed) {
+      resetMotionControl();
+    }
+  };
+
+  const onPageShow = () => {
+    if (!teardown && !failed) {
+      if (reduced.matches) {
+        toggle.textContent = 'Reduced motion enabled';
+        toggle.setAttribute('aria-pressed', 'false');
+        toggle.disabled = false;
+      } else {
+        toggle.textContent = 'Enable motion';
+        toggle.setAttribute('aria-pressed', 'false');
+        toggle.disabled = false;
+      }
+    }
+  };
+
+  const onVisibilityChange = () => {
+    if (document.hidden) {
+      if (!teardown) {
+        generation++;
+      }
+    } else if (!teardown && !failed) {
+      if (reduced.matches) {
+        toggle.textContent = 'Reduced motion enabled';
+        toggle.setAttribute('aria-pressed', 'false');
+        toggle.disabled = false;
+      } else {
+        toggle.textContent = 'Enable motion';
+        toggle.setAttribute('aria-pressed', 'false');
+        toggle.disabled = false;
+      }
     }
   };
 
   window.addEventListener('pagehide', onPageHide);
+  window.addEventListener('pageshow', onPageShow);
+  document.addEventListener('visibilitychange', onVisibilityChange);
 
   return {
     getTeardown: () => teardown,
@@ -168,6 +218,8 @@ export function initSignalCore() {
       generation++;
       if (teardown) teardown();
       window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       if (typeof reduced.removeEventListener === 'function') {
         reduced.removeEventListener('change', onReducedMotionChange);
       } else if (typeof reduced.removeListener === 'function') {
