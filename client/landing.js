@@ -1,10 +1,11 @@
 // ==========================================================================
 // SupportGeniusAI Marketing Landing Controller
-// Pure ES Module • Strict CSP Compliant • Native Scrolling, Signal Core & Chapters
-// Governed by Task 05 & design.md
+// Pure ES Module • Strict CSP Compliant • Native Scrolling, Signal Core, Chapters & Examples
+// Governed by Task 06 & design.md
 // ==========================================================================
 
 import { initChapters } from './marketing/chapters.js';
+import { initExamples } from './marketing/examples.js';
 
 export function initLanding() {
   // Smooth in-page anchor navigation using native scrolling & accessible focus
@@ -35,6 +36,9 @@ export function initLanding() {
 
   // System Chapters Disclosure Controller
   initChapters();
+
+  // Scripted Interactive Examples Controller
+  initExamples();
 }
 
 export function initSignalCore() {
