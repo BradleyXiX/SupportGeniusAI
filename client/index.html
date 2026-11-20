@@ -24,7 +24,7 @@
       </a>
 
       <nav class="site-nav" aria-label="Main Navigation">
-        <a href="#how-it-works">The system</a>
+        <a href="#system">The system</a>
       </nav>
 
       <a href="/console/" class="header-cta">Open assistant <span aria-hidden="true">&nearr;</span></a>
@@ -39,7 +39,7 @@
         <p class="lead">Turn your business documentation into a focused support conversation. Built around what your team knows.</p>
         <div class="actions">
           <a class="button primary" href="/console/">Explore the assistant <span aria-hidden="true">&nearr;</span></a>
-          <a class="text-link" href="#how-it-works">See the system <span aria-hidden="true">&darr;</span></a>
+          <a class="text-link" href="#system">See the system <span aria-hidden="true">&darr;</span></a>
         </div>
         <p class="fine hero-note">A working foundation for tailored client deployments.</p>
       </div>
@@ -59,45 +59,61 @@
       </figure>
     </section>
 
-    <!-- How It Works Section (3 Stacked Rows) -->
-    <section id="how-it-works" class="marketing-section how-it-works-section" aria-labelledby="how-it-works-title">
-      <div class="marketing-section-container">
-        <div class="section-intro">
-          <span class="section-eyebrow">Architecture</span>
-          <h2 id="how-it-works-title" class="section-title">How it works</h2>
-          <p class="section-lead">A dependable, document-grounded approach designed for operational clarity.</p>
+    <!-- Capability Strip -->
+    <div class="system-strip site-wrap mono">
+      <span>DOCUMENT-BASED ANSWERS</span>
+      <span>CONFIGURABLE MODELS</span>
+      <span>FOCUSED CONVERSATIONS</span>
+      <span class="strip-index">SG / 001</span>
+    </div>
+
+    <!-- The System Section -->
+    <section id="system" class="system site-wrap section" aria-labelledby="system-title">
+      <div class="section-head">
+        <p class="eyebrow">01 / FROM SIGNAL TO CLARITY</p>
+        <h2 id="system-title">A little less searching.<br>A lot more understanding.</h2>
+        <p>Your documentation is the starting point.<br>The conversation is where it becomes useful.</p>
+      </div>
+      <div class="system-layout">
+        <div class="chapter-index">
+          <p class="mono">THE SUPPORTGENIUS APPROACH</p>
+          <div class="orbit-small" aria-hidden="true"><span></span><span></span><span></span><b>SG</b></div>
+          <p class="fine">Select a step to explore the system.<br>Illustration, not live processing telemetry.</p>
         </div>
-
-        <div class="explanation-rows">
-          <article class="explanation-row">
-            <span class="row-num" aria-hidden="true">01</span>
-            <div class="row-body">
-              <h3 class="row-title">Connect approved knowledge</h3>
-              <p class="row-desc">
-                Documentation and policy texts are parsed, chunked, and embedded into a high-performance vector store with reproducible SHA-256 caching for fast, cold-start retrieval.
-              </p>
+        <div class="chapters">
+          <details name="system-chapters" open>
+            <summary>
+              <span class="mono">01</span>
+              <h3>Start with your knowledge.</h3>
+              <span class="plus" aria-hidden="true">+</span>
+            </summary>
+            <div class="chapter-body">
+              <p>Approved policy and support documents form the context for a reply. The current foundation reads text and Markdown documents.</p>
+              <span class="micro-tag mono">DOCUMENTS &rarr; RETRIEVAL</span>
             </div>
-          </article>
-
-          <article class="explanation-row">
-            <span class="row-num" aria-hidden="true">02</span>
-            <div class="row-body">
-              <h3 class="row-title">Answer with context</h3>
-              <p class="row-desc">
-                Every query is evaluated strictly against retrieved documentation chunks. If an inquiry falls outside approved material, the system refuses to speculate or invent unverified facts.
-              </p>
+          </details>
+          <details name="system-chapters">
+            <summary>
+              <span class="mono">02</span>
+              <h3>Give the question context.</h3>
+              <span class="plus" aria-hidden="true">+</span>
+            </summary>
+            <div class="chapter-body">
+              <p>Relevant passages accompany the question to your configured language model. Retrieval supports the answer; it cannot guarantee accuracy.</p>
+              <span class="micro-tag mono">CONTEXT &rarr; MODEL</span>
             </div>
-          </article>
-
-          <article class="explanation-row">
-            <span class="row-num" aria-hidden="true">03</span>
-            <div class="row-body">
-              <h3 class="row-title">Connect verified actions</h3>
-              <p class="row-desc">
-                Execute client operations such as order status checks or dispatch notifications through validated endpoint webhooks. Please note: actions require client integration and verified business authorization.
-              </p>
+          </details>
+          <details name="system-chapters">
+            <summary>
+              <span class="mono">03</span>
+              <h3>Keep the conversation clear.</h3>
+              <span class="plus" aria-hidden="true">+</span>
+            </summary>
+            <div class="chapter-body">
+              <p>A focused console keeps the question, response, and recovery controls together. Customer actions and source citations are not available in the current release.</p>
+              <span class="micro-tag mono">REPLY &rarr; CONVERSATION</span>
             </div>
-          </article>
+          </details>
         </div>
       </div>
     </section>

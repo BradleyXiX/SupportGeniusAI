@@ -463,6 +463,181 @@ body[data-page="marketing"] .quiet-button:disabled {
   opacity: 0.6;
 }
 
+/* ==========================================================================
+   Capability Strip (Task 05)
+   ========================================================================== */
+
+body[data-page="marketing"] .system-strip {
+  border-block: 1px solid var(--line, #3b3e3e);
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted, #b0b7b4);
+  font-size: 9px;
+  gap: 20px;
+}
+
+body[data-page="marketing"] .strip-index {
+  color: var(--accent, #e4b95b);
+}
+
+/* ==========================================================================
+   The System Section (#system) & Ordered Disclosures
+   ========================================================================== */
+
+body[data-page="marketing"] .system.section {
+  padding-block: 110px;
+}
+
+body[data-page="marketing"] .section-head {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  column-gap: 60px;
+  align-items: end;
+  margin-bottom: 56px;
+}
+
+body[data-page="marketing"] .section-head .eyebrow {
+  grid-column: 1 / -1;
+  margin-bottom: 26px;
+}
+
+body[data-page="marketing"] .section-head h2 {
+  font-family: var(--display, 'Space Grotesk', sans-serif);
+  font-size: clamp(36px, 4vw, 59px);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+  margin: 0;
+  color: var(--ink, #f3f0e8);
+}
+
+body[data-page="marketing"] .section-head > p:last-child {
+  font-size: 13px;
+  color: var(--muted, #b0b7b4);
+  line-height: 1.8;
+  padding-bottom: 4px;
+  margin: 0;
+}
+
+body[data-page="marketing"] .system-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  border-top: 1px solid var(--line, #3b3e3e);
+  gap: 80px;
+}
+
+body[data-page="marketing"] .chapter-index {
+  padding-top: 30px;
+  color: var(--muted, #b0b7b4);
+}
+
+body[data-page="marketing"] .orbit-small {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  display: grid;
+  place-items: center;
+  margin-block: 20px;
+}
+
+body[data-page="marketing"] .orbit-small span {
+  position: absolute;
+  border: 1px solid rgba(130, 153, 139, 0.4);
+  border-radius: 50%;
+  inset: 20px;
+}
+
+body[data-page="marketing"] .orbit-small span:nth-child(2) {
+  inset: 30px 2px;
+  transform: rotate(50deg);
+}
+
+body[data-page="marketing"] .orbit-small span:nth-child(3) {
+  inset: 2px 30px;
+  transform: rotate(50deg);
+}
+
+body[data-page="marketing"] .orbit-small b {
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-size: 24px;
+  color: var(--accent, #e4b95b);
+  font-weight: 400;
+}
+
+body[data-page="marketing"] .chapters details {
+  border-bottom: 1px solid var(--line, #3b3e3e);
+  padding: 28px 0;
+}
+
+body[data-page="marketing"] .chapters summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  cursor: pointer;
+  min-height: 44px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body[data-page="marketing"] .chapters summary::-webkit-details-marker {
+  display: none;
+}
+
+body[data-page="marketing"] .chapters summary:focus-visible {
+  outline: 3px solid var(--mint, #9dcec0);
+  outline-offset: 5px;
+}
+
+body[data-page="marketing"] .chapters summary > span:first-child {
+  color: var(--accent, #e4b95b);
+  font-size: 13px;
+}
+
+body[data-page="marketing"] .chapters summary h3 {
+  font-family: var(--display, 'Space Grotesk', sans-serif);
+  font-size: 26px;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: -0.04em;
+  color: var(--ink, #f3f0e8);
+}
+
+body[data-page="marketing"] .plus {
+  margin-left: auto;
+  font-size: 24px;
+  color: var(--muted, #b0b7b4);
+  line-height: 1;
+  transition: transform 0.16s ease;
+  user-select: none;
+}
+
+body[data-page="marketing"] details[open] .plus {
+  transform: rotate(45deg);
+}
+
+body[data-page="marketing"] .chapter-body {
+  margin: 18px 0 0 44px;
+}
+
+body[data-page="marketing"] .chapter-body p {
+  max-width: 470px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--muted, #b0b7b4);
+  margin: 0;
+}
+
+body[data-page="marketing"] .micro-tag {
+  display: inline-block;
+  color: var(--accent, #e4b95b);
+  margin-top: 22px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
 @media (max-width: 1100px) {
   body[data-page="marketing"] .hero {
     min-height: 660px;
@@ -478,6 +653,9 @@ body[data-page="marketing"] .quiet-button:disabled {
   }
   body[data-page="marketing"] .hero-note {
     max-width: 270px;
+  }
+  body[data-page="marketing"] .system-layout {
+    gap: 40px;
   }
 }
 
@@ -533,6 +711,57 @@ body[data-page="marketing"] .quiet-button:disabled {
   body[data-page="marketing"] .core-top,
   body[data-page="marketing"] .core-label {
     font-size: 8px;
+  }
+
+  body[data-page="marketing"] .system-strip {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 14px 30px;
+    padding-block: 22px;
+    font-size: 8px;
+    min-height: 90px;
+  }
+  body[data-page="marketing"] .strip-index {
+    display: none;
+  }
+  body[data-page="marketing"] .system.section {
+    padding-block: 66px;
+  }
+  body[data-page="marketing"] .section-head {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  body[data-page="marketing"] .section-head .eyebrow {
+    margin-bottom: 0;
+  }
+  body[data-page="marketing"] .section-head h2 {
+    font-size: 36px;
+  }
+  body[data-page="marketing"] .section-head > p:last-child {
+    font-size: 12px;
+  }
+  body[data-page="marketing"] .system-layout {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  body[data-page="marketing"] .chapter-index {
+    display: none;
+  }
+  body[data-page="marketing"] .chapters details {
+    padding: 22px 0;
+  }
+  body[data-page="marketing"] .chapters summary {
+    gap: 14px;
+  }
+  body[data-page="marketing"] .chapters summary h3 {
+    font-size: 22px;
+  }
+  body[data-page="marketing"] .chapter-body {
+    margin-left: 32px;
+  }
+  body[data-page="marketing"] .chapter-body p {
+    font-size: 12px;
   }
 }
 
