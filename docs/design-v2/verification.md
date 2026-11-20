@@ -36,19 +36,19 @@ A separate code reviewer identified four medium issues: reduced-motion/import ra
 
 Figma file creation succeeded; Starter-plan MCP quota prevented saving a completed design. Three editable SVG boards are provided for import. They are not auto-layout/token-bound Figma components.
 
-## Task 10 Integrated Production Verification
+## Task 10 Integrated Production Verification & Review Corrections
 
 On branch `design/signal-architecture-v2`, the integrated application was tested across the entire browser and unit test suites:
 
 - **Vitest unit suite**: 16 test files passed, 151/151 tests passed (exit 0).
-- **Playwright browser suite**: 8 test suites passed, 108/108 tests passed (exit 0):
+- **Playwright browser suite**: 8 test suites passed, 111/111 tests passed (exit 0):
   - `closing-footer.spec.js` (9/9)
-  - `console.spec.js` (49/49)
-  - `deployment.spec.js` (8/8)
+  - `console.spec.js` (50/50 — verified zero horizontal document overflow at 320px in empty and answered states, plus 36px touch target height on mobile reset)
+  - `deployment.spec.js` (7/7 — corrected subtotal)
   - `experience.spec.js` (9/9)
-  - `marketing.spec.js` (7/7 — 4 stale Phase 1 assertions reconciled to v2 specification while preserving all behavioral coverage)
+  - `marketing.spec.js` (8/8 — verified native anchor URL fragments, history pushState, popstate browser back/forward, and disabled unhydrated controls)
   - `orb.spec.js` (8/8)
-  - `signal-core.spec.js` (12/12 — verified web-first auto-retry for asynchronous media query change)
+  - `signal-core.spec.js` (13/13 — verified progressive enhancement lifecycle and graceful disablement when WebGL module import fails)
   - `system-chapters.spec.js` (7/7)
 - **Axe-core accessibility**: 0 serious or critical violations on `/` and `/console/`.
 - **Responsive verification**: 1440×1000, 390×844, and 320×800 viewports with zero horizontal document overflow.
@@ -57,14 +57,19 @@ On branch `design/signal-architecture-v2`, the integrated application was tested
   - Landing (`/`): Lab LCP 484 ms, Lab CLS 0.003
   - Console (`/console/`): Lab LCP 160 ms, Lab CLS 0.0119
   - *Distinction*: These are local lab observations and do not establish field INP or throttled mobile network conditions.
-- **Production asset sizes**:
-  - `client/index.html`: 11.34 KB (3.30 KB gzip)
-  - `client/brand.css`: 11.98 KB (2.00 KB gzip)
-  - `client/marketing.css`: 28.24 KB (4.82 KB gzip)
-  - `client/landing.js`: 4.40 KB (1.34 KB gzip)
-  - `client/marketing/signal-core.js`: 5.45 KB (2.08 KB gzip)
-  - `client/marketing/chapters.js`: 1.01 KB (0.45 KB gzip)
-  - `client/marketing/examples.js`: 1.84 KB (0.77 KB gzip)
-  - `client/console/index.html`: 6.11 KB (2.00 KB gzip)
-  - `client/app.js`: 28.64 KB (6.59 KB gzip)
-  - `client/chat-state.js`: 2.25 KB (0.68 KB gzip)
+- **Production asset sizes & gzip accounting**:
+  - `client/index.html`: 11.38 KB (3.30 KB estimated gzip)
+  - `client/brand.css`: 13.45 KB (2.26 KB estimated gzip)
+  - `client/marketing.css`: 29.68 KB (4.90 KB estimated gzip)
+  - `client/styles.css`: 40.37 KB (6.73 KB estimated gzip)
+  - `client/landing.js`: 5.63 KB (1.68 KB estimated gzip)
+  - `client/marketing/chapters.js` (eager dependency): 1.01 KB (0.45 KB estimated gzip)
+  - `client/marketing/examples.js` (eager dependency): 1.87 KB (0.78 KB estimated gzip)
+  - `client/marketing/signal-core.js` (deferred WebGL): 5.45 KB (2.08 KB estimated gzip)
+  - `client/console/index.html`: 6.11 KB (2.00 KB estimated gzip)
+  - `client/app.js`: 28.64 KB (6.59 KB estimated gzip)
+  - `client/chat-state.js`: 2.25 KB (0.68 KB estimated gzip)
+- **Separately reported static assets**:
+  - Latin font subsets (`client/assets/fonts/`): 70,804 bytes total across `body-1.woff2` (27.35 KB), `display-1.woff2` (22.29 KB), and `mono-1.woff2` (21.17 KB).
+  - Hero SVG poster (`client/assets/brand/signal-core-poster.svg`): 43,477 bytes raw (43.48 KB decimal / 42.46 KiB).
+- **Compression disclosure**: All gzip values are software-calculated gzip estimates, not measured wire transfers with live HTTP compression headers.

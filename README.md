@@ -123,25 +123,29 @@ The browser configuration launches an isolated local server on port `3888` in de
 
 On branch `design/signal-architecture-v2`:
 - **Vitest unit & API contract suite**: Passed **151 tests in 16 files** (exit 0).
-- **Playwright browser integration suite**: Passed **108 tests across 8 suites** (exit 0):
+- **Playwright browser integration suite**: Passed **111 tests across 8 suites** (exit 0):
   - `closing-footer.spec.js` (9/9)
-  - `console.spec.js` (49/49)
-  - `deployment.spec.js` (8/8)
+  - `console.spec.js` (50/50 — includes 320px responsive overflow regression test in empty and answered states)
+  - `deployment.spec.js` (7/7 — corrected subtotal)
   - `experience.spec.js` (9/9)
-  - `marketing.spec.js` (7/7)
+  - `marketing.spec.js` (8/8 — includes native anchor URL fragment and history preservation)
   - `orb.spec.js` (8/8)
-  - `signal-core.spec.js` (12/12)
+  - `signal-core.spec.js` (13/13 — includes failed enhancement module fallback test)
   - `system-chapters.spec.js` (7/7)
 - **Accessibility**: 0 serious or critical axe-core findings across both routes.
 
-### Lab Performance Observations
+### Lab Performance & Asset Footprint
 
 Measured on unthrottled loopback Chrome:
 - **Landing page (`/`)**: Lab LCP 484 ms, Lab CLS 0.003
 - **Signal Desk console (`/console/`)**: Lab LCP 160 ms, Lab CLS 0.0119
-- **Critical client asset footprint (gzipped)**: `brand.css` (2.00 KB), `marketing.css` (4.82 KB), `landing.js` (1.34 KB)
+- **Landing stylesheet footprint**: `brand.css` (13.45 KB / 2.26 KB estimated gzip), `marketing.css` (29.68 KB / 4.90 KB estimated gzip)
+- **Console stylesheet footprint**: `styles.css` (40.37 KB / 6.73 KB estimated gzip), `brand.css` (13.45 KB / 2.26 KB estimated gzip)
+- **Landing JavaScript (eager modules)**: `landing.js` (5.63 KB / 1.68 KB estimated gzip), `marketing/chapters.js` (1.01 KB / 0.45 KB estimated gzip), `marketing/examples.js` (1.87 KB / 0.78 KB estimated gzip). Optional deferred WebGL: `marketing/signal-core.js` (5.45 KB / 2.08 KB estimated gzip).
+- **Console JavaScript**: `app.js` (28.64 KB / 6.59 KB estimated gzip), `chat-state.js` (2.25 KB / 0.68 KB estimated gzip)
+- **Separately reported static assets**: Latin font subsets (70.80 KB across 3 WOFF2 files in `client/assets/fonts/`), hero SVG poster (`client/assets/brand/signal-core-poster.svg`, 43.48 KB raw).
 
-*Performance note*: These figures are unthrottled local lab measurements. They do not establish real-world mobile cellular network performance, hardware variability, or field INP. See [design verification](docs/design-v2/verification.md) for detailed observations and evidence bounds.
+*Performance & transfer note*: All gzip values are software-calculated gzip estimates, not measured wire transfers with live HTTP compression headers. The figures are unthrottled local lab observations and do not establish real-world mobile cellular network performance, hardware variability, or field INP. See [design verification](docs/design-v2/verification.md) for detailed observations and evidence bounds.
 
 ## Visual design & integrated interface
 
