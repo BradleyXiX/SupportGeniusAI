@@ -870,6 +870,63 @@ body[data-page="marketing"] .document-stack span {
   color: var(--accent, #e4b95b);
 }
 
+/* Closing Section */
+body[data-page="marketing"] .closing {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--paper, #ecebe5);
+  color: var(--paper-ink, #242827);
+}
+
+body[data-page="marketing"] .closing-inner {
+  position: relative;
+}
+
+body[data-page="marketing"] .closing .eyebrow {
+  color: #555e58;
+}
+
+body[data-page="marketing"] .closing h2 {
+  font-size: clamp(48px, 6vw, 88px);
+  position: relative;
+  z-index: 1;
+}
+
+body[data-page="marketing"] .closing .button {
+  position: relative;
+  margin-top: 34px;
+  z-index: 1;
+}
+
+body[data-page="marketing"] .closing a:focus-visible,
+body[data-page="marketing"] .closing .button:focus-visible,
+body[data-page="marketing"] .closing .button.primary:focus-visible {
+  outline: 3px solid #242827;
+  outline-offset: 5px;
+}
+
+body[data-page="marketing"] .closing .fine {
+  color: #555e58;
+  margin-top: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+body[data-page="marketing"] .closing-rings {
+  position: absolute;
+  right: 1%;
+  top: 10%;
+  width: 360px;
+  height: 360px;
+  border: 1px solid rgba(101, 120, 106, 0.33);
+  border-radius: 50%;
+  box-shadow: 0 0 0 45px rgba(170, 190, 179, 0.13), 0 0 0 90px rgba(170, 190, 179, 0.07);
+  background: radial-gradient(circle, #c3d5c6, transparent 65%);
+  z-index: 0;
+  pointer-events: none;
+}
+
 @media (max-width: 1100px) {
   body[data-page="marketing"] .hero {
     min-height: 660px;
@@ -1064,6 +1121,20 @@ body[data-page="marketing"] .document-stack span {
   body[data-page="marketing"] .deployment-grid h3 {
     font-size: 28px;
   }
+  body[data-page="marketing"] .closing h2 {
+    font-size: 51px;
+  }
+  body[data-page="marketing"] .closing-rings {
+    width: 260px;
+    height: 260px;
+    right: -140px;
+    top: 30%;
+    opacity: 0.7;
+  }
+  body[data-page="marketing"] .closing .fine {
+    max-width: 250px;
+    font-size: 10px;
+  }
 }
 
 @media (max-width: 370px) {
@@ -1144,21 +1215,11 @@ body[data-page="marketing"] .site-footer .copyright {
   body[data-page="marketing"] .site-wrap {
     width: calc(100% - 16px);
   }
-  body[data-page="marketing"] .hero-headline,
   body[data-page="marketing"] h1 {
     font-size: clamp(32px, 9.5vw, 42px);
   }
-  body[data-page="marketing"] .marketing-hero-container,
-  body[data-page="marketing"] .marketing-section-container {
-    padding: 0 10px;
-  }
-  body[data-page="marketing"] .demo-disclosure {
-    font-size: 0.72rem;
-    padding: 6px 8px;
-    gap: 6px;
-  }
-  body[data-page="marketing"] .demo-disclosure span:not(.disclosure-badge) {
-    word-break: break-word;
+  body[data-page="marketing"] .closing h2 {
+    font-size: 38px;
   }
   body[data-page="marketing"] .deployment-grid article {
     padding: 20px 14px;
