@@ -1,0 +1,323 @@
+/* ==========================================================================
+   SupportGenius AI — Signal Architecture Scoped Marketing Styles
+   Governed by docs/design-v2/execution-plan.md Prompt 02
+   Scoped strictly to body[data-page="marketing"]
+   ========================================================================== */
+
+/* Outer Body Frame */
+body[data-page="marketing"] {
+  margin: 0;
+  padding: 0;
+  color: var(--ink, #f3f0e8);
+  background-color: #d5b77d;
+  font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 16px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+/* Ambient Radial Background */
+body[data-page="marketing"] .ambient {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 2% 10%, #f0c35d, transparent 50%),
+    radial-gradient(ellipse at 100% 30%, #b588b2, transparent 65%),
+    #dfd2ba;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Skip Link */
+body[data-page="marketing"] .skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  padding: 12px 18px;
+  background: var(--accent, #e4b95b);
+  color: #202420;
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 2px;
+  transform: translateY(-160%);
+  transition: transform 0.18s var(--ease, cubic-bezier(0.16, 1, 0.3, 1));
+  z-index: 9999;
+}
+
+body[data-page="marketing"] .skip-link:focus,
+body[data-page="marketing"] .skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 3px solid var(--mint, #9dcec0);
+  outline-offset: 4px;
+}
+
+/* Architectural Site Shell (Max 1640px, Desktop 20px / 32px framing) */
+body[data-page="marketing"] .site-shell {
+  max-width: 1640px;
+  margin: 20px auto;
+  background-color: var(--canvas, #1c1e20);
+  box-shadow: 0 8px 100px rgba(32, 26, 25, 0.15);
+  position: relative;
+  min-height: calc(100vh - 40px);
+}
+
+@media (min-width: 1700px) {
+  body[data-page="marketing"] .site-shell {
+    margin: 32px auto;
+    min-height: calc(100vh - 64px);
+  }
+}
+
+@media (max-width: 760px) {
+  body[data-page="marketing"] .site-shell {
+    margin: 8px;
+    min-height: calc(100vh - 16px);
+  }
+}
+
+/* Content Width Wrapper (Viewport minus 112px, Max 1360px) */
+body[data-page="marketing"] .site-wrap {
+  width: calc(100% - 112px);
+  max-width: 1360px;
+  margin-inline: auto;
+}
+
+@media (max-width: 1100px) {
+  body[data-page="marketing"] .site-wrap {
+    width: calc(100% - 64px);
+  }
+}
+
+@media (max-width: 760px) {
+  body[data-page="marketing"] .site-wrap {
+    width: calc(100% - 40px);
+  }
+}
+
+/* Header (102px desktop, 84px mobile) */
+body[data-page="marketing"] .site-header {
+  height: 102px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line, #3b3e3e);
+  gap: 32px;
+}
+
+@media (max-width: 760px) {
+  body[data-page="marketing"] .site-header {
+    height: 84px;
+    gap: 12px;
+  }
+}
+
+/* Brand Link inside Header */
+body[data-page="marketing"] .brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--display, 'Space Grotesk', sans-serif);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.8px;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--ink, #f3f0e8);
+}
+
+body[data-page="marketing"] .brand-link:focus-visible {
+  outline: 3px solid var(--mint, #9dcec0);
+  outline-offset: 4px;
+}
+
+body[data-page="marketing"] .brand-link .brand-title {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+body[data-page="marketing"] .brand-link small {
+  color: var(--accent, #e4b95b);
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  letter-spacing: 0;
+  margin-left: 4px;
+}
+
+@media (max-width: 760px) {
+  body[data-page="marketing"] .brand-link {
+    font-size: 17px;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 370px) {
+  body[data-page="marketing"] .brand-link {
+    font-size: 14px;
+    gap: 6px;
+  }
+}
+
+/* Header Navigation Links */
+body[data-page="marketing"] .site-nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  font-size: 12px;
+  font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
+}
+
+body[data-page="marketing"] .site-nav a {
+  color: var(--muted, #b0b7b4);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.18s ease;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+body[data-page="marketing"] .site-nav a:hover {
+  color: var(--ink, #f3f0e8);
+}
+
+body[data-page="marketing"] .site-nav a:focus-visible {
+  outline: 3px solid var(--mint, #9dcec0);
+  outline-offset: 4px;
+}
+
+@media (max-width: 760px) {
+  body[data-page="marketing"] .site-nav {
+    display: none;
+  }
+}
+
+/* Header Primary CTA */
+body[data-page="marketing"] .header-cta {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
+  white-space: nowrap;
+  color: var(--ink, #f3f0e8);
+  text-decoration: none;
+  padding: 10px 18px;
+  border: 1px solid var(--border-control, #737d76);
+  border-radius: 2px;
+  transition: border-color 0.18s ease, color 0.18s ease, background-color 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+body[data-page="marketing"] .header-cta:hover {
+  border-color: var(--accent, #e4b95b);
+  color: var(--accent, #e4b95b);
+}
+
+body[data-page="marketing"] .header-cta:focus-visible {
+  outline: 3px solid var(--mint, #9dcec0);
+  outline-offset: 4px;
+}
+
+body[data-page="marketing"] .header-cta span {
+  margin-left: 10px;
+}
+
+@media (max-width: 760px) {
+  body[data-page="marketing"] .header-cta {
+    font-size: 10px;
+    padding: 8px 12px;
+    min-height: 40px;
+  }
+  body[data-page="marketing"] .header-cta span {
+    margin-left: 6px;
+  }
+}
+
+/* Site Footer */
+body[data-page="marketing"] .site-footer {
+  padding-block: 45px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 28px;
+  border-top: 1px solid var(--line, #3b3e3e);
+  color: var(--muted, #b0b7b4);
+  font-size: 12px;
+}
+
+body[data-page="marketing"] .site-footer .fine {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted, #b0b7b4);
+  margin: 0;
+}
+
+body[data-page="marketing"] .site-footer .text-link {
+  font-size: 12px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  color: var(--muted, #b0b7b4);
+  text-decoration: none;
+  justify-self: end;
+  transition: color 0.18s ease;
+}
+
+body[data-page="marketing"] .site-footer .text-link:hover {
+  color: var(--ink, #f3f0e8);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+body[data-page="marketing"] .site-footer .text-link:focus-visible {
+  outline: 3px solid var(--mint, #9dcec0);
+  outline-offset: 4px;
+}
+
+body[data-page="marketing"] .site-footer .copyright {
+  grid-column: 1 / -1;
+  padding-top: 18px;
+  border-top: 1px solid var(--line, #3b3e3e);
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  body[data-page="marketing"] .site-footer {
+    grid-template-columns: 1fr auto;
+    gap: 18px;
+    padding-block: 32px;
+  }
+  body[data-page="marketing"] .site-footer > .fine:not(.copyright) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* Small Mobile Reflow (320px) */
+@media (max-width: 360px) {
+  body[data-page="marketing"] .site-shell {
+    margin: 4px;
+  }
+  body[data-page="marketing"] .site-wrap {
+    width: calc(100% - 16px);
+  }
+  body[data-page="marketing"] .hero-headline,
+  body[data-page="marketing"] h1 {
+    font-size: clamp(32px, 9.5vw, 42px);
+  }
+  body[data-page="marketing"] .marketing-hero-container,
+  body[data-page="marketing"] .marketing-section-container {
+    padding: 0 10px;
+  }
+  body[data-page="marketing"] .demo-disclosure {
+    font-size: 0.72rem;
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  body[data-page="marketing"] .demo-disclosure span:not(.disclosure-badge) {
+    word-break: break-word;
+  }
+}

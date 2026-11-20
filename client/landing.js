@@ -24,6 +24,10 @@ export function initLanding() {
           behavior: prefersReducedMotion ? "auto" : "smooth",
           block: "start"
         });
+        if (targetEl.getAttribute("tabindex") === null && !/^(a|button|input|textarea|select)$/i.test(targetEl.tagName)) {
+          targetEl.setAttribute("tabindex", "-1");
+        }
+        targetEl.focus({ preventScroll: true });
       }
     });
   });
