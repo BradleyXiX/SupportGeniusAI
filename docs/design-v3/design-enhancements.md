@@ -7,7 +7,7 @@ Version 3 proposal · 21 November 2026. This is a planning and visual-reference 
 | Requested change | Concrete treatment | Task |
 | --- | --- | --- |
 | Larger small text | New role-based scale on both routes; disclosures and controls get readable minimums | 02 |
-| Red/black/white brand | Semantic palette, shared prism identity, favicon, wordmark, README screenshots | 01,09 |
+| Red/black/white brand | Semantic palette, shared prism identity, favicon, wordmark, README screenshots | 01,10 |
 | Richer hero sphere | Fluid particle envelope, luminous inner clusters, depth and controlled bloom | 03 |
 | Sphere hover | Smooth local tilt and small shell distortion; no movement of text/layout | 04 |
 | Motion defaults on | Auto-enhance after first paint for eligible visible scenes; accessible persistent pause | 04 |
@@ -16,7 +16,8 @@ Version 3 proposal · 21 November 2026. This is a planning and visual-reference 
 | Closing sphere on white | Wine/crimson shell with denser dark silhouette; right of unchanged CTA | 07 |
 | Console composer | Coherent near-black panel, white text, crimson send control, accessible state colors | 08 |
 | Small state sphere | Lightweight shared-status indicator driven by actual client lifecycle | 08 |
-| No sluggishness | Shared scheduling, paused offscreen/hidden, device tiers, measured fallback | 00,04,06,10 |
+| Implementation enquiries | Email CTA, visible address and professional footer links | 09 |
+| No sluggishness | Shared scheduling, paused offscreen/hidden, device tiers, measured fallback | 00,04,06,11 |
 
 ## Reference interpretation
 
@@ -30,21 +31,21 @@ Keep architectural graphite framing, thin rules, asymmetric sections, original f
 
 | Semantic role | Value | Rule |
 | --- | --- | --- |
-| Canvas | #0B0B0D | Near-black marketing/console foundation |
-| Raised surface | #161619 | Composer and panels |
-| Higher surface | #202025 | Hover/secondary grouping |
+| Canvas | #030304 | Near-black marketing/console foundation |
+| Raised surface | #101012 | Composer and panels |
+| Higher surface | #1A1A1E | Hover/secondary grouping |
 | Main dark-surface text | #F7F7F5 | Headings and body |
 | Secondary text | #C0BCC0 | Still readable; no opacity reductions |
-| Accent / button fill | #D51F35 | Use white text; verify final contrast |
-| Decorative hot red | #FF3B4D | Artwork only; not small text on white |
-| Text accent on dark | #FF8793 | Links/important accent labels |
+| Accent / button fill | #BB1729 | Use white text; verify final contrast |
+| Decorative hot red | #D52A38 | Artwork only; not small text on white |
+| Text emphasis on dark | #F7F7F5 | White text with underline/weight for links; no pink accents |
 | Paper | #F7F5F3 | Retain light sections |
 | Ink on paper | #18181C | Heading/body on white |
 | Muted on paper | #57535A | Secondary copy |
 | Crimson on paper | #A5162A | Links/logo/details on paper |
 | Focus on dark | #FFFFFF | 3px outline, offset, distinguish from borders |
 | Focus on light | #18181C | 3px outline, offset |
-| Error | #FFB4BC on dark | Icon/text + error label, not color alone |
+| Error | #F7F7F5 on dark | White error message plus red border/icon and explicit error label |
 | Success | neutral or existing validated semantic green | Red branding must not make success look like failure |
 
 Use semantic token replacement, not search-and-replace of every color literal. Inventory brand.css, marketing.css, styles.css, orb.js, SVGs, canvas shaders and focus/error/pending rules. Preserve disabled/hover/focus/selection contrast and ensure state remains understandable without color. Measure AA contrast for actual pairings before claiming compliance. Palette hex values are authored choices inspired by the JPG, not exact extracted brand specifications.
@@ -96,3 +97,23 @@ In local lab compare same before/after conditions: three cold runs and median lo
 ## Review gates
 
 Visual approval checkpoint after 03 (palette, larger type, hero still), after 07 (motion/backdrops/closing), then after 08 (real console). One owner and one planned browser verification pass for each checkpoint; fixes only rerun affected journeys. New real behavior gets meaningful tests; cosmetic changes do not need tests that merely assert every CSS value. Final tests include auto-start, persistent pause, OS override, failed storage/import/context, offscreen/tab suspension, repeated mount, pagehide during import, 320px empty/answered console and no-JS controls. Update old opt-in tests to the new policy while retaining fallback/cancellation guarantees. Source scope is frontend only; no new customer claims/actions or deployment.
+
+
+## Client implementation enquiries
+
+The site now has two distinct user goals: try the assistant, or contact Bradley about implementing it. Preserve Explore the assistant → /console/ as the primary hero action. Add **Discuss implementation** as a secondary hero link to #implementation-contact. Retain See the system as a quieter text link if space permits; let the row wrap rather than reducing type. Keep header compact: existing Open assistant plus a Contact anchor only where it fits. On phones the hero and closing contact paths are sufficient.
+
+Within the existing closing section, retain Make the next question count and the assistant CTA. Add a subordinate contact block with id="implementation-contact", heading **Want this for your business?**, copy **Tell me about your support workflow and the documents you want your assistant to use.**, and **Discuss implementation** as a real email link. Keep the closing sphere in its reserved art column; the contact copy belongs in the text column, with no overlapping panel or modal.
+
+Email target: `mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry`. Show the actual selectable address **BradJohn70@gmail.com** underneath, so visitors without a configured email app can copy it. Explain briefly: “Opens your email app. You can also copy the address below.” Do not claim a message was sent or invent response times, pricing, availability or a booking calendar. No form, API endpoint, third-party CRM, captcha, server mail credentials or analytics dependency in this phase.
+
+Footer: add **Built by Bradley Chiwo** and clearly labelled professional links:
+
+- Email: mailto:BradJohn70@gmail.com
+- Portfolio: https://bradleychiwo.netlify.app/
+- LinkedIn: https://www.linkedin.com/in/bradley-john-chiwo/
+- GitHub: https://github.com/BradleyXiX
+
+Use the exact user-supplied identities. These are contact destinations, not endorsements or integrations. Same-tab external links are fine; if opening a new tab, add rel="noopener noreferrer" and communicate it accessibly. Keep links readable, underlined or otherwise clearly interactive, with 44px touch targets and visible focus. No icon-only social row without accessible names. Verify anchor navigation, encoded mailto subject, no-JS links, footer wrapping at320px, and contrast on paper. All enquiries are explicitly user-initiated; this task does not authorize sending any message.
+
+Palette revision: canvas #030304; raised #101012; higher #1A1A1E; main crimson #BB1729. Eliminate pink text entirely: headlines and links on dark use warm white, with weight/underline for emphasis. Reserve red for buttons, logo, rules, artwork and non-text state cues; on paper use dark wine #A5162A. Preserve a clearly labelled error state without pink body text. This revision replaces earlier palette values in all implementation tasks.

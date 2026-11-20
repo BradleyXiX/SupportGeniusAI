@@ -4,7 +4,7 @@ This is an enhancement proposal, not a replacement page architecture. Read desig
 
 Verified merged base: f92c63c (PR #6), observed locally after main advanced during planning. The local enhancement branch design/crimson-signal-v3 was fast-forwarded to that merge before adding this kit. Task 00 should reconfirm ancestry and baseline before product edits. No push/deploy was performed during planning.
 
-Installed project handoff: docs/design-v3/. This addendum plus existing root design.md form the authority. Do not overwrite v2 history. Execute one prompts/NN task per Antigravity session, commit only owned paths with a concise receipt, and stop after the task. Use web-ui-studio; preserve Express/vanilla and current working chat.
+Installed project handoff: docs/design-v3/. This addendum plus existing root design.md form the authority. Do not overwrite v2 history. There are 12 tasks (00–11), including client implementation contact at09, documentation at10 and final verification at11. Execute one prompts/NN task per Antigravity session, commit only owned paths with a concise receipt, and stop after the task. Use web-ui-studio; preserve Express/vanilla and current working chat.
 
 First instruction to Antigravity:
 
