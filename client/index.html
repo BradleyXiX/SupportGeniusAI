@@ -4,190 +4,221 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="SupportGenius AI • Signal Desk. A support assistant configured around your documentation and workflows.">
-  <title>SupportGenius AI • Signal Desk</title>
+  <title>SupportGenius AI — Knowledge, made clear.</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-
+  <link rel="icon" type="image/svg+xml" href="/assets/brand/favicon.svg">
+  <link rel="stylesheet" href="/brand.css">
+  <link rel="stylesheet" href="/marketing.css">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body data-page="marketing">
   <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div class="ambient" aria-hidden="true"></div>
 
-  <!-- Header Navigation -->
-  <header class="marketing-header">
-    <div class="marketing-header-container">
-      <div class="brand-badge">
-        <span class="brand-title">SupportGenius <span class="brand-accent">AI</span></span>
-        <span class="brand-edition">Signal Desk</span>
-      </div>
+  <div class="site-shell">
+    <!-- Header Navigation -->
+    <header class="site-header site-wrap">
+      <a href="#main-content" class="brand-link" aria-label="SupportGenius AI home">
+        <img src="/assets/brand/supportgenius-mark.svg" width="36" height="36" alt="" class="brand-prism-mark" aria-hidden="true">
+        <span class="brand-title">SupportGenius <small class="brand-accent">AI</small></span>
+      </a>
 
-      <nav class="marketing-nav" aria-label="Main Navigation">
-        <a href="#how-it-works" class="nav-anchor">How it works</a>
-        <a href="/console/" class="btn-primary-sm">Try the assistant</a>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="#system">The system</a>
+        <a href="#experience">Experience</a>
+        <a href="#deployment">Deployment</a>
       </nav>
-    </div>
-  </header>
 
-  <main id="main-content" class="marketing-main">
+      <a href="/console/" class="header-cta">Open assistant <span aria-hidden="true">&nearr;</span></a>
+    </header>
+
+    <main id="main-content" class="marketing-main">
     <!-- Hero Section -->
-    <section class="marketing-hero" aria-labelledby="hero-title">
-      <div class="marketing-hero-container">
-        <!-- Left: Editorial Headline & Actions -->
-        <div class="hero-content">
-          <div class="demo-disclosure" role="note" aria-label="Demonstration disclosure">
-            <span class="disclosure-badge">Demo</span>
-            <span>SupportGeniusAI demonstration &bull; Configured for demonstration purposes</span>
-          </div>
-
-          <h1 id="hero-title" class="hero-headline">
-            Your knowledge. A&nbsp;clearer&nbsp;answer.
-          </h1>
-
-          <p class="hero-lead">
-            A support assistant configured around your documentation and workflows. Questions enter as loose signals and resolve into clear, grounded answers.
-          </p>
-
-          <div class="hero-actions">
-            <a href="/console/" class="btn-primary">Try the assistant</a>
-            <a href="#how-it-works" class="btn-secondary">See how it works</a>
-          </div>
+    <section class="hero site-wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><i></i> SUPPORT INTELLIGENCE, WITH CONTEXT</p>
+        <h1 id="hero-title">Your knowledge. <br>A clearer <br><em>answer.</em></h1>
+        <p class="lead">Turn your business documentation into a focused support conversation. Built around what your team knows.</p>
+        <div class="actions">
+          <a class="button primary" href="/console/">Explore the assistant <span aria-hidden="true">&nearr;</span></a>
+          <a class="text-link" href="#system">See the system <span aria-hidden="true">&darr;</span></a>
         </div>
+        <p class="fine hero-note">A working foundation for tailored client deployments.</p>
+      </div>
 
-        <!-- Right: Signal Illustration -->
-        <div class="hero-visual">
-          <div class="signal-illustration-card" role="region" aria-label="Signal Desk Architecture Illustration">
-            <div class="illustration-header">
-              <span class="illustration-tag">Illustration</span>
-              <div class="orb-container" data-orb aria-hidden="true">
-                <!-- Static SVG Monochrome Orb -->
-                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="32" cy="32" r="30" stroke="#293447" stroke-width="1.5" stroke-dasharray="3 3"/>
-                  <circle cx="32" cy="32" r="22" stroke="#85D6BD" stroke-width="1.2" stroke-opacity="0.7"/>
-                  <circle cx="32" cy="32" r="14" stroke="#F8FAFC" stroke-width="1"/>
-                  <circle cx="32" cy="32" r="4" fill="#85D6BD"/>
-                  <line x1="32" y1="2" x2="32" y2="62" stroke="#293447" stroke-width="0.8"/>
-                  <line x1="2" y1="32" x2="62" y2="32" stroke="#293447" stroke-width="0.8"/>
-                </svg>
-              </div>
+      <figure class="core-stage" aria-label="Interactive three-dimensional point sculpture representing questions organized around knowledge">
+        <div class="core-top mono">
+          <span>SG / SIGNAL CORE</span>
+          <span>01 — 03</span>
+        </div>
+        <img id="core-poster" class="core-poster" src="/assets/brand/signal-core-poster.svg" alt="" width="800" height="800">
+        <canvas id="signal-core" aria-hidden="true" hidden></canvas>
+        <span class="core-label mono">QUESTION &rarr; CONTEXT &rarr; ANSWER</span>
+        <figcaption>
+          <span class="fine">An illustration of clarity, taking shape.</span>
+          <button id="motion-toggle" type="button" class="quiet-button" aria-pressed="false" disabled>Enable motion</button>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- Capability Strip -->
+    <div class="system-strip site-wrap mono">
+      <span>DOCUMENT-BASED ANSWERS</span>
+      <span>CONFIGURABLE MODELS</span>
+      <span>FOCUSED CONVERSATIONS</span>
+      <span class="strip-index">SG / 001</span>
+    </div>
+
+    <!-- The System Section -->
+    <section id="system" class="system site-wrap section" aria-labelledby="system-title">
+      <div class="section-head">
+        <p class="eyebrow">01 / FROM SIGNAL TO CLARITY</p>
+        <h2 id="system-title">A little less searching.<br>A lot more understanding.</h2>
+        <p>Your documentation is the starting point.<br>The conversation is where it becomes useful.</p>
+      </div>
+      <div class="system-layout">
+        <div class="chapter-index">
+          <p class="mono">THE SUPPORTGENIUS APPROACH</p>
+          <div class="orbit-small" aria-hidden="true"><span></span><span></span><span></span><b>SG</b></div>
+          <p class="fine">Select a step to explore the system.<br>Illustration, not live processing telemetry.</p>
+        </div>
+        <div class="chapters">
+          <details name="system-chapters" open>
+            <summary>
+              <span class="mono">01</span>
+              <h3>Start with your knowledge.</h3>
+              <span class="plus" aria-hidden="true">+</span>
+            </summary>
+            <div class="chapter-body">
+              <p>Approved policy and support documents form the context for a reply. The current foundation reads text and Markdown documents.</p>
+              <span class="micro-tag mono">DOCUMENTS &rarr; RETRIEVAL</span>
             </div>
+          </details>
+          <details name="system-chapters">
+            <summary>
+              <span class="mono">02</span>
+              <h3>Give the question context.</h3>
+              <span class="plus" aria-hidden="true">+</span>
+            </summary>
+            <div class="chapter-body">
+              <p>Relevant passages accompany the question to your configured language model. Retrieval supports the answer; it cannot guarantee accuracy.</p>
+              <span class="micro-tag mono">CONTEXT &rarr; MODEL</span>
+            </div>
+          </details>
+          <details name="system-chapters">
+            <summary>
+              <span class="mono">03</span>
+              <h3>Keep the conversation clear.</h3>
+              <span class="plus" aria-hidden="true">+</span>
+            </summary>
+            <div class="chapter-body">
+              <p>A focused console keeps the question, response, and recovery controls together. Customer actions and source citations are not available in the current release.</p>
+              <span class="micro-tag mono">REPLY &rarr; CONVERSATION</span>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
 
-            <div class="signal-flow">
-              <div class="signal-step">
-                <span class="step-label">Signal</span>
-                <p class="step-text">Question: "What is your returns policy?"</p>
+    <!-- Experience Section (Scripted Interactive Examples) -->
+    <section id="experience" class="experience section" aria-labelledby="experience-title">
+      <div class="site-wrap">
+        <div class="section-head experience-head">
+          <p class="eyebrow">02 / EXPERIENCE THE DIFFERENCE</p>
+          <h2 id="experience-title">One question.<br>A useful place to start.</h2>
+          <p>Explore sample conversations.<br>All examples below are scripted illustrations.</p>
+        </div>
+        <div class="demo-frame">
+          <div class="demo-bar mono">
+            <span><i></i> SIGNAL DESK</span>
+            <span>SCRIPTED EXAMPLE / NO API CALLS</span>
+          </div>
+          <div class="demo-grid">
+            <div class="scenario-list" aria-label="Sample questions">
+              <button class="scenario selected" type="button" aria-pressed="true" data-example="returns" disabled>
+                <span class="mono">01</span> Returns policy <span aria-hidden="true">&nearr;</span>
+              </button>
+              <button class="scenario" type="button" aria-pressed="false" data-example="shipping" disabled>
+                <span class="mono">02</span> Shipping times <span aria-hidden="true">&nearr;</span>
+              </button>
+              <button class="scenario" type="button" aria-pressed="false" data-example="hours" disabled>
+                <span class="mono">03</span> Opening hours <span aria-hidden="true">&nearr;</span>
+              </button>
+              <p class="fine">No refunds, account updates,<br>or other actions are performed.</p>
+            </div>
+            <div class="sample-conversation" aria-live="polite" aria-atomic="true">
+              <p class="sample-label mono">CUSTOMER QUESTION</p>
+              <p id="sample-question" class="sample-question">What is your returns policy?</p>
+              <div class="sample-answer">
+                <img src="/assets/brand/supportgenius-mark.svg" width="30" height="30" alt="" aria-hidden="true">
+                <div>
+                  <span class="mono sample-label">SUPPORTGENIUS AI / SCRIPTED EXAMPLE</span>
+                  <p id="sample-answer">In this sample policy, you can return an unused item in its original packaging within 14 days of delivery.</p>
+                </div>
               </div>
-              <div class="signal-connector" aria-hidden="true">&darr;</div>
-              <div class="signal-step">
-                <span class="step-label">Knowledge</span>
-                <p class="step-text">Approved documentation: Return in original packaging within 14 days.</p>
-              </div>
-              <div class="signal-connector" aria-hidden="true">&darr;</div>
-              <div class="signal-step signal-resolution">
-                <span class="step-label">Answer</span>
-                <p class="step-text">Context-bounded answer delivered with verified cost estimate.</p>
-              </div>
+              <p class="fine example-disclosure">Illustrative policy text. Open your deployed assistant to test its configured knowledge.</p>
+              <a class="text-link" href="/console/">Open the assistant <span aria-hidden="true">&nearr;</span></a>
             </div>
           </div>
         </div>
       </div>
     </section>
-
-    <!-- How It Works Section (3 Stacked Rows) -->
-    <section id="how-it-works" class="marketing-section how-it-works-section" aria-labelledby="how-it-works-title">
-      <div class="marketing-section-container">
-        <div class="section-intro">
-          <span class="section-eyebrow">Architecture</span>
-          <h2 id="how-it-works-title" class="section-title">How it works</h2>
-          <p class="section-lead">A dependable, document-grounded approach designed for operational clarity.</p>
-        </div>
-
-        <div class="explanation-rows">
-          <article class="explanation-row">
-            <span class="row-num" aria-hidden="true">01</span>
-            <div class="row-body">
-              <h3 class="row-title">Connect approved knowledge</h3>
-              <p class="row-desc">
-                Documentation and policy texts are parsed, chunked, and embedded into a high-performance vector store with reproducible SHA-256 caching for fast, cold-start retrieval.
-              </p>
-            </div>
+    <!-- Deployment Section (Boundaries & Model Choice) -->
+    <section id="deployment" class="deployment site-wrap section" aria-labelledby="deployment-title">
+      <div class="section-head">
+        <p class="eyebrow">03 / BUILT AROUND YOUR BUSINESS</p>
+        <h2 id="deployment-title">Your documents.<br>Your deployment.</h2>
+        <p>A practical foundation you can configure,<br>evaluate, and maintain.</p>
+      </div>
+      <div class="deployment-grid">
+        <article class="deploy-main">
+          <span class="mono">01 / KNOWLEDGE</span>
+          <h3>The details<br>make the difference.</h3>
+          <p>Policies. Shipping information. Service hours. Build on the material your team already maintains.</p>
+          <div class="document-stack" aria-hidden="true">
+            <div>POLICIES.md <span>01</span></div>
+            <div>SHIPPING.md <span>02</span></div>
+            <div>HOURS.txt <span>03</span></div>
+          </div>
+        </article>
+        <div class="deploy-side">
+          <article>
+            <span class="mono">02 / MODEL CHOICE</span>
+            <h3>Choose your model setup.</h3>
+            <p>Configure OpenAI, Gemini, or Ollama. Provider availability depends on your deployment.</p>
           </article>
-
-          <article class="explanation-row">
-            <span class="row-num" aria-hidden="true">02</span>
-            <div class="row-body">
-              <h3 class="row-title">Answer with context</h3>
-              <p class="row-desc">
-                Every query is evaluated strictly against retrieved documentation chunks. If an inquiry falls outside approved material, the system refuses to speculate or invent unverified facts.
-              </p>
-            </div>
-          </article>
-
-          <article class="explanation-row">
-            <span class="row-num" aria-hidden="true">03</span>
-            <div class="row-body">
-              <h3 class="row-title">Connect verified actions</h3>
-              <p class="row-desc">
-                Execute client operations such as order status checks or dispatch notifications through validated endpoint webhooks. Please note: actions require client integration and verified business authorization.
-              </p>
-            </div>
+          <article>
+            <span class="mono">03 / CONTROL</span>
+            <h3>Clear operating boundaries.</h3>
+            <p>Anonymous sessions, bounded requests, and explicit errors. No live customer actions in this release.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- Deployment Strip -->
-    <section class="deployment-strip-section" aria-label="Deployment Options">
-      <div class="marketing-section-container">
-        <div class="deployment-strip">
-          <div class="strip-item">
-            <h4 class="strip-item-title">Configured for your business</h4>
-            <p class="strip-item-desc">Customized around your internal documents, brand voice, and support runbooks.</p>
-          </div>
-          <div class="strip-divider" aria-hidden="true"></div>
-          <div class="strip-item">
-            <h4 class="strip-item-title">Local or hosted model options</h4>
-            <p class="strip-item-desc">Deploy with on-premises models or private hosted providers based on privacy policy.</p>
-          </div>
-          <div class="strip-divider" aria-hidden="true"></div>
-          <div class="strip-item">
-            <h4 class="strip-item-title">Maintained with your documentation</h4>
-            <p class="strip-item-desc">Kept in sync as your policies, catalog, and operations change.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Closing CTA Section -->
-    <section class="closing-cta-section" aria-labelledby="closing-cta-title">
-      <div class="marketing-section-container">
-        <div class="closing-cta-card">
-          <h2 id="closing-cta-title" class="closing-cta-title">Test the Signal Desk Assistant</h2>
-          <p class="closing-cta-desc">
-            Explore the responsive console loaded with sample policies and order workflows.
-          </p>
-          <div class="closing-cta-actions">
-            <a href="/console/" class="btn-primary">Try the assistant</a>
-          </div>
-        </div>
+    <!-- Closing Section -->
+    <section class="closing section" aria-labelledby="closing-title">
+      <div class="site-wrap closing-inner">
+        <p class="eyebrow">KNOWLEDGE, MADE CLEAR.</p>
+        <h2 id="closing-title">Make the next<br>question count.</h2>
+        <a class="button primary" href="/console/">Explore Signal Desk <span aria-hidden="true">&nearr;</span></a>
+        <p class="fine">Open the live assistant console to test your configured knowledge and workflows.</p>
+        <span class="closing-rings" aria-hidden="true"></span>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer class="marketing-footer">
-    <div class="marketing-header-container">
-      <div class="footer-brand">
-        <span class="brand-title">SupportGenius <span class="brand-accent">AI</span></span>
-        <span class="footer-note">Enterprise customer support intelligence demonstration.</span>
-      </div>
-      <div class="footer-nav">
-        <a href="/console/" class="footer-link">Open Console</a>
-        <a href="#how-it-works" class="footer-link">How it works</a>
-      </div>
-    </div>
-  </footer>
+    <!-- Footer -->
+    <footer class="site-footer site-wrap">
+      <a href="#main-content" class="brand-link" aria-label="SupportGenius AI home">
+        <img src="/assets/brand/supportgenius-mark.svg" width="32" height="32" alt="" class="brand-prism-mark" aria-hidden="true">
+        <span class="brand-title">SupportGenius <small class="brand-accent">AI</small></span>
+      </a>
+      <p class="fine">Document-based support intelligence.</p>
+      <a href="#main-content" class="text-link">Back to top &uarr;</a>
+      <p class="fine copyright">&copy; 2026 SupportGenius AI &bull; Knowledge, made clear.</p>
+    </footer>
+  </div>
 
   <script type="module" src="/landing.js"></script>
 </body>

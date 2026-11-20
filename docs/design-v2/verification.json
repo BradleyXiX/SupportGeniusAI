@@ -1,0 +1,609 @@
+{
+  "date": "2026-11-20",
+  "appBase": "35f0793",
+  "conditions": {
+    "browser": "Installed Google Chrome / Playwright headless",
+    "throttling": "none",
+    "network": "loopback, fonts self-hosted",
+    "mode": "reference fixtures and actual demo"
+  },
+  "checks": [
+    {
+      "name": "initial poster, no WebGL module",
+      "passed": true
+    },
+    {
+      "name": "reference axe serious/critical",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "sample updates and selected state",
+      "passed": true
+    },
+    {
+      "name": "native chapter coordination",
+      "passed": true,
+      "details": "Corrected to native named details grouping; exclusive state is synchronous and works without JS."
+    },
+    {
+      "name": "true WebGL enables",
+      "passed": true,
+      "details": 21
+    },
+    {
+      "name": "offscreen rendering pauses",
+      "passed": true,
+      "details": {
+        "before": 29,
+        "after": 29
+      }
+    },
+    {
+      "name": "rendering resumes",
+      "passed": true
+    },
+    {
+      "name": "context loss restores poster and button",
+      "passed": true
+    },
+    {
+      "name": "repeated enable/pause stops frames",
+      "passed": true
+    },
+    {
+      "name": "runtime reduced motion stops rendering",
+      "passed": true
+    },
+    {
+      "name": "reference 390px no overflow",
+      "passed": true,
+      "details": {
+        "width": 390,
+        "scroll": 390,
+        "offenders": [
+          {
+            "tag": "SPAN",
+            "cls": "closing-rings",
+            "right": 502
+          }
+        ]
+      }
+    },
+    {
+      "name": "reference 320px no overflow",
+      "passed": true,
+      "details": {
+        "width": 320,
+        "scroll": 320,
+        "offenders": [
+          {
+            "tag": "SPAN",
+            "cls": "closing-rings",
+            "right": 432
+          }
+        ]
+      }
+    },
+    {
+      "name": "reference chips populate",
+      "passed": true
+    },
+    {
+      "name": "reference local reply",
+      "passed": true
+    },
+    {
+      "name": "reference reset",
+      "passed": true
+    },
+    {
+      "name": "reference console axe serious/critical",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "reference console 390px no overflow",
+      "passed": true
+    },
+    {
+      "name": "initial reduced motion avoids WebGL import",
+      "passed": true
+    },
+    {
+      "name": "reduced motion during pending import",
+      "passed": true
+    },
+    {
+      "name": "WebGL unsupported preserves static art",
+      "passed": true
+    },
+    {
+      "name": "no-JS essential page readable",
+      "passed": true
+    },
+    {
+      "name": "no-JS console cannot submit question to server",
+      "passed": true
+    },
+    {
+      "name": "reference has zero API requests",
+      "passed": true
+    },
+    {
+      "name": "actual demo console enabled",
+      "passed": true
+    },
+    {
+      "name": "actual demo question produces reply",
+      "passed": true
+    },
+    {
+      "name": "actual console reset usable",
+      "passed": true
+    },
+    {
+      "name": "actual console mobile no overflow",
+      "passed": true
+    },
+    {
+      "name": "keyboard skip link first",
+      "passed": true
+    },
+    {
+      "name": "no uncaught page errors",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "corrected poster geometry 1440px",
+      "passed": true,
+      "details": {
+        "x": 753.21875,
+        "y": 192,
+        "width": 570,
+        "height": 600
+      }
+    },
+    {
+      "name": "corrected poster geometry 390px",
+      "passed": true,
+      "details": {
+        "x": 28,
+        "y": 631.78125,
+        "width": 334,
+        "height": 351.578125
+      }
+    },
+    {
+      "name": "corrected poster geometry 320px",
+      "passed": true,
+      "details": {
+        "x": 28,
+        "y": 671.796875,
+        "width": 264,
+        "height": 277.890625
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "requests": [
+    {
+      "url": "http://127.0.0.1:4175/reference/",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/fonts.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/styles.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/supportgenius-mark.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/signal-core-poster.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/reference.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/body-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/display-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/mono-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/favicon.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/signal-core.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/fonts.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/styles.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/supportgenius-mark.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/signal-core-poster.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/reference.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/display-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/body-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/mono-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/favicon.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/signal-core.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/fonts.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/styles.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/supportgenius-mark.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/signal-core-poster.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/reference.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/display-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/body-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/mono-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/favicon.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/fonts.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/styles.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/supportgenius-mark.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/signal-core-poster.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/reference.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/display-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/body-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/mono-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/favicon.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/console.html",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/fonts.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/styles.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/supportgenius-mark.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/reference.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/display-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/body-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/mono-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/favicon.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/styles.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/landing.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/orb.js",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yw.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwg.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/console/",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/styles.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/vendor/marked.min.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/vendor/purify.min.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/app.js",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwg.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yw.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/chat-state.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/orb.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/health",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/capabilities",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4174/session",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:4174/chat",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/fonts.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/styles.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/supportgenius-mark.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/signal-core-poster.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/reference/reference.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/body-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/display-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/fonts/mono-1.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4175/assets/favicon.svg",
+      "method": "GET"
+    }
+  ],
+  "measurements": {
+    "reference": {
+      "metrics": {
+        "lcp": 488,
+        "cls": 0.0036509611906828704
+      },
+      "resources": [
+        {
+          "name": "http://127.0.0.1:4175/reference/fonts.css",
+          "transferSize": 3251,
+          "duration": 59.40000009536743
+        },
+        {
+          "name": "http://127.0.0.1:4175/reference/styles.css",
+          "transferSize": 15368,
+          "duration": 53.5
+        },
+        {
+          "name": "http://127.0.0.1:4175/assets/supportgenius-mark.svg",
+          "transferSize": 668,
+          "duration": 42.10000002384186
+        },
+        {
+          "name": "http://127.0.0.1:4175/assets/signal-core-poster.svg",
+          "transferSize": 43777,
+          "duration": 32.10000002384186
+        },
+        {
+          "name": "http://127.0.0.1:4175/reference/reference.js",
+          "transferSize": 4791,
+          "duration": 84.69999992847443
+        },
+        {
+          "name": "http://127.0.0.1:4175/assets/fonts/body-1.woff2",
+          "transferSize": 27648,
+          "duration": 217
+        },
+        {
+          "name": "http://127.0.0.1:4175/assets/fonts/display-1.woff2",
+          "transferSize": 22588,
+          "duration": 217.79999995231628
+        },
+        {
+          "name": "http://127.0.0.1:4175/assets/fonts/mono-1.woff2",
+          "transferSize": 21468,
+          "duration": 220.70000004768372
+        },
+        {
+          "name": "http://127.0.0.1:4175/assets/favicon.svg",
+          "transferSize": 668,
+          "duration": 9.600000023841858
+        }
+      ],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "scrollWidth": 1440
+    },
+    "reference.js": {
+      "rawBytes": 4254,
+      "gzipBytes": 1572
+    },
+    "signal-core.js": {
+      "rawBytes": 4177,
+      "gzipBytes": 1857
+    },
+    "styles.css": {
+      "rawBytes": 15080,
+      "gzipBytes": 4122
+    },
+    "fontBytes": 70804,
+    "posterBytes": 43477
+  },
+  "corrections": [
+    "Initial loopback restriction resolved by elevating both local static server and browser; no production requests.",
+    "Native details grouping replaced asynchronous coordination after first check exposed timing race.",
+    "Visual inspection corrected intrinsic SVG height on mobile.",
+    "Only affected disclosure/geometry/screenshots were rerun after corrections; other outcomes retained from main pass."
+  ],
+  "measurementCaveat": "LCP/CLS values reflect first unthrottled loopback pass before the mobile poster-height correction; indicative lab observation only, not final production/field proof. Final asset sizes recomputed after corrections."
+}
