@@ -235,6 +235,300 @@ body[data-page="marketing"] .header-cta span {
   }
 }
 
+/* ==========================================================================
+   Hero Section
+   ========================================================================== */
+body[data-page="marketing"] .hero {
+  display: grid;
+  grid-template-columns: 1.08fr 1fr;
+  align-items: center;
+  min-height: 740px;
+  gap: 32px;
+  padding-block: 65px;
+}
+
+body[data-page="marketing"] .hero-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+body[data-page="marketing"] .eyebrow,
+body[data-page="marketing"] .mono {
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  line-height: 1.6;
+  letter-spacing: 0.09em;
+}
+
+body[data-page="marketing"] .eyebrow {
+  color: var(--muted, #b0b7b4);
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body[data-page="marketing"] .eyebrow i {
+  width: 6px;
+  height: 6px;
+  background-color: var(--accent, #e4b95b);
+  display: inline-block;
+  border-radius: 50%;
+}
+
+body[data-page="marketing"] h1#hero-title {
+  font-family: var(--display, 'Space Grotesk', sans-serif);
+  font-size: clamp(60px, 6.2vw, 102px);
+  line-height: 1.02;
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  max-width: 720px;
+  margin: 0;
+  color: var(--ink, #f3f0e8);
+}
+
+body[data-page="marketing"] h1#hero-title em {
+  font-style: normal;
+  color: var(--accent, #e4b95b);
+}
+
+body[data-page="marketing"] .lead {
+  max-width: 370px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--muted, #b0b7b4);
+  margin-top: 30px;
+  margin-bottom: 0;
+}
+
+body[data-page="marketing"] .actions {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 32px;
+}
+
+body[data-page="marketing"] .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 36px;
+  min-height: 48px;
+  padding: 13px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+body[data-page="marketing"] .button.primary {
+  background: var(--accent, #e4b95b);
+  color: #202420;
+}
+
+body[data-page="marketing"] .button.primary:hover {
+  background: #f4cc76;
+}
+
+body[data-page="marketing"] .button.primary:focus-visible {
+  outline: 3px solid var(--mint, #9dcec0);
+  outline-offset: 4px;
+}
+
+body[data-page="marketing"] .text-link {
+  font-size: 12px;
+  font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+  color: var(--muted, #b0b7b4);
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+
+body[data-page="marketing"] .text-link:hover {
+  color: var(--ink, #f3f0e8);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+body[data-page="marketing"] .text-link:focus-visible {
+  outline: 3px solid var(--mint, #9dcec0);
+  outline-offset: 4px;
+}
+
+body[data-page="marketing"] .hero-note {
+  margin-top: 25px;
+  margin-bottom: 0;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted, #b0b7b4);
+}
+
+/* Core Stage (Right Point Sculpture Poster) */
+body[data-page="marketing"] .core-stage {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  aspect-ratio: 0.95;
+  max-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+body[data-page="marketing"] .core-top {
+  position: absolute;
+  inset: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted, #b0b7b4);
+  font-size: 10px;
+  width: 100%;
+}
+
+body[data-page="marketing"] .core-poster {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  display: block;
+}
+
+body[data-page="marketing"] .core-stage canvas {
+  position: absolute;
+  inset: 7% 0 0;
+  width: 100%;
+  height: 86%;
+}
+
+body[data-page="marketing"] .core-label {
+  position: absolute;
+  bottom: 8%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--accent, #e4b95b);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+body[data-page="marketing"] .core-stage figcaption {
+  position: absolute;
+  bottom: -24px;
+  inset-inline: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body[data-page="marketing"] .core-stage figcaption .fine {
+  font-size: 11px;
+  color: var(--muted, #b0b7b4);
+  margin: 0;
+}
+
+body[data-page="marketing"] .quiet-button {
+  background: transparent;
+  border: 1px solid #707773;
+  color: var(--muted, #b0b7b4);
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 2px;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@media (max-width: 1100px) {
+  body[data-page="marketing"] .hero {
+    min-height: 660px;
+    gap: 20px;
+  }
+  body[data-page="marketing"] h1#hero-title {
+    font-size: 76px;
+  }
+  body[data-page="marketing"] .core-stage figcaption {
+    flex-direction: column;
+    align-items: flex-start;
+    bottom: -45px;
+  }
+  body[data-page="marketing"] .hero-note {
+    max-width: 270px;
+  }
+}
+
+@media (max-width: 760px) {
+  body[data-page="marketing"] .hero {
+    grid-template-columns: 1fr;
+    padding-block: 48px 54px;
+    gap: 48px;
+    min-height: 0;
+  }
+  body[data-page="marketing"] h1#hero-title {
+    font-size: clamp(44px, 12vw, 68px);
+  }
+  body[data-page="marketing"] .eyebrow {
+    font-size: 8px;
+    letter-spacing: 0.04em;
+    margin-bottom: 24px;
+  }
+  body[data-page="marketing"] .lead {
+    font-size: 13px;
+    max-width: 340px;
+    margin-top: 24px;
+  }
+  body[data-page="marketing"] .actions {
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 26px;
+  }
+  body[data-page="marketing"] .button {
+    font-size: 11px;
+    gap: 24px;
+    width: 100%;
+  }
+  body[data-page="marketing"] .hero-note {
+    max-width: none;
+    font-size: 10px;
+  }
+  body[data-page="marketing"] .core-stage {
+    width: 100%;
+    max-width: 450px;
+    justify-self: center;
+    margin-bottom: 26px;
+  }
+  body[data-page="marketing"] .core-stage figcaption {
+    bottom: -24px;
+    flex-direction: row;
+    align-items: center;
+  }
+  body[data-page="marketing"] .core-stage figcaption .fine {
+    max-width: 180px;
+    font-size: 10px;
+  }
+  body[data-page="marketing"] .core-top,
+  body[data-page="marketing"] .core-label {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 370px) {
+  body[data-page="marketing"] h1#hero-title {
+    font-size: 38px;
+  }
+  body[data-page="marketing"] .eyebrow {
+    font-size: 7px;
+  }
+}
+
 /* Site Footer */
 body[data-page="marketing"] .site-footer {
   padding-block: 45px;
