@@ -92,15 +92,8 @@ export function initSignalCore() {
     toggle.disabled = false;
   };
 
-  // Guard initial control state: enable only if reduced motion is inactive
-  if (reduced.matches) {
-    toggle.textContent = 'Reduced motion enabled';
-    toggle.setAttribute('aria-pressed', 'false');
-    toggle.disabled = true;
-  } else {
-    toggle.disabled = false;
-    toggle.textContent = 'Enable motion';
-  }
+  // Enable control once handler is installed
+  toggle.disabled = false;
 
   toggle.addEventListener('click', async () => {
     const attempt = ++generation;
@@ -112,7 +105,6 @@ export function initSignalCore() {
     if (reduced.matches) {
       toggle.textContent = 'Reduced motion enabled';
       toggle.setAttribute('aria-pressed', 'false');
-      toggle.disabled = true;
       return;
     }
 
@@ -123,7 +115,6 @@ export function initSignalCore() {
         if (reduced.matches) {
           toggle.textContent = 'Reduced motion enabled';
           toggle.setAttribute('aria-pressed', 'false');
-          toggle.disabled = true;
         }
         return;
       }
@@ -147,7 +138,6 @@ export function initSignalCore() {
       }
       toggle.textContent = 'Reduced motion enabled';
       toggle.setAttribute('aria-pressed', 'false');
-      toggle.disabled = true;
     } else {
       if (!teardown) {
         toggle.disabled = false;

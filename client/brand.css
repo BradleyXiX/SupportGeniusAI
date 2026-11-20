@@ -445,6 +445,7 @@ body[data-page="console"] .btn-retry-init:focus-visible {
     white-space: nowrap;
     padding: 8px 12px;
     font-size: 12px;
+    min-height: 36px;
   }
 
   body[data-page="console"] .rail-back-link {
