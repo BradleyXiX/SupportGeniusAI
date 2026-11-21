@@ -10,7 +10,8 @@ import {
   MotionState,
   getStoredMotionPreference,
   setStoredMotionPreference,
-  isReducedMotionPreferred
+  isReducedMotionPreferred,
+  notifyMotionPreferenceChange
 } from './marketing/motion-policy.js';
 
 export function initLanding() {
@@ -238,6 +239,7 @@ export function initSignalCore() {
   });
 
   const onReducedMotionChange = () => {
+    notifyMotionPreferenceChange();
     if (reducedQuery.matches) {
       generation++;
       if (teardown) {

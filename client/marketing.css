@@ -554,33 +554,159 @@ body[data-page="marketing"] .orbit-small {
   position: relative;
   width: 190px;
   height: 190px;
+  margin-block: 20px;
+  perspective: 600px;
+}
+
+body[data-page="marketing"] .orbit-center {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
-  margin-block: 20px;
+  z-index: 3;
+  pointer-events: none;
 }
 
-body[data-page="marketing"] .orbit-small span {
+body[data-page="marketing"] .orbit-prism-mark {
+  width: 36px;
+  height: 36px;
+  display: block;
+}
+
+body[data-page="marketing"] .orbit-track {
   position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+/* Separate wrappers: static tilt on .orbit-tilt (single owner) */
+body[data-page="marketing"] .orbit-tilt {
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+body[data-page="marketing"] .orbit-track.track-1 .orbit-tilt {
+  width: 172px;
+  height: 172px;
+  transform: rotateZ(25deg) rotateX(66deg);
+}
+
+body[data-page="marketing"] .orbit-track.track-2 .orbit-tilt {
+  width: 142px;
+  height: 142px;
+  transform: rotateZ(-40deg) rotateX(68deg);
+}
+
+body[data-page="marketing"] .orbit-track.track-3 .orbit-tilt {
+  width: 112px;
+  height: 112px;
+  transform: rotateZ(68deg) rotateX(64deg);
+}
+
+/* Separate wrappers: continuous rotation on .orbit-spin (single owner) */
+body[data-page="marketing"] .orbit-spin {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+body[data-page="marketing"] .orbit-track.track-1 .orbit-spin {
+  animation: orbit-spin-cw 18s linear infinite;
+}
+
+body[data-page="marketing"] .orbit-track.track-2 .orbit-spin {
+  animation: orbit-spin-ccw 24s linear infinite;
+}
+
+body[data-page="marketing"] .orbit-track.track-3 .orbit-spin {
+  animation: orbit-spin-cw 30s linear infinite;
+}
+
+/* Fine red/wine orbit paths */
+body[data-page="marketing"] .orbit-path {
+  position: absolute;
+  inset: 0;
   border: 1px solid rgba(187, 23, 41, 0.35);
   border-radius: 50%;
-  inset: 20px;
+  box-sizing: border-box;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
-body[data-page="marketing"] .orbit-small span:nth-child(2) {
-  inset: 30px 2px;
-  transform: rotate(50deg);
+/* Orbit node on ring perimeter */
+body[data-page="marketing"] .orbit-node {
+  position: absolute;
+  top: -3px;
+  left: calc(50% - 3px);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--crimson, #BB1729);
+  box-shadow: 0 0 5px rgba(187, 23, 41, 0.7);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
 }
 
-body[data-page="marketing"] .orbit-small span:nth-child(3) {
-  inset: 2px 30px;
-  transform: rotate(50deg);
+/* Chapter illustrative highlighting */
+body[data-page="marketing"] .orbit-small[data-active-chapter="1"] .track-1 .orbit-path {
+  border-color: rgba(187, 23, 41, 0.85);
+  box-shadow: 0 0 8px rgba(187, 23, 41, 0.25);
 }
 
-body[data-page="marketing"] .orbit-small b {
-  font-family: var(--mono, 'JetBrains Mono', monospace);
-  font-size: 24px;
-  color: var(--ink, #f7f7f5);
-  font-weight: 400;
+body[data-page="marketing"] .orbit-small[data-active-chapter="1"] .track-1 .orbit-node {
+  background: var(--ink, #f7f7f5);
+  box-shadow: 0 0 8px rgba(187, 23, 41, 0.9);
+}
+
+body[data-page="marketing"] .orbit-small[data-active-chapter="2"] .track-2 .orbit-path {
+  border-color: rgba(187, 23, 41, 0.85);
+  box-shadow: 0 0 8px rgba(187, 23, 41, 0.25);
+}
+
+body[data-page="marketing"] .orbit-small[data-active-chapter="2"] .track-2 .orbit-node {
+  background: var(--ink, #f7f7f5);
+  box-shadow: 0 0 8px rgba(187, 23, 41, 0.9);
+}
+
+body[data-page="marketing"] .orbit-small[data-active-chapter="3"] .track-3 .orbit-path {
+  border-color: rgba(187, 23, 41, 0.85);
+  box-shadow: 0 0 8px rgba(187, 23, 41, 0.25);
+}
+
+body[data-page="marketing"] .orbit-small[data-active-chapter="3"] .track-3 .orbit-node {
+  background: var(--ink, #f7f7f5);
+  box-shadow: 0 0 8px rgba(187, 23, 41, 0.9);
+}
+
+/* Shared motion policy play state */
+body[data-page="marketing"] .orbit-small[data-motion="paused"] .orbit-spin {
+  animation-play-state: paused !important;
+}
+
+/* Reduced motion override */
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="marketing"] .orbit-spin {
+    animation: none !important;
+  }
+}
+
+/* Continuous rotation keyframes */
+@keyframes orbit-spin-cw {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbit-spin-ccw {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
 body[data-page="marketing"] .chapters details {

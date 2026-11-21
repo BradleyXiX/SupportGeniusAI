@@ -19,6 +19,21 @@ export const MotionState = Object.freeze({
 
 // Safe in-memory fallback if localStorage throws (e.g. sandboxed iframe or private browsing)
 let inMemoryPreference = null;
+const preferenceSubscribers = new Set();
+
+export function subscribeMotionPreference(callback) {
+  preferenceSubscribers.add(callback);
+  return () => preferenceSubscribers.delete(callback);
+}
+
+export function notifyMotionPreferenceChange() {
+  const allowed = isMotionAllowed();
+  preferenceSubscribers.forEach((cb) => {
+    try {
+      cb(allowed);
+    } catch {}
+  });
+}
 
 export function getStoredMotionPreference() {
   try {
@@ -45,6 +60,7 @@ export function setStoredMotionPreference(value) {
   } catch {
     // Silently continue with in-memory preference on storage errors (e.g. SecurityError)
   }
+  notifyMotionPreferenceChange();
 }
 
 export function isReducedMotionPreferred() {
