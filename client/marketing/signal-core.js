@@ -101,9 +101,9 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       '  float d = 3.4 - q.z * 0.45;',
       '  gl_Position = vec4(q.x * 2.12 / (d * u_aspect), q.y * 2.12 / d, 0.0, 1.0);',
       '  if (t > 0.5) {',
-      '    gl_PointSize = (2.6 + (q.z + 1.0) * 1.4) * (1.1 + s * 0.35);',
+      '    gl_PointSize = (1.6 + (q.z + 1.0) * 0.95) * (0.90 + s * 0.30);',
       '  } else {',
-      '    gl_PointSize = (2.0 + (q.z + 1.0) * 1.3) * (1.0 + s * 0.25);',
+      '    gl_PointSize = (1.4 + (q.z + 1.0) * 0.85) * (0.85 + s * 0.30);',
       '  }',
       '  v_type = t;',
       '  v_depth = q.z;',
@@ -119,32 +119,35 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       'void main() {',
       '  float dist = length(gl_PointCoord - vec2(0.5));',
       '  if (dist > 0.5) discard;',
-      '  float shape = smoothstep(0.5, 0.06, dist);',
+      '  float shape = 1.0 - smoothstep(0.06, 0.5, dist);',
       '  if (v_type > 0.5) {',
-      '    vec3 coreColor = vec3(0.969, 0.969, 0.961);',
-      '    vec3 haloColor = vec3(0.835, 0.165, 0.220);',
-      '    float coreFactor = smoothstep(0.35, 0.0, dist) * (0.6 + v_seed * 0.4);',
-      '    vec3 rgb = mix(haloColor, coreColor, coreFactor);',
-      '    float alpha = shape * (0.75 + (v_depth + 1.0) * 0.12);',
+      '    vec3 crimsonDeep = vec3(0.54, 0.05, 0.09);',
+      '    vec3 crimsonVibrant = vec3(0.733, 0.090, 0.161);',
+      '    vec3 whiteWarm = vec3(0.969, 0.969, 0.961);',
+      '    float coreEdge = 1.0 - smoothstep(0.0, 0.35, dist);',
+      '    float coreIntense = pow(coreEdge, 3.0);',
+      '    vec3 halo = mix(crimsonDeep, crimsonVibrant, 0.65 + v_depth * 0.3);',
+      '    vec3 rgb = mix(halo, whiteWarm, coreIntense * step(0.45, v_seed));',
+      '    float alpha = shape * (0.80 + (v_depth + 1.0) * 0.10);',
       '    gl_FragColor = vec4(rgb, alpha);',
       '  } else {',
       '    vec3 wineDark = vec3(0.26, 0.04, 0.06);',
       '    vec3 crimsonMid = vec3(0.733, 0.090, 0.161);',
-      '    vec3 crimsonHot = vec3(0.835, 0.165, 0.220);',
+      '    vec3 crimsonHot = vec3(0.820, 0.100, 0.180);',
       '    vec3 rimWhite = vec3(0.969, 0.969, 0.961);',
       '    vec3 rgb;',
       '    float alpha;',
       '    if (v_depth < 0.0) {',
       '      float factor = (v_depth + 1.0);',
-      '      rgb = mix(wineDark, crimsonMid, factor * 0.65);',
-      '      alpha = shape * (0.28 + factor * 0.32);',
+      '      rgb = mix(wineDark, crimsonMid, factor * 0.60);',
+      '      alpha = shape * (0.24 + factor * 0.30);',
       '    } else {',
       '      float factor = v_depth;',
-      '      rgb = mix(crimsonMid, crimsonHot, factor * 0.7);',
-      '      if (v_seed > 0.92 && v_depth > 0.25) {',
+      '      rgb = mix(crimsonMid, crimsonHot, factor * 0.70);',
+      '      if (v_seed > 0.94 && v_depth > 0.30) {',
       '        rgb = mix(rgb, rimWhite, 0.75);',
       '      }',
-      '      alpha = shape * (0.62 + factor * 0.33);',
+      '      alpha = shape * (0.55 + factor * 0.35);',
       '    }',
       '    gl_FragColor = vec4(rgb, alpha);',
       '  }',
@@ -170,7 +173,7 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
     }
 
     const pts = [];
-    const shellCount = 2400;
+    const shellCount = 3200;
     const goldenRatio = (1 + Math.sqrt(5)) / 2;
 
     for (let i = 0; i < shellCount; i++) {
@@ -184,10 +187,11 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
     }
 
     const clusterCenters = [
-      { cx: -0.10, cy: 0.08, cz: 0.06, count: 220, spread: 0.16 },
-      { cx: 0.12, cy: -0.06, cz: -0.05, count: 180, spread: 0.14 },
-      { cx: -0.02, cy: 0.14, cz: -0.08, count: 160, spread: 0.14 },
-      { cx: 0.04, cy: -0.11, cz: 0.10, count: 140, spread: 0.13 }
+      { cx: -0.24, cy: 0.16, cz: 0.12, count: 160, spread: 0.075 },
+      { cx: 0.22, cy: -0.15, cz: 0.10, count: 150, spread: 0.070 },
+      { cx: 0.18, cy: 0.20, cz: -0.14, count: 140, spread: 0.070 },
+      { cx: -0.20, cy: -0.18, cz: -0.12, count: 130, spread: 0.065 },
+      { cx: 0.02, cy: 0.03, cz: -0.02, count: 120, spread: 0.060 }
     ];
 
     let seedCounter = shellCount + 100;

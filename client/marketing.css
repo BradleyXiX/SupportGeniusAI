@@ -433,12 +433,12 @@ body[data-page="marketing"] .core-label {
 
 body[data-page="marketing"] .core-stage figcaption {
   position: absolute;
-  bottom: -24px;
+  top: calc(100% + 18px);
   inset-inline: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 16px;
 }
 
 body[data-page="marketing"] .core-stage figcaption .fine {
@@ -964,9 +964,11 @@ body[data-page="marketing"] .closing-rings {
     font-size: 76px;
   }
   body[data-page="marketing"] .core-stage figcaption {
-    flex-direction: column;
-    align-items: flex-start;
-    bottom: -45px;
+    top: calc(100% + 18px);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
   }
   body[data-page="marketing"] .hero-note {
     max-width: none;
@@ -1018,12 +1020,14 @@ body[data-page="marketing"] .closing-rings {
     width: 100%;
     max-width: 450px;
     justify-self: center;
-    margin-bottom: 26px;
+    margin-bottom: 84px;
   }
   body[data-page="marketing"] .core-stage figcaption {
-    bottom: -24px;
+    top: calc(100% + 18px);
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
+    gap: 16px;
   }
   body[data-page="marketing"] .core-stage figcaption .fine {
     max-width: none;
@@ -1163,6 +1167,17 @@ body[data-page="marketing"] .closing-rings {
   body[data-page="marketing"] .closing .fine {
     max-width: none;
     font-size: 14px;
+  }
+}
+
+@media (max-width: 520px) {
+  body[data-page="marketing"] .core-stage {
+    margin-bottom: 110px;
+  }
+  body[data-page="marketing"] .core-stage figcaption {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 }
 
