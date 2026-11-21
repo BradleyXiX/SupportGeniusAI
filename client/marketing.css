@@ -1132,111 +1132,106 @@ body[data-page="marketing"] .closing {
   overflow: hidden;
   background: var(--paper, #f7f5f3);
   color: var(--paper-ink, #18181c);
+  padding-block: 100px;
 }
 
 body[data-page="marketing"] .closing-inner {
+  display: grid;
+  grid-template-columns: 55fr 45fr;
+  align-items: center;
+  gap: 56px;
   position: relative;
+}
+
+body[data-page="marketing"] .closing-copy {
+  max-width: 580px;
+  position: relative;
+  z-index: 1;
 }
 
 body[data-page="marketing"] .closing .eyebrow {
   color: var(--paper-muted, #57535a);
+  margin-bottom: 20px;
 }
 
 body[data-page="marketing"] .closing h2 {
   font-family: var(--display, 'Space Grotesk', sans-serif);
   font-weight: 500;
-  font-size: clamp(48px, 6vw, 88px);
+  font-size: clamp(38px, 4.4vw, 60px);
   line-height: 1.08;
   letter-spacing: -0.055em;
   margin: 0;
   position: relative;
   z-index: 1;
-}
-
-body[data-page="marketing"] .closing .button {
-  position: relative;
-  margin-top: 34px;
-  z-index: 1;
-}
-
-body[data-page="marketing"] .closing .button.secondary {
-  margin-top: 0;
-  background: transparent;
   color: var(--paper-ink, #18181c);
-  border: 1px solid var(--paper-ink, #18181c);
 }
 
-body[data-page="marketing"] .closing .button.secondary:hover {
-  background: var(--paper-ink, #18181c);
-  color: var(--paper, #f7f5f3);
+body[data-page="marketing"] .closing-lead {
+  font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--paper-muted, #57535a);
+  margin: 22px 0 32px 0;
+  max-width: 490px;
+}
+
+body[data-page="marketing"] .closing-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin-bottom: 22px;
+}
+
+body[data-page="marketing"] .closing-actions .button.primary {
+  margin-top: 0;
+  background: var(--accent, #bb1729);
+  color: #ffffff;
+  min-height: 48px;
+  padding: 13px 24px;
+}
+
+body[data-page="marketing"] .closing-actions .button.primary:hover {
+  background: var(--accent-hot, #d52a38);
+}
+
+body[data-page="marketing"] .closing-secondary-link {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--paper-ink, #18181c);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.18s ease;
+}
+
+body[data-page="marketing"] .closing-secondary-link:hover {
+  color: var(--accent, #bb1729);
 }
 
 body[data-page="marketing"] .closing a:focus-visible,
 body[data-page="marketing"] .closing .button:focus-visible,
 body[data-page="marketing"] .closing .button.primary:focus-visible,
-body[data-page="marketing"] .closing .button.secondary:focus-visible {
+body[data-page="marketing"] .closing .closing-secondary-link:focus-visible {
   outline: 3px solid var(--focus-light, #18181c);
-  outline-offset: 5px;
+  outline-offset: 4px;
 }
 
-body[data-page="marketing"] .closing .fine {
-  color: var(--paper-muted, #57535a);
-  margin-top: 20px;
+body[data-page="marketing"] .contact-address-line {
   font-size: 14px;
   line-height: 1.6;
-  position: relative;
-  z-index: 1;
-}
-
-/* Implementation Contact Block */
-body[data-page="marketing"] .implementation-contact {
-  margin-top: 48px;
-  padding-top: 36px;
-  border-top: 1px solid rgba(24, 24, 28, 0.15);
-  position: relative;
-  z-index: 1;
-}
-
-body[data-page="marketing"] .implementation-contact h3 {
-  font-family: var(--display, 'Space Grotesk', sans-serif);
-  font-size: clamp(24px, 3.2vw, 36px);
-  font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: -0.04em;
-  margin: 0 0 12px 0;
-  color: var(--paper-ink, #18181c);
-}
-
-body[data-page="marketing"] .implementation-contact .contact-copy {
-  font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
-  font-size: 16px;
-  line-height: 1.6;
   color: var(--paper-muted, #57535a);
-  margin: 0 0 24px 0;
-  max-width: 520px;
-}
-
-body[data-page="marketing"] .contact-actions {
+  margin: 0;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-body[data-page="marketing"] .contact-address-block {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-body[data-page="marketing"] .contact-note {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--paper-muted, #57535a);
-  margin: 0;
-}
-
-body[data-page="marketing"] .selectable-address {
+body[data-page="marketing"] .contact-address-line .selectable-address {
   font-family: var(--mono, 'Space Mono', monospace);
   font-size: 14px;
   font-weight: 600;
@@ -1245,26 +1240,19 @@ body[data-page="marketing"] .selectable-address {
   -webkit-user-select: all;
   background: rgba(24, 24, 28, 0.05);
   border: 1px solid rgba(24, 24, 28, 0.12);
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: 2px;
   display: inline-block;
-  width: fit-content;
-}
-
-body[data-page="marketing"] .closing-copy {
-  max-width: 640px;
-  position: relative;
-  z-index: 1;
 }
 
 body[data-page="marketing"] .closing-stage {
-  position: absolute;
-  right: 2%;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 360px;
-  height: 360px;
-  z-index: 0;
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  justify-self: center;
+  z-index: 1;
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -1488,25 +1476,20 @@ body[data-page="marketing"] .closing-poster {
   body[data-page="marketing"] .deployment-grid h3 {
     font-size: 28px;
   }
-  body[data-page="marketing"] .closing h2 {
-    font-size: 51px;
+  body[data-page="marketing"] .closing-inner {
+    gap: 36px;
   }
   body[data-page="marketing"] .closing-stage,
   body[data-page="marketing"] .closing-rings {
-    width: 280px;
-    height: 280px;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0.85;
-  }
-  body[data-page="marketing"] .closing .fine {
-    max-width: none;
-    font-size: 14px;
+    max-width: 320px;
+    height: auto;
   }
 }
 
 @media (max-width: 760px) {
+  body[data-page="marketing"] .closing {
+    padding-block: 64px;
+  }
   body[data-page="marketing"] .closing-inner {
     display: flex;
     flex-direction: column;
@@ -1515,14 +1498,36 @@ body[data-page="marketing"] .closing-poster {
   body[data-page="marketing"] .closing-copy {
     max-width: 100%;
   }
+  body[data-page="marketing"] .closing h2 {
+    font-size: clamp(36px, 9vw, 44px);
+  }
+  body[data-page="marketing"] .closing-lead {
+    font-size: 16px;
+    margin: 18px 0 24px 0;
+  }
+  body[data-page="marketing"] .closing-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  body[data-page="marketing"] .closing-actions .button.primary {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+  body[data-page="marketing"] .closing-secondary-link {
+    justify-content: center;
+  }
   body[data-page="marketing"] .closing-stage,
   body[data-page="marketing"] .closing-rings {
     position: static;
     transform: none;
     width: 100%;
-    max-width: 280px;
-    height: 280px;
-    margin: 32px auto 0 auto;
+    max-width: 260px;
+    height: 260px;
+    margin: 28px auto 0 auto;
     align-self: center;
   }
   body[data-page="marketing"] .closing-canvas {
@@ -1698,7 +1703,12 @@ body[data-page="marketing"] .site-footer .copyright {
     font-size: clamp(32px, 9.5vw, 42px);
   }
   body[data-page="marketing"] .closing h2 {
-    font-size: 38px;
+    font-size: 36px;
+  }
+  body[data-page="marketing"] .contact-address-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
   body[data-page="marketing"] .deployment-grid article {
     padding: 20px 14px;

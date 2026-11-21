@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-footer)', () => {
 
-  test('1. Renders .closing section with off-white field, eyebrow, headline, and /console/ CTA', async ({ page }) => {
+  test('1. Renders .closing section with off-white field, eyebrow, headline, primary mailto action, and secondary console link', async ({ page }) => {
     await page.goto('/');
 
     const closing = page.locator('.closing');
@@ -12,18 +12,32 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
     await expect(closing.locator('.eyebrow')).toHaveText(/KNOWLEDGE, MADE CLEAR\./);
     await expect(closing.locator('h2')).toHaveText(/Make the next\s*question count\./);
 
-    // Primary CTA
-    const cta = closing.locator('a.button.primary');
-    await expect(cta).toBeVisible();
-    await expect(cta).toHaveAttribute('href', '/console/');
-    await expect(cta).toContainText('Explore Signal Desk');
+    // Supporting copy
+    await expect(closing.locator('.closing-lead')).toHaveText(
+      'Bring SupportGenius AI to your business. Let’s build around your knowledge and support workflow.'
+    );
+
+    // Primary CTA: Discuss implementation -> mailto
+    const primaryCta = closing.locator('a.button.primary');
+    await expect(primaryCta).toBeVisible();
+    await expect(primaryCta).toHaveAttribute(
+      'href',
+      'mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry'
+    );
+    await expect(primaryCta).toContainText('Discuss implementation');
+
+    // Secondary text link: Try Signal Desk -> /console/
+    const secondaryLink = closing.locator('a.closing-secondary-link');
+    await expect(secondaryLink).toBeVisible();
+    await expect(secondaryLink).toHaveAttribute('href', '/console/');
+    await expect(secondaryLink).toContainText('Try Signal Desk');
 
     // Off-white background check (#ecebe5 is rgb(236, 235, 229), v3 paper #F7F5F3 is rgb(247, 245, 243))
     const bg = await closing.evaluate(el => window.getComputedStyle(el).backgroundColor);
     expect(['rgb(236, 235, 229)', 'rgb(247, 245, 243)']).toContain(bg);
   });
 
-  test('2. Static decorative rings are aria-hidden, positioned behind text, and have pointer-events none', async ({ page }) => {
+  test('2. Static decorative rings are aria-hidden, positioned in normal flow beside text without absolute overlap, and have pointer-events none', async ({ page }) => {
     await page.goto('/');
 
     const rings = page.locator('.closing-rings');
@@ -39,13 +53,13 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
       };
     });
 
-    expect(styles.zIndex).toBe('0');
     expect(styles.pointerEvents).toBe('none');
-    expect(styles.position).toBe('absolute');
+    expect(styles.position).toBe('relative');
 
-    // Content sits above rings
-    const titleZIndex = await page.locator('.closing h2').evaluate(el => window.getComputedStyle(el).zIndex);
-    expect(Number(titleZIndex)).toBeGreaterThan(0);
+    // Two-column grid geometry: rings box sits to the right of the text box on desktop without overlap
+    const copyBox = await page.locator('.closing-copy').boundingBox();
+    const ringsBox = await rings.boundingBox();
+    expect(ringsBox.x).toBeGreaterThanOrEqual(copyBox.x + copyBox.width * 0.8);
   });
 
   test('3. Dark visible focus outline on closing CTA against light background', async ({ page }) => {
@@ -167,10 +181,18 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
     const page = await noJsContext.newPage();
     await page.goto('/');
 
-    // Closing CTA is visible and has correct destination
-    const closingCta = page.locator('.closing a.button.primary');
-    await expect(closingCta).toBeVisible();
-    await expect(closingCta).toHaveAttribute('href', '/console/');
+    // Closing primary action has correct mailto destination
+    const closingPrimary = page.locator('.closing a.button.primary');
+    await expect(closingPrimary).toBeVisible();
+    await expect(closingPrimary).toHaveAttribute(
+      'href',
+      'mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry'
+    );
+
+    // Closing secondary link has /console/ destination
+    const closingSecondary = page.locator('.closing a.closing-secondary-link');
+    await expect(closingSecondary).toBeVisible();
+    await expect(closingSecondary).toHaveAttribute('href', '/console/');
 
     // Hero secondary discuss link navigates to #implementation-contact
     const heroDiscuss = page.locator('.hero .actions a.button.secondary');
@@ -218,26 +240,27 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
     }
   });
 
-  test('10. Implementation contact block renders approved copy, mailto action, and selectable address', async ({ page }) => {
+  test('10. Implementation contact renders unified cohesive closing composition with single pitch and address', async ({ page }) => {
     await page.goto('/');
 
     const contact = page.locator('#implementation-contact');
     await expect(contact).toBeVisible();
 
-    // Located inside closing copy column
-    const insideClosingCopy = await page.evaluate(() => {
-      const el = document.getElementById('implementation-contact');
-      return el ? el.closest('.closing-copy') !== null : false;
-    });
-    expect(insideClosingCopy).toBe(true);
+    // Verify unified container is the closing copy container
+    const isClosingCopy = await contact.evaluate(el => el.classList.contains('closing-copy'));
+    expect(isClosingCopy).toBe(true);
 
-    // Approved heading and copy
-    await expect(contact.locator('h3#contact-heading')).toHaveText('Want this for your business?');
-    await expect(contact.locator('.contact-copy')).toHaveText(
-      'Tell me about your support workflow and the documents you want your assistant to use.'
+    // Unified headline and supporting copy
+    await expect(contact.locator('h2#closing-title')).toHaveText(/Make the next\s*question count\./);
+    await expect(contact.locator('.closing-lead')).toHaveText(
+      'Bring SupportGenius AI to your business. Let’s build around your knowledge and support workflow.'
     );
 
-    // Email link with exact encoded subject
+    // Zero duplicate "Want this for your business?" heading or internal divider
+    await expect(page.locator('h3:has-text("Want this for your business?")')).toHaveCount(0);
+    await expect(contact.locator('.implementation-contact')).toHaveCount(0);
+
+    // Primary action button with exact encoded subject
     const emailBtn = contact.locator('a.contact-email-btn');
     await expect(emailBtn).toBeVisible();
     await expect(emailBtn).toHaveAttribute(
@@ -246,19 +269,25 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
     );
     await expect(emailBtn).toContainText('Discuss implementation');
 
-    // 44px min touch target
+    // Secondary console text link
+    const consoleLink = contact.locator('a.closing-secondary-link');
+    await expect(consoleLink).toBeVisible();
+    await expect(consoleLink).toHaveAttribute('href', '/console/');
+    await expect(consoleLink).toContainText('Try Signal Desk');
+
+    // 44px min touch targets
     const btnBox = await emailBtn.boundingBox();
     expect(btnBox.height).toBeGreaterThanOrEqual(44);
+    const consoleBox = await consoleLink.boundingBox();
+    expect(consoleBox.height).toBeGreaterThanOrEqual(44);
 
-    // Selectable address and explanation
-    await expect(contact.locator('.contact-note')).toHaveText(
-      'Opens your email app. You can also copy the address below.'
-    );
+    // Explanatory address line with selectable address
+    await expect(contact.locator('.contact-note')).toHaveText('Opens your email app. Or copy:');
     const address = contact.locator('.selectable-address');
     await expect(address).toBeVisible();
     await expect(address).toHaveText('BradJohn70@gmail.com');
 
-    // Focus outline on secondary button inside closing
+    // Focus outline on primary button inside closing
     await emailBtn.focus();
     const focusStyles = await emailBtn.evaluate(el => {
       const computed = window.getComputedStyle(el);
@@ -328,7 +357,7 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
     await expect(contact).toBeInViewport();
   });
 
-  test('13. Capture visual evidence of implementation contact, footer, and hero actions', async ({ page }) => {
+  test('13. Capture visual evidence of unified closing contact, footer, and hero actions', async ({ page }) => {
     // 1. Desktop 1440x900
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
@@ -341,10 +370,13 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
       clip: { x: 0, y: 0, width: 1440, height: 720 },
     });
 
-    // Implementation contact desktop
-    const contact = page.locator('#implementation-contact');
-    await contact.scrollIntoViewIfNeeded();
-    await page.screenshot({
+    // Full section desktop closing contact
+    const closingSection = page.locator('.closing');
+    await closingSection.scrollIntoViewIfNeeded();
+    await closingSection.screenshot({
+      path: 'docs/design-v3/screenshots/closing-contact-desktop.png',
+    });
+    await closingSection.screenshot({
       path: 'docs/design-v3/screenshots/contact-implementation-desktop.png',
     });
 
@@ -366,9 +398,13 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
       clip: { x: 0, y: 0, width: 390, height: 600 },
     });
 
-    const contactMobile = page.locator('#implementation-contact');
-    await contactMobile.scrollIntoViewIfNeeded();
-    await page.screenshot({
+    // Full section mobile closing contact
+    const closingSectionMobile = page.locator('.closing');
+    await closingSectionMobile.scrollIntoViewIfNeeded();
+    await closingSectionMobile.screenshot({
+      path: 'docs/design-v3/screenshots/closing-contact-mobile.png',
+    });
+    await closingSectionMobile.screenshot({
       path: 'docs/design-v3/screenshots/contact-implementation-mobile.png',
     });
 

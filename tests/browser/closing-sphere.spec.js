@@ -17,8 +17,16 @@ test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
     await expect(closing.locator('h2#closing-title')).toHaveText(/Make the next\s*question count\./);
     const cta = closing.locator('a.button.primary');
     await expect(cta).toBeVisible();
-    await expect(cta).toHaveAttribute('href', '/console/');
-    await expect(cta).toContainText('Explore Signal Desk');
+    await expect(cta).toHaveAttribute(
+      'href',
+      'mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry'
+    );
+    await expect(cta).toContainText('Discuss implementation');
+
+    const secondary = closing.locator('a.closing-secondary-link');
+    await expect(secondary).toBeVisible();
+    await expect(secondary).toHaveAttribute('href', '/console/');
+    await expect(secondary).toContainText('Try Signal Desk');
 
     // Verify stage and poster presence
     const stage = closing.locator('.closing-stage');
@@ -299,7 +307,14 @@ test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
     // Primary CTA is functional
     const cta = closing.locator('a.button.primary');
     await expect(cta).toBeVisible();
-    await expect(cta).toHaveAttribute('href', '/console/');
+    await expect(cta).toHaveAttribute(
+      'href',
+      'mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry'
+    );
+
+    const secondary = closing.locator('a.closing-secondary-link');
+    await expect(secondary).toBeVisible();
+    await expect(secondary).toHaveAttribute('href', '/console/');
 
     // Poster fallback renders
     const poster = closing.locator('.closing-poster');
