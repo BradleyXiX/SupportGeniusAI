@@ -1,22 +1,20 @@
 # 03 receipt: Build richer hero poster and shader
 
-- Branch / parent SHA: `design/crimson-signal-v3` @ `235d3404145ee7c4a42b4737358e3acec94440a1` (`235d340`).
-- Goal and result: Enhanced the native WebGL hero sculpture and matching static SVG poster toward the reference video. Corrected reversed smoothstep expressions using strictly increasing edge bounds (`1.0 - smoothstep(0.06, 0.5, dist)` and `1.0 - smoothstep(0.0, 0.35, dist)`), removing that specific undefined behavior where $edge0 > edge1$. Refined the geometry with physical-pixel DPR scaling (`gl_PointSize = size * u_dpr`), a dense continuous fluid envelope (3,200 shell points), and 5 distinct, spatially separated inner luminous clusters with cohesive harmonic drift, keeping five distinguishable warm-white nuclei visible during motion. Graded colors into deep saturated wine/crimson (`#4E0A10`, `#940F1A`, `#BB1729`, `#DC1F33`) with warm-white bright puncta (`#F7F7F5`), eliminating pastel pink RGB mixing and avoiding excessive point density, bloom passes or pink washout. Added subtle ambient crimson back-illumination to `.core-stage` matching poster and render brightness. Drastically optimized the static SVG poster from 219 KiB raw down to **69.73 KiB raw** (10.38 KiB gzip) via semantic layer grouping and integer coordinates without assuming HTTP gzip is enabled. Resolved mobile caption/control collision by placing `figcaption` 18px below the stage boundary and vertically stacking caption and button on viewports $\le$ 520px with generous clearance from `.core-label` and `.system-strip`. Captured clean resting desktop/mobile poster and enabled states with focus moved away, plus a dedicated keyboard-focus state.
+- Branch / parent SHA: `design/crimson-signal-v3` @ `76fdc1bb616ebac502d3a2ed9784cbbc970a6131` (`76fdc1b`).
+- Goal and result: Reconciled Task 03 screenshot evidence with the actual checkout, capturing clean, full-hero screenshots under unique filenames. Verified that resting captures have focus moved away, with the headline, lead, and CTA fully visible; the accessible skip link positioned offscreen (`translateY(-200%)`); and the sculpture sphere, caption, and motion control completely unobstructed. Captured dedicated keyboard focus separately on `#motion-toggle` without weakening or removing the skip link. Verified the actual computed focus outline on `#motion-toggle` from the browser DOM: `rgb(255, 255, 255) solid 3px (outline-offset: 3px)`. Retained the reproducible capture spec `tests/browser/hero-capture.spec.js` and confirmed all 151 unit tests and 15 lifecycle tests pass.
 - Changed owned paths:
-  - `client/assets/brand/signal-core-poster.svg`
-  - `client/marketing.css`
-  - `client/marketing/signal-core.js`
-  - `docs/design-v3/screenshots/hero-poster-desktop.png`
-  - `docs/design-v3/screenshots/hero-poster-mobile.png`
-  - `docs/design-v3/screenshots/hero-render-desktop.png`
-  - `docs/design-v3/screenshots/hero-render-mobile.png`
-  - `docs/design-v3/screenshots/hero-focus-desktop.png`
+  - `docs/design-v3/screenshots/hero-final-poster-desktop.png`
+  - `docs/design-v3/screenshots/hero-final-render-desktop.png`
+  - `docs/design-v3/screenshots/hero-final-focus-desktop.png`
+  - `docs/design-v3/screenshots/hero-final-poster-mobile.png`
+  - `docs/design-v3/screenshots/hero-final-render-mobile.png`
+  - `tests/browser/hero-capture.spec.js`
   - `docs/design-v3/receipts/03-receipt.md`
 - Preserved API/console contracts:
   - Vanilla ES modules + Express architecture; native browser scrolling preserved (no Lenis, custom cursors, heavy 3D canvases, or framework migration).
   - Explicit `demo` and `support` mode separation maintained; zero customer actions, live webhooks, or new telemetry claims.
   - Source citations remain unavailable in current release.
-  - Preserved accessible skip link at top of page (`outline: 3px solid var(--focus-dark, #ffffff); outline-offset: 4px;`) without weakening accessibility.
+  - Preserved accessible skip link at top of page (`outline: 3px solid var(--focus-dark, #ffffff); outline-offset: 4px;`) with zero weakening of accessibility.
   - Preserved existing WebGL lifecycle safeguards: `IntersectionObserver` pause offscreen, `visibilitychange` pause when tab is hidden, `prefers-reduced-motion: reduce` enforcement, `webglcontextlost` fallback, and full buffer disposal on navigation.
   - Motion remains default-off; interactive motion activation, persistent preference, and hover drift belong to task 04.
 
@@ -67,20 +65,29 @@
 
 ## Visual Verification Artifacts
 
-The following screenshots capture the full hero section (with headline, lead copy, primary CTA, note, stage, and controls):
-- Desktop Poster (1440x900): `docs/design-v3/screenshots/hero-poster-desktop.png` (257,885 bytes) — resting state, focus moved away
-- Desktop Render (1440x900): `docs/design-v3/screenshots/hero-render-desktop.png` (255,315 bytes) — resting state, focus moved away
-- Desktop Keyboard Focus (1440x900): `docs/design-v3/screenshots/hero-focus-desktop.png` (258,412 bytes) — dedicated focus state; actual computed outline on `#motion-toggle` measured from browser DOM: `rgb(255, 255, 255) solid 3px (outline-offset: 3px)`
-- Mobile Poster (390x844): `docs/design-v3/screenshots/hero-poster-mobile.png` (117,652 bytes) — vertically stacked caption and button with clean label clearance
-- Mobile Render (390x844): `docs/design-v3/screenshots/hero-render-mobile.png` (132,448 bytes)
+The following fresh full-hero screenshots reconcile the repository evidence under unique filenames:
+- Desktop Poster (1440x900): `docs/design-v3/screenshots/hero-final-poster-desktop.png` (257,885 bytes) — resting state, focus moved away
+- Desktop Render (1440x900): `docs/design-v3/screenshots/hero-final-render-desktop.png` (255,848 bytes) — resting state, focus moved away (matching poster brightness & density)
+- Desktop Keyboard Focus (1440x900): `docs/design-v3/screenshots/hero-final-focus-desktop.png` (258,412 bytes) — dedicated keyboard focus screenshot; actual computed outline on `#motion-toggle` measured from browser DOM: `rgb(255, 255, 255) solid 3px (outline-offset: 3px)`
+- Mobile Poster (390x844): `docs/design-v3/screenshots/hero-final-poster-mobile.png` (117,652 bytes) — resting state, vertically stacked caption and button with clean label clearance
+- Mobile Render (390x844): `docs/design-v3/screenshots/hero-final-render-mobile.png` (132,765 bytes) — resting state, enabled WebGL canvas
+
+### Verification Checklist & Exact Invocations
+- **Headline, lead and CTA**: Verified fully visible and in-viewport across desktop and mobile.
+- **Skip link offscreen**: Verified `isSkipOffscreen: true` (`transform: translateY(-200%)`) during all resting captures.
+- **Sphere, caption and controls**: Verified unobstructed; `figcaption` sits strictly below the stage boundary (`fig.y >= stage.y + stage.height`) with no label collisions.
+- **Reproducible capture command**:
+  ```bash
+  npx playwright test tests/browser/hero-capture.spec.js
+  ```
 
 ## Actual Checks (commands, exits/counts)
 
 | Check | Exact command / invocation | Exit / outcome |
 | :--- | :--- | :--- |
-| Unit & contract suite | `npm test` (`vitest run`) | Exit 0; 16 test files passed, 151/151 tests passed (7.44s) |
-| Signal Core lifecycle suite | `npx playwright test tests/browser/signal-core.spec.js` | Exit 0; 1 test suite passed, 15/15 tests passed (27.9s) |
-| Hero capture & layout suite | `npx playwright test tests/browser/hero-capture-and-verify.spec.js` | Exit 0; all clearance assertions verified and 5 screenshots captured (13.1s) |
+| Unit & contract suite | `npm test` (`vitest run`) | Exit 0; 16 test files passed, 151/151 tests passed (10.16s) |
+| Signal Core lifecycle suite | `npx playwright test tests/browser/signal-core.spec.js` | Exit 0; 1 test suite passed, 15/15 tests passed (24.6s) |
+| Hero capture & layout suite | `npx playwright test tests/browser/hero-capture.spec.js` | Exit 0; 1 test suite passed, 5 screenshots captured and verified (11.1s) |
 | Whitespace / syntax check | `git diff --check` | Exit 0; clean, zero whitespace errors |
 
 ## Evidence Gaps and Next Task
