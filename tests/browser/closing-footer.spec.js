@@ -91,7 +91,7 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
     await expect(topLink).toContainText('Back to top');
   });
 
-  test('5. Exhaustive link verification: all header, in-page, CTA, and footer destinations exist', async ({ page }) => {
+  test('5. Exhaustive link verification: all header, in-page, CTA, contact, and footer destinations exist', async ({ page }) => {
     await page.goto('/');
 
     const links = await page.locator('a[href]').evaluateAll(anchors =>
@@ -110,6 +110,10 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
         const targetId = link.href.substring(1);
         const targetExists = await page.locator(`#${targetId}`).count();
         expect(targetExists, `Target #${targetId} for link "${link.text}" must exist in DOM`).toBeGreaterThan(0);
+      } else if (link.href.startsWith('mailto:')) {
+        expect(link.href).toMatch(/^mailto:BradJohn70@gmail\.com(\?subject=SupportGenius%20AI%20implementation%20enquiry)?$/);
+      } else if (link.href.startsWith('https://')) {
+        expect(link.href).toMatch(/^https:\/\/(bradleychiwo\.netlify\.app|www\.linkedin\.com\/in\/bradley-john-chiwo|github\.com\/BradleyXiX)\/?$/);
       } else {
         // App routes
         expect(link.href).toMatch(/^\/(console\/)?$/);
@@ -168,6 +172,19 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
     await expect(closingCta).toBeVisible();
     await expect(closingCta).toHaveAttribute('href', '/console/');
 
+    // Hero secondary discuss link navigates to #implementation-contact
+    const heroDiscuss = page.locator('.hero .actions a.button.secondary');
+    await expect(heroDiscuss).toBeVisible();
+    await expect(heroDiscuss).toHaveAttribute('href', '#implementation-contact');
+
+    // Implementation contact mailto is visible
+    const mailtoBtn = page.locator('#implementation-contact a.contact-email-btn');
+    await expect(mailtoBtn).toBeVisible();
+    await expect(mailtoBtn).toHaveAttribute(
+      'href',
+      'mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry'
+    );
+
     // Back to top link
     const topLink = page.locator('.site-footer a.text-link');
     await expect(topLink).toBeVisible();
@@ -199,6 +216,167 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
       });
       expect(overflow, `Overflow detected at ${vp.width}px`).toBe(false);
     }
+  });
+
+  test('10. Implementation contact block renders approved copy, mailto action, and selectable address', async ({ page }) => {
+    await page.goto('/');
+
+    const contact = page.locator('#implementation-contact');
+    await expect(contact).toBeVisible();
+
+    // Located inside closing copy column
+    const insideClosingCopy = await page.evaluate(() => {
+      const el = document.getElementById('implementation-contact');
+      return el ? el.closest('.closing-copy') !== null : false;
+    });
+    expect(insideClosingCopy).toBe(true);
+
+    // Approved heading and copy
+    await expect(contact.locator('h3#contact-heading')).toHaveText('Want this for your business?');
+    await expect(contact.locator('.contact-copy')).toHaveText(
+      'Tell me about your support workflow and the documents you want your assistant to use.'
+    );
+
+    // Email link with exact encoded subject
+    const emailBtn = contact.locator('a.contact-email-btn');
+    await expect(emailBtn).toBeVisible();
+    await expect(emailBtn).toHaveAttribute(
+      'href',
+      'mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry'
+    );
+    await expect(emailBtn).toContainText('Discuss implementation');
+
+    // 44px min touch target
+    const btnBox = await emailBtn.boundingBox();
+    expect(btnBox.height).toBeGreaterThanOrEqual(44);
+
+    // Selectable address and explanation
+    await expect(contact.locator('.contact-note')).toHaveText(
+      'Opens your email app. You can also copy the address below.'
+    );
+    const address = contact.locator('.selectable-address');
+    await expect(address).toBeVisible();
+    await expect(address).toHaveText('BradJohn70@gmail.com');
+
+    // Focus outline on secondary button inside closing
+    await emailBtn.focus();
+    const focusStyles = await emailBtn.evaluate(el => {
+      const computed = window.getComputedStyle(el);
+      return {
+        outlineStyle: computed.outlineStyle,
+        outlineColor: computed.outlineColor,
+        outlineWidth: computed.outlineWidth,
+      };
+    });
+    expect(focusStyles.outlineStyle).not.toBe('none');
+    expect(parseInt(focusStyles.outlineWidth)).toBeGreaterThanOrEqual(2);
+  });
+
+  test('11. Footer renders Built by Bradley Chiwo and 44px touch targets for professional profiles', async ({ page }) => {
+    await page.goto('/');
+
+    const footer = page.locator('.site-footer');
+    await expect(footer).toBeVisible();
+
+    // Author credit
+    const author = footer.locator('.footer-author');
+    await expect(author).toHaveText('Built by Bradley Chiwo');
+
+    // Expected professional profiles
+    const expectedProfiles = [
+      { text: 'Email', href: 'mailto:BradJohn70@gmail.com', newTab: false },
+      { text: 'Portfolio', href: 'https://bradleychiwo.netlify.app/', newTab: true },
+      { text: 'LinkedIn', href: 'https://www.linkedin.com/in/bradley-john-chiwo/', newTab: true },
+      { text: 'GitHub', href: 'https://github.com/BradleyXiX', newTab: true },
+    ];
+
+    for (const profile of expectedProfiles) {
+      const link = footer.locator(`a[href="${profile.href}"]`);
+      await expect(link).toBeVisible();
+      await expect(link).toContainText(profile.text);
+
+      if (profile.newTab) {
+        await expect(link).toHaveAttribute('target', '_blank');
+        await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      }
+
+      // Check 44px touch target
+      const box = await link.boundingBox();
+      expect(box.height, `Link ${profile.text} height should be >= 44px`).toBeGreaterThanOrEqual(44);
+
+      // Check focus visibility
+      await link.focus();
+      const outline = await link.evaluate(el => window.getComputedStyle(el).outlineStyle);
+      expect(outline).not.toBe('none');
+    }
+  });
+
+  test('12. In-page navigation: hero secondary link scrolls to #implementation-contact', async ({ page }) => {
+    await page.goto('/');
+
+    const heroSecondary = page.locator('.hero .actions a.button.secondary');
+    await expect(heroSecondary).toBeVisible();
+    await expect(heroSecondary).toHaveAttribute('href', '#implementation-contact');
+    await expect(heroSecondary).toContainText('Discuss implementation');
+
+    // Click secondary button
+    await heroSecondary.click();
+
+    // Target is in viewport or URL hash updated
+    await expect(page).toHaveURL(/#implementation-contact$/);
+    const contact = page.locator('#implementation-contact');
+    await expect(contact).toBeInViewport();
+  });
+
+  test('13. Capture visual evidence of implementation contact, footer, and hero actions', async ({ page }) => {
+    // 1. Desktop 1440x900
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+
+    // Hero actions desktop
+    const heroActions = page.locator('.hero .actions');
+    await heroActions.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: 'docs/design-v3/screenshots/contact-hero-actions-desktop.png',
+      clip: { x: 0, y: 0, width: 1440, height: 720 },
+    });
+
+    // Implementation contact desktop
+    const contact = page.locator('#implementation-contact');
+    await contact.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: 'docs/design-v3/screenshots/contact-implementation-desktop.png',
+    });
+
+    // Footer desktop
+    const footer = page.locator('.site-footer');
+    await footer.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: 'docs/design-v3/screenshots/contact-footer-desktop.png',
+    });
+
+    // 2. Mobile 390x844
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+
+    const heroActionsMobile = page.locator('.hero .actions');
+    await heroActionsMobile.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: 'docs/design-v3/screenshots/contact-hero-actions-mobile.png',
+      clip: { x: 0, y: 0, width: 390, height: 600 },
+    });
+
+    const contactMobile = page.locator('#implementation-contact');
+    await contactMobile.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: 'docs/design-v3/screenshots/contact-implementation-mobile.png',
+    });
+
+    const footerMobile = page.locator('.site-footer');
+    await footerMobile.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: 'docs/design-v3/screenshots/contact-footer-mobile.png',
+    });
   });
 
 });
