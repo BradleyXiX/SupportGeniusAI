@@ -6,6 +6,7 @@
 
 import { initChapters } from './marketing/chapters.js';
 import { initExamples } from './marketing/examples.js';
+import { initNetworkTexture, setLargeSphereActive } from './marketing/network-texture.js';
 import {
   MotionState,
   getStoredMotionPreference,
@@ -80,6 +81,12 @@ export function initLanding() {
 
   // Scripted Interactive Examples Controller
   initExamples();
+
+  // Bounded Atmospheric Network Texture (System sidebar & Deployment backdrops)
+  const systemBackdrop = document.querySelector('.system-network-backdrop');
+  const deployBackdrop = document.querySelector('.deployment-network-backdrop');
+  if (systemBackdrop) initNetworkTexture(systemBackdrop);
+  if (deployBackdrop) initNetworkTexture(deployBackdrop);
 }
 
 export function initSignalCore() {
@@ -197,10 +204,14 @@ export function initSignalCore() {
       // Successful activation
       teardown = mountCore(canvas, poster, {
         onDispose: () => {
+          setLargeSphereActive(false);
           teardown = null;
           if (!failed && currentState === MotionState.RUNNING) {
             applyUIState(MotionState.USER_PAUSED);
           }
+        },
+        onVisibilityChange: (isVisible) => {
+          setLargeSphereActive(isVisible);
         }
       });
 
@@ -231,7 +242,7 @@ export function initSignalCore() {
         td();
       }
       applyUIState(MotionState.USER_PAUSED);
-    } else {
+     } else {
       // User resumes
       setStoredMotionPreference('running');
       activate();
@@ -268,6 +279,7 @@ export function initSignalCore() {
   }
 
   const onPageHide = () => {
+    setLargeSphereActive(false);
     generation++;
     if (teardown) {
       const td = teardown;
@@ -341,6 +353,7 @@ export function initSignalCore() {
     getState: () => currentState,
     getTeardown: () => teardown,
     pause: () => {
+      setLargeSphereActive(false);
       setStoredMotionPreference('paused');
       generation++;
       if (teardown) {
@@ -355,6 +368,7 @@ export function initSignalCore() {
       activate();
     },
     destroy: () => {
+      setLargeSphereActive(false);
       generation++;
       visibilityObserver?.disconnect();
       visibilityObserver = null;

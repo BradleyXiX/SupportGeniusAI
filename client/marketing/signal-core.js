@@ -3,7 +3,7 @@
 // Preserves DPR <= 1.5, cancels RAF when hidden/offscreen, cleans up on dispose.
 // Adds fine-pointer hover tilt (capped at ±6°), shell wave displacement (+12%), and touch fallback.
 
-export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
+export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityChange = () => {} } = {}) {
   const gl = canvas.getContext('webgl', {
     alpha: true,
     antialias: true,
@@ -138,6 +138,7 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
     if (poster) {
       poster.style.visibility = 'visible';
     }
+    onVisibilityChange(false);
     onDispose();
   }
 
@@ -389,6 +390,7 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       observer = new IntersectionObserver(
         (entries) => {
           visible = Boolean(entries[0]?.isIntersecting);
+          onVisibilityChange(visible);
           schedule();
         },
         { threshold: 0.02 }
@@ -417,6 +419,7 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
     if (poster) {
       poster.style.visibility = 'hidden';
     }
+    onVisibilityChange(visible);
     request();
 
     dispose.isDisposed = () => disposed;

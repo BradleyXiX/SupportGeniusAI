@@ -545,9 +545,20 @@ body[data-page="marketing"] .system-layout {
 }
 
 body[data-page="marketing"] .chapter-index {
+  position: relative;
+  isolation: isolate;
   padding-top: 30px;
   color: var(--muted, #c0bcc0);
   font-size: 14px;
+}
+
+body[data-page="marketing"] .chapter-index > * {
+  position: relative;
+  z-index: 1;
+}
+
+body[data-page="marketing"] .chapter-index > .network-backdrop {
+  z-index: 0;
 }
 
 body[data-page="marketing"] .orbit-small {
@@ -933,6 +944,22 @@ body[data-page="marketing"] .sample-conversation > .text-link {
 }
 
 /* Deployment Section */
+body[data-page="marketing"] section.deployment {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+body[data-page="marketing"] section.deployment > .network-backdrop {
+  z-index: 0;
+}
+
+body[data-page="marketing"] section.deployment > .section-head,
+body[data-page="marketing"] section.deployment > .deployment-grid {
+  position: relative;
+  z-index: 1;
+}
+
 body[data-page="marketing"] .deployment-grid {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
@@ -940,6 +967,9 @@ body[data-page="marketing"] .deployment-grid {
 }
 
 body[data-page="marketing"] .deployment-grid article {
+  position: relative;
+  z-index: 1;
+  background: var(--surface, #101012);
   padding: 36px;
   overflow: hidden;
 }
@@ -1016,6 +1046,60 @@ body[data-page="marketing"] .document-stack > div:nth-child(3) {
 
 body[data-page="marketing"] .document-stack span {
   color: var(--muted, #c0bcc0);
+}
+
+/* ==========================================================================
+   Bounded Atmospheric Network Texture Backdrops (Task 06)
+   ========================================================================== */
+
+body[data-page="marketing"] .network-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+body[data-page="marketing"] .system-network-backdrop {
+  opacity: 0.65;
+}
+
+body[data-page="marketing"] .deployment-network-backdrop {
+  opacity: 0.55;
+}
+
+body[data-page="marketing"] .network-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+body[data-page="marketing"] .network-canvas[hidden] {
+  display: none !important;
+}
+
+body[data-page="marketing"] .network-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+/* Reduced Motion: canvas hidden, poster visible */
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="marketing"] .network-canvas {
+    display: none !important;
+  }
+  body[data-page="marketing"] .network-poster {
+    visibility: visible !important;
+    opacity: 0.45 !important;
+  }
 }
 
 /* Closing Section */
