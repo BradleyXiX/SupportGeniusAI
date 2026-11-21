@@ -2,8 +2,22 @@
 // Single owner for camera rotation and canvas drawing.
 // Preserves DPR <= 1.5, cancels RAF when hidden/offscreen, cleans up on dispose.
 // Adds fine-pointer hover tilt (capped at ±6°), shell wave displacement (+12%), and touch fallback.
+// Reusable for hero (dark canvas) and closing (paper background) with scheduler coordination.
 
-export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityChange = () => {} } = {}) {
+import {
+  registerScene,
+  isMotionAllowed,
+  subscribeMotionPreference,
+  subscribeScheduler
+} from './motion-policy.js';
+
+export function mountCore(canvas, poster, {
+  theme = 'dark',
+  id = 'hero-sphere',
+  priority = 1,
+  onDispose = () => {},
+  onVisibilityChange = () => {}
+} = {}) {
   const gl = canvas.getContext('webgl', {
     alpha: true,
     antialias: true,
@@ -17,6 +31,7 @@ export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityCh
   let raf = 0;
   let disposed = false;
   let visible = true;
+  let primaryActive = true;
   let angle = 0;
   let last = 0;
   let totalTime = 0;
@@ -26,9 +41,15 @@ export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityCh
   let uDpr;
   let uTilt;
   let uDispMult;
+  let uTheme;
   let schedule = () => {};
   let observer;
   let resize;
+
+  // Scene scheduler registration
+  const sceneRegistration = registerScene(id, { priority });
+  let unsubscribeMotion = null;
+  let unsubscribeScheduler = null;
 
   // Cached dimensions — eliminates per-frame layout measurements
   let cachedWidth = 0;
@@ -130,6 +151,10 @@ export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityCh
     stage.removeEventListener('pointermove', onPointerMove);
     stage.removeEventListener('pointerleave', onPointerLeave);
 
+    if (unsubscribeMotion) unsubscribeMotion();
+    if (unsubscribeScheduler) unsubscribeScheduler();
+    sceneRegistration.release();
+
     if (buffer) gl.deleteBuffer(buffer);
     if (program) gl.deleteProgram(program);
     shaders.forEach((shader) => gl.deleteShader(shader));
@@ -200,6 +225,7 @@ export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityCh
 
     const fragmentSource = [
       'precision mediump float;',
+      'uniform float u_theme;',
       'varying float v_type;',
       'varying float v_depth;',
       'varying float v_seed;',
@@ -207,40 +233,80 @@ export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityCh
       '  float dist = length(gl_PointCoord - vec2(0.5));',
       '  if (dist > 0.5) discard;',
       '  float shape = 1.0 - smoothstep(0.06, 0.5, dist);',
-      '  if (v_type > 0.5) {',
-      '    vec3 crimsonDeep = vec3(0.55, 0.06, 0.10);',
-      '    vec3 crimsonVibrant = vec3(0.733, 0.090, 0.161);',
-      '    vec3 whiteWarm = vec3(0.969, 0.969, 0.961);',
-      '    if (v_seed > 0.40) {',
-      '      float coreFactor = 1.0 - smoothstep(0.0, 0.38, dist);',
-      '      vec3 rgb = mix(crimsonVibrant, whiteWarm, coreFactor * coreFactor);',
-      '      float alpha = shape * (0.85 + (v_depth + 1.0) * 0.10);',
-      '      gl_FragColor = vec4(rgb, alpha);',
+      '  if (u_theme > 0.5) {',
+      '    // Light theme (closing section on paper background)',
+      '    if (v_type > 0.5) {',
+      '      vec3 wineDark = vec3(0.42, 0.05, 0.09);',
+      '      vec3 crimsonRich = vec3(0.65, 0.08, 0.14);',
+      '      vec3 garnetCore = vec3(0.18, 0.02, 0.04);',
+      '      if (v_seed > 0.40) {',
+      '        float coreFactor = 1.0 - smoothstep(0.0, 0.38, dist);',
+      '        vec3 rgb = mix(crimsonRich, garnetCore, coreFactor * coreFactor);',
+      '        float alpha = shape * (0.88 + (v_depth + 1.0) * 0.10);',
+      '        gl_FragColor = vec4(rgb, alpha);',
+      '      } else {',
+      '        vec3 rgb = mix(wineDark, crimsonRich, 0.5 + v_depth * 0.5);',
+      '        float alpha = shape * (0.70 + (v_depth + 1.0) * 0.20);',
+      '        gl_FragColor = vec4(rgb, alpha);',
+      '      }',
       '    } else {',
-      '      vec3 rgb = mix(crimsonDeep, crimsonVibrant, 0.5 + v_depth * 0.5);',
-      '      float alpha = shape * (0.65 + (v_depth + 1.0) * 0.20);',
+      '      vec3 wineDeep = vec3(0.38, 0.04, 0.08);',
+      '      vec3 crimsonMid = vec3(0.65, 0.08, 0.14);',
+      '      vec3 crimsonVibrant = vec3(0.733, 0.090, 0.161);',
+      '      vec3 rimDark = vec3(0.18, 0.02, 0.04);',
+      '      vec3 rgb;',
+      '      float alpha;',
+      '      if (v_depth < 0.0) {',
+      '        float factor = (v_depth + 1.0);',
+      '        rgb = mix(wineDeep, crimsonMid, factor * 0.70);',
+      '        alpha = shape * (0.42 + factor * 0.35);',
+      '      } else {',
+      '        float factor = v_depth;',
+      '        rgb = mix(crimsonMid, crimsonVibrant, factor * 0.75);',
+      '        if (v_seed > 0.93 && v_depth > 0.20) {',
+      '          rgb = mix(rgb, rimDark, 0.75);',
+      '        }',
+      '        alpha = shape * (0.72 + factor * 0.25);',
+      '      }',
       '      gl_FragColor = vec4(rgb, alpha);',
       '    }',
       '  } else {',
-      '    vec3 wineDark = vec3(0.48, 0.06, 0.10);',
-      '    vec3 crimsonMid = vec3(0.733, 0.090, 0.161);',
-      '    vec3 crimsonHot = vec3(0.86, 0.12, 0.20);',
-      '    vec3 rimWhite = vec3(0.969, 0.969, 0.961);',
-      '    vec3 rgb;',
-      '    float alpha;',
-      '    if (v_depth < 0.0) {',
-      '      float factor = (v_depth + 1.0);',
-      '      rgb = mix(wineDark, crimsonMid, factor * 0.70);',
-      '      alpha = shape * (0.42 + factor * 0.35);',
-      '    } else {',
-      '      float factor = v_depth;',
-      '      rgb = mix(crimsonMid, crimsonHot, factor * 0.75);',
-      '      if (v_seed > 0.93 && v_depth > 0.20) {',
-      '        rgb = mix(rgb, rimWhite, 0.85);',
+      '    // Dark theme (hero section on dark canvas)',
+      '    if (v_type > 0.5) {',
+      '      vec3 crimsonDeep = vec3(0.55, 0.06, 0.10);',
+      '      vec3 crimsonVibrant = vec3(0.733, 0.090, 0.161);',
+      '      vec3 whiteWarm = vec3(0.969, 0.969, 0.961);',
+      '      if (v_seed > 0.40) {',
+      '        float coreFactor = 1.0 - smoothstep(0.0, 0.38, dist);',
+      '        vec3 rgb = mix(crimsonVibrant, whiteWarm, coreFactor * coreFactor);',
+      '        float alpha = shape * (0.85 + (v_depth + 1.0) * 0.10);',
+      '        gl_FragColor = vec4(rgb, alpha);',
+      '      } else {',
+      '        vec3 rgb = mix(crimsonDeep, crimsonVibrant, 0.5 + v_depth * 0.5);',
+      '        float alpha = shape * (0.65 + (v_depth + 1.0) * 0.20);',
+      '        gl_FragColor = vec4(rgb, alpha);',
       '      }',
-      '      alpha = shape * (0.68 + factor * 0.30);',
+      '    } else {',
+      '      vec3 wineDark = vec3(0.48, 0.06, 0.10);',
+      '      vec3 crimsonMid = vec3(0.733, 0.090, 0.161);',
+      '      vec3 crimsonHot = vec3(0.86, 0.12, 0.20);',
+      '      vec3 rimWhite = vec3(0.969, 0.969, 0.961);',
+      '      vec3 rgb;',
+      '      float alpha;',
+      '      if (v_depth < 0.0) {',
+      '        float factor = (v_depth + 1.0);',
+      '        rgb = mix(wineDark, crimsonMid, factor * 0.70);',
+      '        alpha = shape * (0.42 + factor * 0.35);',
+      '      } else {',
+      '        float factor = v_depth;',
+      '        rgb = mix(crimsonMid, crimsonHot, factor * 0.75);',
+      '        if (v_seed > 0.93 && v_depth > 0.20) {',
+      '          rgb = mix(rgb, rimWhite, 0.85);',
+      '        }',
+      '        alpha = shape * (0.68 + factor * 0.30);',
+      '      }',
+      '      gl_FragColor = vec4(rgb, alpha);',
       '    }',
-      '    gl_FragColor = vec4(rgb, alpha);',
       '  }',
       '}'
     ].join('\n');
@@ -328,6 +394,7 @@ export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityCh
     uDpr = gl.getUniformLocation(program, 'u_dpr');
     uTilt = gl.getUniformLocation(program, 'u_tilt');
     uDispMult = gl.getUniformLocation(program, 'u_disp_mult');
+    uTheme = gl.getUniformLocation(program, 'u_theme');
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -338,7 +405,7 @@ export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityCh
 
     function draw(time) {
       raf = 0;
-      if (disposed || document.hidden || !visible) return;
+      if (disposed || document.hidden || !visible || !primaryActive) return;
 
       const dt = last ? Math.min((time - last) / 1000, 0.05) : 0;
       last = time;
@@ -362,35 +429,53 @@ export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityCh
       gl.uniform1f(uDpr, cachedDpr);
       gl.uniform2f(uTilt, currentTiltX, currentTiltY);
       gl.uniform1f(uDispMult, currentDispMult);
+      gl.uniform1f(uTheme, theme === 'light' ? 1.0 : 0.0);
       gl.drawArrays(gl.POINTS, 0, totalVertices);
 
       raf = requestAnimationFrame(draw);
     }
 
     function request() {
-      if (!raf && !disposed && !document.hidden && visible) {
+      if (!raf && !disposed && !document.hidden && visible && primaryActive) {
         last = 0;
         raf = requestAnimationFrame(draw);
       }
     }
 
     schedule = () => {
-      if (document.hidden || !visible) {
+      const allowed = isMotionAllowed();
+      const shouldRun = !disposed && !document.hidden && visible && allowed && primaryActive;
+      if (!shouldRun) {
         if (raf) {
           cancelAnimationFrame(raf);
           raf = 0;
         }
         last = 0;
+        sceneRegistration.updateState({ isRunning: false, isVisible: visible && !document.hidden });
       } else {
+        sceneRegistration.updateState({ isRunning: true, isVisible: true });
         request();
       }
     };
+
+    unsubscribeMotion = subscribeMotionPreference(() => {
+      schedule();
+    });
+
+    unsubscribeScheduler = subscribeScheduler(({ primaryScene }) => {
+      const isThisPrimary = !primaryScene || primaryScene === id;
+      if (primaryActive !== isThisPrimary) {
+        primaryActive = isThisPrimary;
+        schedule();
+      }
+    });
 
     if (typeof IntersectionObserver !== 'undefined') {
       observer = new IntersectionObserver(
         (entries) => {
           visible = Boolean(entries[0]?.isIntersecting);
           onVisibilityChange(visible);
+          sceneRegistration.updateState({ isVisible: visible && !document.hidden });
           schedule();
         },
         { threshold: 0.02 }
@@ -426,6 +511,8 @@ export function mountCore(canvas, poster, { onDispose = () => {}, onVisibilityCh
     dispose.isVisible = () => visible;
     dispose.isPaused = () => Boolean(disposed || document.hidden || !visible || !raf);
     dispose.getGl = () => gl;
+    dispose.getId = () => id;
+    dispose.getTheme = () => theme;
     dispose.getTilt = () => ({ x: currentTiltX, y: currentTiltY, targetX: targetTiltX, targetY: targetTiltY });
     dispose.getDispMult = () => ({ current: currentDispMult, target: targetDispMult });
 

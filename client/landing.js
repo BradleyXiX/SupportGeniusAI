@@ -12,6 +12,8 @@ import {
   getStoredMotionPreference,
   setStoredMotionPreference,
   isReducedMotionPreferred,
+  isMotionAllowed,
+  subscribeMotionPreference,
   notifyMotionPreferenceChange
 } from './marketing/motion-policy.js';
 
@@ -87,6 +89,9 @@ export function initLanding() {
   const deployBackdrop = document.querySelector('.deployment-network-backdrop');
   if (systemBackdrop) initNetworkTexture(systemBackdrop);
   if (deployBackdrop) initNetworkTexture(deployBackdrop);
+
+  // Closing Sphere 3D Point Sculpture Controller (Closing light motion)
+  initClosingSphere();
 }
 
 export function initSignalCore() {
@@ -203,15 +208,14 @@ export function initSignalCore() {
 
       // Successful activation
       teardown = mountCore(canvas, poster, {
+        theme: 'dark',
+        id: 'hero-sphere',
+        priority: 1,
         onDispose: () => {
-          setLargeSphereActive(false);
           teardown = null;
           if (!failed && currentState === MotionState.RUNNING) {
             applyUIState(MotionState.USER_PAUSED);
           }
-        },
-        onVisibilityChange: (isVisible) => {
-          setLargeSphereActive(isVisible);
         }
       });
 
@@ -391,6 +395,113 @@ export function initSignalCore() {
 
   if (typeof window !== 'undefined') {
     window.__signalCore = controller;
+  }
+
+  return controller;
+}
+
+export function initClosingSphere() {
+  const stage = document.querySelector('.closing-stage');
+  if (!stage) return null;
+
+  const canvas = stage.querySelector('.closing-canvas');
+  const poster = stage.querySelector('.closing-poster');
+  if (!canvas || !poster) return null;
+
+  // On phones (<= 760px), stack static poster fallback beneath CTA as specified
+  const isPhone = window.matchMedia('(max-width: 760px)').matches;
+  if (isPhone) {
+    canvas.hidden = true;
+    poster.style.visibility = 'visible';
+    return {
+      isPhone: true,
+      dispose: () => {}
+    };
+  }
+
+  let teardown = null;
+  let generation = 0;
+  let failed = false;
+
+  async function activate() {
+    if (failed) return;
+    if (isReducedMotionPreferred() || getStoredMotionPreference() === 'paused' || document.hidden) {
+      canvas.hidden = true;
+      poster.style.visibility = 'visible';
+      return;
+    }
+
+    const attempt = ++generation;
+    try {
+      const { mountCore } = await import('./marketing/signal-core.js');
+      if (
+        attempt !== generation ||
+        isReducedMotionPreferred() ||
+        document.hidden ||
+        getStoredMotionPreference() === 'paused'
+      ) {
+        canvas.hidden = true;
+        poster.style.visibility = 'visible';
+        return;
+      }
+
+      teardown = mountCore(canvas, poster, {
+        theme: 'light',
+        id: 'closing-sphere',
+        priority: 2,
+        onDispose: () => {
+          teardown = null;
+          canvas.hidden = true;
+          poster.style.visibility = 'visible';
+        }
+      });
+    } catch {
+      failed = true;
+      canvas.hidden = true;
+      poster.style.visibility = 'visible';
+    }
+  }
+
+  const unsubscribeMotion = subscribeMotionPreference((allowed) => {
+    if (!allowed) {
+      if (teardown) {
+        const td = teardown;
+        teardown = null;
+        td();
+      }
+      canvas.hidden = true;
+      poster.style.visibility = 'visible';
+    } else {
+      if (!teardown && !failed) {
+        activate();
+      }
+    }
+  });
+
+  if (isMotionAllowed()) {
+    activate();
+  } else {
+    canvas.hidden = true;
+    poster.style.visibility = 'visible';
+  }
+
+  const controller = {
+    getTeardown: () => teardown,
+    isFailed: () => failed,
+    dispose: () => {
+      unsubscribeMotion();
+      if (teardown) {
+        const td = teardown;
+        teardown = null;
+        td();
+      }
+      canvas.hidden = true;
+      poster.style.visibility = 'visible';
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window.__closingSphere = controller;
   }
 
   return controller;

@@ -1093,12 +1093,17 @@ body[data-page="marketing"] .network-poster {
 
 /* Reduced Motion: canvas hidden, poster visible */
 @media (prefers-reduced-motion: reduce) {
-  body[data-page="marketing"] .network-canvas {
+  body[data-page="marketing"] .network-canvas,
+  body[data-page="marketing"] .closing-canvas {
     display: none !important;
   }
   body[data-page="marketing"] .network-poster {
     visibility: visible !important;
     opacity: 0.45 !important;
+  }
+  body[data-page="marketing"] .closing-poster {
+    display: block !important;
+    visibility: visible !important;
   }
 }
 
@@ -1152,17 +1157,41 @@ body[data-page="marketing"] .closing .fine {
   z-index: 1;
 }
 
-body[data-page="marketing"] .closing-rings {
+body[data-page="marketing"] .closing-copy {
+  max-width: 640px;
+  position: relative;
+  z-index: 1;
+}
+
+body[data-page="marketing"] .closing-stage {
   position: absolute;
-  right: 1%;
-  top: 10%;
+  right: 2%;
+  top: 50%;
+  transform: translateY(-50%);
   width: 360px;
   height: 360px;
-  border: 1px solid rgba(165, 22, 42, 0.25);
-  border-radius: 50%;
-  box-shadow: 0 0 0 45px rgba(165, 22, 42, 0.08), 0 0 0 90px rgba(165, 22, 42, 0.04);
-  background: radial-gradient(circle, rgba(187, 23, 41, 0.12), transparent 65%);
   z-index: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-page="marketing"] .closing-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+body[data-page="marketing"] .closing-canvas[hidden] {
+  display: none !important;
+}
+
+body[data-page="marketing"] .closing-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
   pointer-events: none;
 }
 
@@ -1368,16 +1397,46 @@ body[data-page="marketing"] .closing-rings {
   body[data-page="marketing"] .closing h2 {
     font-size: 51px;
   }
+  body[data-page="marketing"] .closing-stage,
   body[data-page="marketing"] .closing-rings {
-    width: 260px;
-    height: 260px;
-    right: -140px;
-    top: 30%;
-    opacity: 0.7;
+    width: 280px;
+    height: 280px;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.85;
   }
   body[data-page="marketing"] .closing .fine {
     max-width: none;
     font-size: 14px;
+  }
+}
+
+@media (max-width: 760px) {
+  body[data-page="marketing"] .closing-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  body[data-page="marketing"] .closing-copy {
+    max-width: 100%;
+  }
+  body[data-page="marketing"] .closing-stage,
+  body[data-page="marketing"] .closing-rings {
+    position: static;
+    transform: none;
+    width: 100%;
+    max-width: 280px;
+    height: 280px;
+    margin: 32px auto 0 auto;
+    align-self: center;
+  }
+  body[data-page="marketing"] .closing-canvas {
+    display: none !important;
+  }
+  body[data-page="marketing"] .closing-poster {
+    display: block !important;
+    visibility: visible !important;
   }
 }
 

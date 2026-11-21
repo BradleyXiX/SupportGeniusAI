@@ -7,12 +7,21 @@
 import {
   isMotionAllowed,
   isReducedMotionPreferred,
-  subscribeMotionPreference
+  subscribeMotionPreference,
+  subscribeScheduler,
+  isAnyLargeSceneActive
 } from './motion-policy.js';
 
 // Global coordination: prioritize primary large sphere when active in viewport
-let largeSphereActive = false;
+let largeSphereActive = isAnyLargeSceneActive();
 const coordinationListeners = new Set();
+
+subscribeScheduler(({ isLargeSceneActive }) => {
+  largeSphereActive = isLargeSceneActive;
+  coordinationListeners.forEach((fn) => {
+    try { fn(largeSphereActive); } catch {}
+  });
+});
 
 export function setLargeSphereActive(active) {
   largeSphereActive = Boolean(active);

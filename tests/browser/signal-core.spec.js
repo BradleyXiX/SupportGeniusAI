@@ -296,8 +296,8 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
         return origRaf(cb);
       };
 
-      // Scroll far down out of viewport
-      window.scrollTo(0, 4000);
+      // Scroll down out of hero viewport (to system section)
+      window.scrollTo(0, 1800);
       await new Promise((r) => setTimeout(r, 400));
 
       const framesWhileOffscreenStart = frameCount;
