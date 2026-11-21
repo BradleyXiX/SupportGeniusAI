@@ -393,6 +393,7 @@ body[data-page="marketing"] .core-stage {
   align-items: center;
   justify-content: center;
   margin: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(187, 23, 41, 0.14) 0%, rgba(74, 8, 15, 0.06) 42%, transparent 70%);
 }
 
 body[data-page="marketing"] .core-top {

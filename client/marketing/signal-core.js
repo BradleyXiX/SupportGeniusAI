@@ -22,6 +22,7 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
   let uTime;
   let uRotation;
   let uAspect;
+  let uDpr;
   let schedule = () => {};
   let observer;
   let resize;
@@ -73,6 +74,7 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       'uniform float u_time;',
       'uniform float u_rotation;',
       'uniform float u_aspect;',
+      'uniform float u_dpr;',
       'varying float v_type;',
       'varying float v_depth;',
       'varying float v_seed;',
@@ -85,13 +87,13 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       '    pos *= (1.0 + disp);',
       '  } else {',
       '    vec3 drift = vec3(',
-      '      sin(u_time * 0.5 + s * 6.28) * 0.02,',
-      '      cos(u_time * 0.6 + s * 4.10) * 0.02,',
-      '      sin(u_time * 0.45 + s * 5.20) * 0.02',
+      '      sin(u_time * 0.4 + pos.x * 2.5) * 0.015,',
+      '      cos(u_time * 0.5 + pos.y * 2.5) * 0.015,',
+      '      sin(u_time * 0.35 + pos.z * 2.5) * 0.015',
       '    );',
       '    pos += drift;',
       '  }',
-      '  float rot = u_rotation * (t > 0.5 ? 1.08 : 1.0);',
+      '  float rot = u_rotation;',
       '  float cr = cos(rot);',
       '  float sr = sin(rot);',
       '  vec3 q = vec3(pos.x * cr + pos.z * sr, pos.y, -pos.x * sr + pos.z * cr);',
@@ -101,9 +103,10 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       '  float d = 3.4 - q.z * 0.45;',
       '  gl_Position = vec4(q.x * 2.12 / (d * u_aspect), q.y * 2.12 / d, 0.0, 1.0);',
       '  if (t > 0.5) {',
-      '    gl_PointSize = (1.6 + (q.z + 1.0) * 0.95) * (0.90 + s * 0.30);',
+      '    float baseSize = (s > 0.40) ? 2.5 : 2.0;',
+      '    gl_PointSize = (baseSize + (q.z + 1.0) * 0.8) * u_dpr;',
       '  } else {',
-      '    gl_PointSize = (1.4 + (q.z + 1.0) * 0.85) * (0.85 + s * 0.30);',
+      '    gl_PointSize = (2.0 + (q.z + 1.0) * 0.75) * (0.88 + s * 0.24) * u_dpr;',
       '  }',
       '  v_type = t;',
       '  v_depth = q.z;',
@@ -121,33 +124,37 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       '  if (dist > 0.5) discard;',
       '  float shape = 1.0 - smoothstep(0.06, 0.5, dist);',
       '  if (v_type > 0.5) {',
-      '    vec3 crimsonDeep = vec3(0.54, 0.05, 0.09);',
+      '    vec3 crimsonDeep = vec3(0.55, 0.06, 0.10);',
       '    vec3 crimsonVibrant = vec3(0.733, 0.090, 0.161);',
       '    vec3 whiteWarm = vec3(0.969, 0.969, 0.961);',
-      '    float coreEdge = 1.0 - smoothstep(0.0, 0.35, dist);',
-      '    float coreIntense = pow(coreEdge, 3.0);',
-      '    vec3 halo = mix(crimsonDeep, crimsonVibrant, 0.65 + v_depth * 0.3);',
-      '    vec3 rgb = mix(halo, whiteWarm, coreIntense * step(0.45, v_seed));',
-      '    float alpha = shape * (0.80 + (v_depth + 1.0) * 0.10);',
-      '    gl_FragColor = vec4(rgb, alpha);',
+      '    if (v_seed > 0.40) {',
+      '      float coreFactor = 1.0 - smoothstep(0.0, 0.38, dist);',
+      '      vec3 rgb = mix(crimsonVibrant, whiteWarm, coreFactor * coreFactor);',
+      '      float alpha = shape * (0.85 + (v_depth + 1.0) * 0.10);',
+      '      gl_FragColor = vec4(rgb, alpha);',
+      '    } else {',
+      '      vec3 rgb = mix(crimsonDeep, crimsonVibrant, 0.5 + v_depth * 0.5);',
+      '      float alpha = shape * (0.65 + (v_depth + 1.0) * 0.20);',
+      '      gl_FragColor = vec4(rgb, alpha);',
+      '    }',
       '  } else {',
-      '    vec3 wineDark = vec3(0.26, 0.04, 0.06);',
+      '    vec3 wineDark = vec3(0.48, 0.06, 0.10);',
       '    vec3 crimsonMid = vec3(0.733, 0.090, 0.161);',
-      '    vec3 crimsonHot = vec3(0.820, 0.100, 0.180);',
+      '    vec3 crimsonHot = vec3(0.86, 0.12, 0.20);',
       '    vec3 rimWhite = vec3(0.969, 0.969, 0.961);',
       '    vec3 rgb;',
       '    float alpha;',
       '    if (v_depth < 0.0) {',
       '      float factor = (v_depth + 1.0);',
-      '      rgb = mix(wineDark, crimsonMid, factor * 0.60);',
-      '      alpha = shape * (0.24 + factor * 0.30);',
+      '      rgb = mix(wineDark, crimsonMid, factor * 0.70);',
+      '      alpha = shape * (0.42 + factor * 0.35);',
       '    } else {',
       '      float factor = v_depth;',
-      '      rgb = mix(crimsonMid, crimsonHot, factor * 0.70);',
-      '      if (v_seed > 0.94 && v_depth > 0.30) {',
-      '        rgb = mix(rgb, rimWhite, 0.75);',
+      '      rgb = mix(crimsonMid, crimsonHot, factor * 0.75);',
+      '      if (v_seed > 0.93 && v_depth > 0.20) {',
+      '        rgb = mix(rgb, rimWhite, 0.85);',
       '      }',
-      '      alpha = shape * (0.55 + factor * 0.35);',
+      '      alpha = shape * (0.68 + factor * 0.30);',
       '    }',
       '    gl_FragColor = vec4(rgb, alpha);',
       '  }',
@@ -234,6 +241,7 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
     uTime = gl.getUniformLocation(program, 'u_time');
     uRotation = gl.getUniformLocation(program, 'u_rotation');
     uAspect = gl.getUniformLocation(program, 'u_aspect');
+    uDpr = gl.getUniformLocation(program, 'u_dpr');
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -263,6 +271,7 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       gl.uniform1f(uTime, totalTime);
       gl.uniform1f(uRotation, angle + window.scrollY * 0.00035);
       gl.uniform1f(uAspect, w / Math.max(h, 1));
+      gl.uniform1f(uDpr, dpr);
       gl.drawArrays(gl.POINTS, 0, totalVertices);
 
       raf = requestAnimationFrame(draw);
