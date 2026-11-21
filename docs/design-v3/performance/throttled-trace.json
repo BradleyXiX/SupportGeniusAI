@@ -1,0 +1,8 @@
+{
+  "sampleCount": 59,
+  "avgDeltaMs": 43.8,
+  "minDeltaMs": 16.6,
+  "maxDeltaMs": 316.7,
+  "p95DeltaMs": 50.1,
+  "effectiveFps": 23
+}

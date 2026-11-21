@@ -1,0 +1,158 @@
+{
+  "landing": {
+    "runs": [
+      {
+        "lcp": 900,
+        "cls": 0.266,
+        "domContentLoaded": 754,
+        "load": 824,
+        "shifts": [
+          {
+            "value": 0.2659771097668306,
+            "sources": [
+              "DIV",
+              "FIGURE",
+              "DIV",
+              "SECTION",
+              "FIGCAPTION"
+            ]
+          }
+        ]
+      },
+      {
+        "lcp": 788,
+        "cls": 0.266,
+        "domContentLoaded": 646,
+        "load": 689,
+        "shifts": [
+          {
+            "value": 0.2659771097668306,
+            "sources": [
+              "DIV",
+              "FIGURE",
+              "DIV",
+              "SECTION",
+              "FIGCAPTION"
+            ]
+          }
+        ]
+      },
+      {
+        "lcp": 744,
+        "cls": 0.266,
+        "domContentLoaded": 572,
+        "load": 616,
+        "shifts": [
+          {
+            "value": 0.2659771097668306,
+            "sources": [
+              "DIV",
+              "FIGURE",
+              "DIV",
+              "SECTION",
+              "FIGCAPTION"
+            ]
+          }
+        ]
+      }
+    ],
+    "medianLCP": 788,
+    "minLCP": 744,
+    "maxLCP": 900,
+    "medianCLS": 0.266,
+    "minCLS": 0.266,
+    "maxCLS": 0.266
+  },
+  "console": {
+    "runs": [
+      {
+        "lcp": 304,
+        "cls": 0.0031,
+        "domContentLoaded": 296,
+        "load": 318,
+        "shifts": [
+          {
+            "value": 0.0021046358235677085,
+            "sources": [
+              "DIV",
+              "BUTTON",
+              "BUTTON",
+              "BUTTON",
+              "SPAN"
+            ]
+          },
+          {
+            "value": 0.0009743043875988619,
+            "sources": [
+              "DIV",
+              "DIV",
+              "DIV",
+              "#text",
+              "#text"
+            ]
+          }
+        ]
+      },
+      {
+        "lcp": 424,
+        "cls": 0.0025,
+        "domContentLoaded": 410,
+        "load": 461,
+        "shifts": [
+          {
+            "value": 0.0021036688684534146,
+            "sources": [
+              "DIV",
+              "BUTTON",
+              "BUTTON",
+              "BUTTON",
+              "SPAN"
+            ]
+          },
+          {
+            "value": 0.0004182008679707846,
+            "sources": [
+              "DIV",
+              "DIV",
+              "DIV",
+              "#text",
+              "#text"
+            ]
+          }
+        ]
+      },
+      {
+        "lcp": 552,
+        "cls": 0.0025,
+        "domContentLoaded": 543,
+        "load": 567,
+        "shifts": [
+          {
+            "value": 0.000057226080246913576,
+            "sources": [
+              "DIV",
+              "#text",
+              "unknown"
+            ]
+          },
+          {
+            "value": 0.002438041946976273,
+            "sources": [
+              "DIV",
+              "DIV",
+              "DIV",
+              "SPAN",
+              "SPAN"
+            ]
+          }
+        ]
+      }
+    ],
+    "medianLCP": 424,
+    "minLCP": 304,
+    "maxLCP": 552,
+    "medianCLS": 0.0025,
+    "minCLS": 0.0025,
+    "maxCLS": 0.0031
+  }
+}
