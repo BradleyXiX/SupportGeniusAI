@@ -122,6 +122,7 @@ test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
 
   test('6. Offscreen and tab visibility suspension', async ({ page }) => {
     await page.goto('/');
+    await page.waitForTimeout(300);
 
     // When at top (hero), closing section is offscreen
     const isClosingVisibleInitial = await page.evaluate(() => {

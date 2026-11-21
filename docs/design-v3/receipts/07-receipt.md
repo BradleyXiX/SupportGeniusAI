@@ -1,8 +1,8 @@
 # Receipt 07: Upgrade the Light Closing Artwork & Scene Scheduler Coordination
 
-- **Date**: 2026-11-21T22:36:00+03:00
+- **Date**: 2026-11-21T23:05:00+03:00
 - **Branch**: `design/crimson-signal-v3`
-- **Parent Commit**: `0589e0e4012703a72bfc6d33b078ce5ffd6df702` (`0589e0e`)
+- **Parent Commit**: `3938364ad4973b877d76a8101a10efddfc86663b` (`3938364`)
 - **Status**: Complete — ready for visual review
 
 ---
@@ -15,15 +15,18 @@ Task 07 upgrades the closing section artwork from pale decorative rings to the a
    - Replaced pale rings with the wine/crimson sphere inside `.closing-stage.closing-rings` in `#closing`.
    - Preserved eyebrow ("KNOWLEDGE, MADE CLEAR."), headline ("Make the next question count."), primary CTA button (`Explore Signal Desk -> /console/`), and explanatory copy in `.closing-copy`.
    - Positioned artwork in an isolated container (`pointer-events: none; z-index: 0; aria-hidden="true"`) to the right of the headline and controls on desktop, maintaining strict separation.
-2. **Shared WebGL Renderer Light Variant**:
+2. **Shared WebGL Renderer Light Variant & Artwork Correction**:
    - Reused `mountCore(canvas, poster, options)` in `client/marketing/signal-core.js` with `theme: 'light'` option.
-   - Light fragment shader variant passes `u_theme = 1.0`, rendering:
-     - Inner clusters: deep obsidian-garnet core (`#2E050A`), rich wine body (`#6B0D17`), and intense crimson (`#A51424`).
-     - Fluid shell: deep wine (`#610A14`) to vibrant crimson (`#BB1729`) with dark rim points (`#2E050A`).
-     - Zero pink body text, pink highlights, or pink washout; particle structures maintain crisp contrast against paper.
-3. **Elaborate Static SVG Poster Fallback**:
-   - Authored original static SVG poster `client/assets/brand/closing-sphere-poster.svg` (9,786 B raw / 2,271 B gzip).
-   - Features concentric orbital wave contours, stippled Fibonacci shell nodes, and five distinct garnet/wine nuclei clusters matching the WebGL geometry.
+   - Diagnosed and corrected alpha blending against off-white paper (`#F7F5F3`): low-opacity crimson against paper shifted color channels toward pale pink.
+   - Darkened light-theme palette to deep wine and garnet (`garnetBlack vec3(0.12, 0.015, 0.03)`, `garnetDeep vec3(0.22, 0.03, 0.06)`, `wineRich vec3(0.42, 0.05, 0.10)`, `wineDark vec3(0.26, 0.03, 0.06)`, `wineMid vec3(0.40, 0.05, 0.09)`, and `rimGarnet vec3(0.16, 0.02, 0.04)`).
+   - Sharpened light-theme point radius drop-off: `shape = (u_theme > 0.5) ? (1.0 - smoothstep(0.24, 0.5, dist)) : (1.0 - smoothstep(0.06, 0.5, dist))` and raised point alphas to deliberate semi-opaque/opaque levels (0.78 to 0.98), completely eliminating low-alpha pink halos.
+   - Zero pink highlights, pink washout, or bloom passes; particle structures maintain crisp contrast against paper.
+3. **Elaborate Static SVG Poster Fallback & Geometric Alignment**:
+   - Authored original static SVG poster `client/assets/brand/closing-sphere-poster.svg` (10,155 B raw / 2,442 B gzip).
+   - Brought running WebGL and paused static poster into close alignment in silhouette, apparent size, orbital structure, and nucleus placement:
+     - Scaled poster radius from 145px to 122px, matching projected WebGL unit sphere screen-space radius of ~112–124px.
+     - Adjusted tilted orbital ellipses to `rx="120" ry="52"` (-22°) and `rx="116" ry="40"` (-15°), matching camera pitch and rotation.
+     - Positioned the 5 nuclei clusters at exact projected coordinates: `(152, 162)`, `(205, 198)`, `(201, 157)`, `(157, 201)`, and `(182, 177)`.
    - Provides immediate fallback under `prefers-reduced-motion: reduce`, on phones ($\le 760\text{px}$), when WebGL fails, or in No-JS environments.
 4. **Scene Scheduler Registry Coordination**:
    - Replaced single boolean flag with robust `registeredScenes` map registry in `client/marketing/motion-policy.js`.
@@ -34,9 +37,9 @@ Task 07 upgrades the closing section artwork from pale decorative rings to the a
 5. **Mobile Reflow ($\le 760\text{px}$)**:
    - WebGL canvas disabled on mobile (`display: none !important`), saving mobile battery and GPU.
    - Static SVG poster stacks cleanly beneath the CTA button and copy with zero horizontal overflow at 390px and 320px.
-6. **Corrected Runtime Accounting & Unsupported Performance Wording**:
-   - Removed speculative CPU load claims (e.g. "< 0.8% core" or "0% CPU"); documented exact measured requestAnimationFrame cancellation, observer callbacks, and gzip bytes.
-   - Accurately separated eager decorative JavaScript runtime scripts (`motion-policy.js`, `signal-core.js`, `chapters.js`, `network-texture.js` totaling 10,638 B gzip) from static SVG brand assets (`closing-sphere-poster.svg`, `network-texture-poster.svg`).
+6. **Corrected Runtime Accounting & Measured Verification**:
+   - Removed speculative CPU load claims; documented exact measured requestAnimationFrame cancellation, observer callbacks, and gzip bytes.
+   - Corrected runtime accounting to include `landing.js` in participating totals, accurately distinguished eager baseline scripts from the dynamically imported on-demand WebGL renderer (`signal-core.js`), and separated scripts from static SVG brand assets.
 
 ---
 
@@ -44,11 +47,11 @@ Task 07 upgrades the closing section artwork from pale decorative rings to the a
 
 | Path | Role in Task 07 Scope |
 | :--- | :--- |
-| `client/assets/brand/closing-sphere-poster.svg` | **New**: Original elaborate static SVG poster for closing sphere on light paper background. |
+| `client/assets/brand/closing-sphere-poster.svg` | **New**: Original elaborate static SVG poster for closing sphere on light paper background, aligned in silhouette and cluster coordinates to WebGL. |
 | `client/index.html` | Updated `.closing-inner` to group `.closing-copy` and add `.closing-stage.closing-rings` holding canvas and poster. |
 | `client/marketing.css` | Styled `.closing-copy`, `.closing-stage`, `.closing-canvas`, `.closing-poster`, desktop absolute positioning, mobile stacking beneath CTA, and reduced-motion fallback. |
 | `client/marketing/motion-policy.js` | Added `registerScene`, `isAnyLargeSceneActive`, `getActiveScenes`, `getPrimaryActiveScene`, `subscribeScheduler`, and `pagehide`/`beforeunload` global release. |
-| `client/marketing/signal-core.js` | Added `theme: 'light'` uniform/shader support, scene registry integration (`registerScene`), scheduler subscription, and primary scene yielding. |
+| `client/marketing/signal-core.js` | Added `theme: 'light'` uniform/shader support with deep wine/garnet pigments, scene registry integration (`registerScene`), scheduler subscription, and primary scene yielding. |
 | `client/marketing/network-texture.js` | Updated coordination to subscribe to `subscribeScheduler` from `motion-policy.js`. |
 | `client/landing.js` | Initialized closing sphere via `initClosingSphere()`, wired light theme, and updated hero sphere options. |
 | `tests/browser/closing-sphere.spec.js` | **New**: Comprehensive Playwright test suite with 11 assertions covering layout, WebGL light theme, pause/resume sync, reload persistence, reduced motion, offscreen/visibility suspension, scheduler coordination, ownership release, mobile reflow, no-JS resilience, and visual screenshots. |
@@ -68,49 +71,64 @@ Task 07 upgrades the closing section artwork from pale decorative rings to the a
 - **Command**: `npx playwright test tests/browser/closing-sphere.spec.js`
 - **Exit Code**: `0`
 - **Result**: `11 passed (36.5s)`
-  - Test 1: Renders closing sphere stage against paper background with headline and CTA preserved (`passed`, 3.0s)
-  - Test 2: WebGL light variant mounts with theme light and id closing-sphere (`passed`, 2.1s)
-  - Test 3: Synchronized pause and resume with shared motion policy (`passed`, 2.9s)
-  - Test 4: Stored pause preference persists to closing sphere on page reload (`passed`, 2.1s)
+  - Test 1: Renders closing sphere stage against paper background with headline and CTA preserved (`passed`, 1.5s)
+  - Test 2: WebGL light variant mounts with theme light and id closing-sphere (`passed`, 1.7s)
+  - Test 3: Synchronized pause and resume with shared motion policy (`passed`, 3.1s)
+  - Test 4: Stored pause preference persists to closing sphere on page reload (`passed`, 2.0s)
   - Test 5: OS reduced motion overrides WebGL and shows static SVG poster fallback (`passed`, 1.6s)
-  - Test 6: Offscreen and tab visibility suspension (`passed`, 2.9s)
-  - Test 7: Scene registry coordinates hero, closing, and network textures without single-boolean conflicts (`passed`, 3.1s)
-  - Test 8: Release of scheduler ownership on pause, dispose, and page navigation (`passed`, 1.9s)
-  - Test 9: Mobile reflow (390px and 320px): stacks poster beneath CTA, zero overflow (`passed`, 2.7s)
-  - Test 10: Operable without JavaScript: static poster renders cleanly (`passed`, 1.4s)
-  - Test 11: Capture screenshot evidence for running, paused, and mobile states (`passed`, 4.5s)
+  - Test 6: Offscreen and tab visibility suspension (`passed`, 2.4s)
+  - Test 7: Scene registry coordinates hero, closing, and network textures without single-boolean conflicts (`passed`, 2.4s)
+  - Test 8: Release of scheduler ownership on pause, dispose, and page navigation (`passed`, 1.5s)
+  - Test 9: Mobile reflow (390px and 320px): stacks poster beneath CTA, zero overflow (`passed`, 2.6s)
+  - Test 10: Operable without JavaScript: static poster renders cleanly (`passed`, 1.3s)
+  - Test 11: Capture screenshot evidence for running, paused, and mobile states (`passed`, 4.0s)
 
-### Full Browser Test Suite Verification
+### Selected Regression Suites Verification (Closing, Network Texture, Signal Core)
+- **Command**: `npx playwright test tests/browser/closing-sphere.spec.js tests/browser/network-texture.spec.js tests/browser/signal-core.spec.js`
+- **Exit Code**: `0`
+- **Result**: `41 passed (1.2m)` across the 3 affected browser suites with zero failures.
+
+### Selected Regression Suites Verification (6 Suites)
 - **Command**: `npx playwright test tests/browser/closing-sphere.spec.js tests/browser/closing-footer.spec.js tests/browser/network-texture.spec.js tests/browser/system-orbits.spec.js tests/browser/signal-core.spec.js tests/browser/marketing.spec.js`
 - **Exit Code**: `0`
-- **Result**: `68 passed (2.1m)` across all 6 test suites with zero failures.
+- **Result**: `68 passed (2.1m)` across the 6 selected regression suites with zero failures.
 
 ---
 
 ## 4. Asset Sizes & Performance Budgets
 
-### Eager Decorative JavaScript Runtime Modules
-| Asset | Raw Size | Gzip Size | Budget Target | Status |
+### Eager Baseline JavaScript Runtime Modules
+| Asset | Raw Size | Gzip Size | Role |
+| :--- | :--- | :--- | :--- |
+| `client/landing.js` | 15,142 B (14.79 KiB) | 3,351 B (3.27 KiB) | Landing page controller & section initializers |
+| `client/marketing/motion-policy.js` | 5,206 B (5.08 KiB) | 1,692 B (1.65 KiB) | Motion policy, preferences & scene scheduler registry |
+| `client/marketing/chapters.js` | 3,494 B (3.41 KiB) | 1,160 B (1.13 KiB) | System architecture chapters controller |
+| `client/marketing/network-texture.js` | 8,817 B (8.61 KiB) | 2,727 B (2.66 KiB) | Atmospheric decorative 2D canvas texture |
+| **Subtotal (Eager Baseline Scripts)** | **32,659 B (31.89 KiB)** | **8,930 B (8.72 KiB)** | Baseline runtime loaded on initial page load |
+
+### Dynamically Imported On-Demand WebGL Renderer Module
+| Asset | Raw Size | Gzip Size | Role |
+| :--- | :--- | :--- | :--- |
+| `client/marketing/signal-core.js` | 18,438 B (18.01 KiB) | 5,153 B (5.03 KiB) | WebGL point-cluster renderer (imported on demand) |
+
+### Participating JavaScript Runtime Total
+| Metric | Raw Size | Gzip Size | Budget Target | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `client/marketing/motion-policy.js` | 5,206 B (5.08 KiB) | 1,683 B (1.64 KiB) | Shared eager bundle | PASSED |
-| `client/marketing/signal-core.js` | 18,315 B (17.89 KiB) | 5,078 B (4.96 KiB) | Shared eager bundle | PASSED |
-| `client/marketing/chapters.js` | 3,494 B (3.41 KiB) | 1,153 B (1.13 KiB) | Shared eager bundle | PASSED |
-| `client/marketing/network-texture.js` | 8,817 B (8.61 KiB) | 2,724 B (2.66 KiB) | Shared eager bundle | PASSED |
-| **Combined decorative scripts** | **35,832 B (34.99 KiB)** | **10,638 B (10.39 KiB)** | $\le 25\text{ KiB}$ gzip | **PASSED (41.5% of budget)** |
+| **All Participating Client Scripts** | **51,097 B (49.90 KiB)** | **14,083 B (13.75 KiB)** | $\le 25\text{ KiB}$ gzip | **PASSED (55.0% of budget)** |
 
 ### Static Brand Assets (Loaded via `<img>` tags, not in JS bundle)
 | Asset | Raw Size | Gzip Size | Role |
 | :--- | :--- | :--- | :--- |
-| `client/assets/brand/closing-sphere-poster.svg` | 9,786 B (9.56 KiB) | 2,271 B (2.22 KiB) | Closing static fallback poster on paper |
-| `client/assets/brand/network-texture-poster.svg` | 4,167 B (4.07 KiB) | 965 B (0.94 KiB) | Atmospheric texture static fallback poster |
+| `client/assets/brand/closing-sphere-poster.svg` | 10,155 B (9.92 KiB) | 2,442 B (2.38 KiB) | Closing static fallback poster on paper |
+| `client/assets/brand/network-texture-poster.svg` | 4,167 B (4.07 KiB) | 964 B (0.94 KiB) | Atmospheric texture static fallback poster |
 
 ---
 
 ## 5. Screenshot Evidence Files
 
-- Closing Sphere Running (1440x900): `docs/design-v3/screenshots/closing-sphere-desktop-running.png` (108,906 bytes)
-- Closing Sphere Paused (1440x900): `docs/design-v3/screenshots/closing-sphere-desktop-paused.png` (112,288 bytes)
-- Mobile Closing Reflow (390x844): `docs/design-v3/screenshots/closing-sphere-mobile-reflow.png` (73,940 bytes)
+- Closing Sphere Running (1440x900): `docs/design-v3/screenshots/closing-sphere-desktop-running.png` (117,008 bytes)
+- Closing Sphere Paused (1440x900): `docs/design-v3/screenshots/closing-sphere-desktop-paused.png` (94,080 bytes)
+- Mobile Closing Reflow (390x844): `docs/design-v3/screenshots/closing-sphere-mobile-reflow.png` (61,008 bytes)
 
 ---
 
