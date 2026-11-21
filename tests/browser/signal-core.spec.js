@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
-  test("1. Default first paint: SVG poster visible, WebGL module not imported, canvas hidden", async ({ page }) => {
+test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hover", () => {
+  test("1. Default-on auto-start after first paint for eligible visible scene", async ({ page }) => {
     let signalCoreFetched = false;
     page.on("request", (req) => {
       if (req.url().includes("signal-core.js")) {
@@ -12,58 +12,28 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     const response = await page.goto("/");
     expect(response.status()).toBe(200);
 
+    const stage = page.locator(".core-stage");
     const poster = page.locator("#core-poster");
     const canvas = page.locator("#signal-core");
     const toggle = page.locator("#motion-toggle");
 
-    await expect(poster).toBeVisible();
-    await expect(canvas).toBeHidden();
-    await expect(toggle).toBeVisible();
-    await expect(toggle).toHaveText("Enable motion");
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
-
-    // Natural dimensions of SVG poster
-    const posterDimensions = await poster.evaluate((img) => ({
-      naturalWidth: img.naturalWidth,
-      naturalHeight: img.naturalHeight,
-      visible: window.getComputedStyle(img).visibility
-    }));
-    expect(posterDimensions.naturalWidth).toBe(800);
-    expect(posterDimensions.naturalHeight).toBe(800);
-    expect(posterDimensions.visible).toBe("visible");
-
-    // WebGL module was not loaded on initial paint
-    expect(signalCoreFetched).toBe(false);
-  });
-
-  test("2. Explicit activation: clicking 'Enable motion' lazy-loads WebGL, hides poster, shows canvas", async ({ page }) => {
-    let signalCoreFetched = false;
-    page.on("request", (req) => {
-      if (req.url().includes("signal-core.js")) {
-        signalCoreFetched = true;
-      }
-    });
-
-    await page.goto("/");
-    const toggle = page.locator("#motion-toggle");
-    const poster = page.locator("#core-poster");
-    const canvas = page.locator("#signal-core");
-
-    await toggle.click();
-
-    // Module was fetched
+    // Dynamic import is triggered automatically on idle/first paint
+    await expect(canvas).toBeVisible({ timeout: 5000 });
     expect(signalCoreFetched).toBe(true);
 
-    // Button state transitions to Pause motion
-    await expect(toggle).toHaveText("Pause motion");
+    // Toggle button reflects running animation
+    await expect(toggle).toHaveText("Pause animations");
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(toggle).toBeEnabled();
 
-    // Canvas is visible and poster is hidden
-    await expect(canvas).toBeVisible();
-    const posterVisibility = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
-    expect(posterVisibility).toBe("hidden");
+    // Stage reflects running state
+    await expect(stage).toHaveAttribute("data-motion-state", "running");
 
-    // Canvas has dimensions matching DPR-capped viewport
+    // Poster is hidden behind canvas
+    const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
+    expect(posterVis).toBe("hidden");
+
+    // Canvas dimensions conform to DPR-capped bounds
     const canvasDims = await canvas.evaluate((c) => ({
       width: c.width,
       height: c.height,
@@ -74,50 +44,151 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     expect(canvasDims.height).toBeGreaterThan(0);
   });
 
-  test("3. Explicit pause: clicking 'Pause motion' halts rendering, hides canvas, restores poster", async ({ page }) => {
+  test("2. Persistent global pause: clicking 'Pause animations' halts WebGL, hides canvas, restores poster, and stores preference", async ({ page }) => {
     await page.goto("/");
     const toggle = page.locator("#motion-toggle");
     const poster = page.locator("#core-poster");
     const canvas = page.locator("#signal-core");
+    const stage = page.locator(".core-stage");
 
-    // Enable
-    await toggle.click();
-    await expect(toggle).toHaveText("Pause motion");
     await expect(canvas).toBeVisible();
+    await expect(toggle).toHaveText("Pause animations");
 
-    // Pause
+    // Click to pause
     await toggle.click();
-    await expect(toggle).toHaveText("Enable motion");
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
 
-    // Poster restored, canvas hidden
+    // Toggle transitions to Resume animations
+    await expect(toggle).toHaveText("Resume animations");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(stage).toHaveAttribute("data-motion-state", "user-paused");
+
+    // Canvas hidden, poster restored
     await expect(canvas).toBeHidden();
-    const posterVisibility = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
-    expect(posterVisibility).toBe("visible");
+    const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
+    expect(posterVis).toBe("visible");
+
+    // Preference stored under versioned key
+    const stored = await page.evaluate(() => localStorage.getItem("sg_motion_v1"));
+    expect(stored).toBe("paused");
   });
 
-  test("4. Repeated enable/pause cycles: transitions cleanly without duplicate frames or resource leaks", async ({ page }) => {
+  test("3. Pause persistence on page reload: stays paused on first paint without auto-starting", async ({ page }) => {
+    // Set stored preference before loading
+    await page.addInitScript(() => {
+      localStorage.setItem("sg_motion_v1", "paused");
+    });
+
+    let signalCoreFetched = false;
+    page.on("request", (req) => {
+      if (req.url().includes("signal-core.js")) {
+        signalCoreFetched = true;
+      }
+    });
+
     await page.goto("/");
     const toggle = page.locator("#motion-toggle");
     const poster = page.locator("#core-poster");
     const canvas = page.locator("#signal-core");
+    const stage = page.locator(".core-stage");
+
+    // Waits a beat to ensure auto-start would have triggered if not paused
+    await page.waitForTimeout(500);
+
+    // Stays paused: module not imported, poster visible, canvas hidden
+    expect(signalCoreFetched).toBe(false);
+    await expect(canvas).toBeHidden();
+    await expect(poster).toBeVisible();
+    await expect(toggle).toHaveText("Resume animations");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(stage).toHaveAttribute("data-motion-state", "user-paused");
+  });
+
+  test("4. Resuming animations: clicking 'Resume animations' removes pause preference and mounts WebGL", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("sg_motion_v1", "paused");
+    });
+
+    await page.goto("/");
+    const toggle = page.locator("#motion-toggle");
+    const canvas = page.locator("#signal-core");
+    const poster = page.locator("#core-poster");
+    const stage = page.locator(".core-stage");
+
+    await expect(toggle).toHaveText("Resume animations");
+    await toggle.click();
+
+    // Module mounted, canvas visible, toggle updated
+    await expect(canvas).toBeVisible();
+    await expect(toggle).toHaveText("Pause animations");
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(stage).toHaveAttribute("data-motion-state", "running");
+
+    const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
+    expect(posterVis).toBe("hidden");
+
+    // Preference is cleared/running
+    const stored = await page.evaluate(() => localStorage.getItem("sg_motion_v1"));
+    expect(stored).not.toBe("paused");
+  });
+
+  test("5. Repeated pause/resume cycles transition cleanly without leaks or stale state", async ({ page }) => {
+    await page.goto("/");
+    const toggle = page.locator("#motion-toggle");
+    const canvas = page.locator("#signal-core");
+    const poster = page.locator("#core-poster");
+
+    await expect(canvas).toBeVisible();
 
     for (let cycle = 1; cycle <= 4; cycle++) {
-      // Enable
-      await toggle.click();
-      await expect(toggle).toHaveText("Pause motion");
-      await expect(canvas).toBeVisible();
-
       // Pause
       await toggle.click();
-      await expect(toggle).toHaveText("Enable motion");
+      await expect(toggle).toHaveText("Resume animations");
       await expect(canvas).toBeHidden();
-      const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
-      expect(posterVis).toBe("visible");
+      const posterVisPaused = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
+      expect(posterVisPaused).toBe("visible");
+
+      // Resume
+      await toggle.click();
+      await expect(toggle).toHaveText("Pause animations");
+      await expect(canvas).toBeVisible();
+      const posterVisRunning = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
+      expect(posterVisRunning).toBe("hidden");
     }
   });
 
-  test("5. Reduced motion prevents module import and reports reduced motion enabled", async ({ page }) => {
+  test("6. Storage failure resilience: controls work for current page even if localStorage throws SecurityError", async ({ page }) => {
+    // Simulate sandboxed/private browsing storage failure
+    await page.addInitScript(() => {
+      Object.defineProperty(window, "localStorage", {
+        get() {
+          throw new DOMException("The operation is insecure.", "SecurityError");
+        }
+      });
+    });
+
+    await page.goto("/");
+    const toggle = page.locator("#motion-toggle");
+    const canvas = page.locator("#signal-core");
+    const poster = page.locator("#core-poster");
+
+    // Auto-start works despite storage failure
+    await expect(canvas).toBeVisible();
+    await expect(toggle).toHaveText("Pause animations");
+
+    // User can pause
+    await toggle.click();
+    await expect(toggle).toHaveText("Resume animations");
+    await expect(canvas).toBeHidden();
+    const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
+    expect(posterVis).toBe("visible");
+
+    // User can resume
+    await toggle.click();
+    await expect(toggle).toHaveText("Pause animations");
+    await expect(canvas).toBeVisible();
+  });
+
+  test("7. OS reduced motion overrides default-on: prevents module import, displays 'Reduced motion enabled'", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
 
     let signalCoreFetched = false;
@@ -131,33 +202,38 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     const toggle = page.locator("#motion-toggle");
     const canvas = page.locator("#signal-core");
     const poster = page.locator("#core-poster");
+    const stage = page.locator(".core-stage");
 
-    await toggle.click();
+    await page.waitForTimeout(400);
 
-    // Module must NOT be fetched
+    // Module was NOT fetched
     expect(signalCoreFetched).toBe(false);
 
     // Toggle informs user and stays unpressed
     await expect(toggle).toHaveText("Reduced motion enabled");
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(stage).toHaveAttribute("data-motion-state", "system-reduced");
 
-    // Poster remains visible, canvas remains hidden
+    // Poster remains visible, canvas hidden
     await expect(poster).toBeVisible();
     await expect(canvas).toBeHidden();
+
+    // Clicking toggle in reduced-motion mode does not force animation
+    await toggle.click();
+    expect(signalCoreFetched).toBe(false);
+    await expect(toggle).toHaveText("Reduced motion enabled");
   });
 
-  test("6. Runtime change to reduced motion while running immediately tears down WebGL", async ({ page }) => {
+  test("8. Runtime change to reduced motion while running immediately tears down WebGL", async ({ page }) => {
     await page.goto("/");
     const toggle = page.locator("#motion-toggle");
     const canvas = page.locator("#signal-core");
     const poster = page.locator("#core-poster");
+    const stage = page.locator(".core-stage");
 
-    // Start with motion enabled
-    await toggle.click();
-    await expect(toggle).toHaveText("Pause motion");
     await expect(canvas).toBeVisible();
 
-    // Emulate media preference change
+    // Emulate OS reduced-motion preference change
     await page.emulateMedia({ reducedMotion: "reduce" });
 
     // WebGL should tear down and poster restore
@@ -165,16 +241,23 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect(canvas).toBeHidden();
     await expect(poster).toBeVisible();
+    await expect(stage).toHaveAttribute("data-motion-state", "system-reduced");
+
+    // Restoring normal motion auto-resumes
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await expect(canvas).toBeVisible();
+    await expect(toggle).toHaveText("Pause animations");
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(stage).toHaveAttribute("data-motion-state", "running");
   });
 
-  test("7. Reduced-motion changes during async module loading aborts mounting", async ({ page }) => {
+  test("9. Reduced-motion changes during async module loading aborts mounting", async ({ page }) => {
     let resolveRoute;
     const routePromise = new Promise((resolve) => {
       resolveRoute = resolve;
     });
 
     await page.route("**/marketing/signal-core.js", async (route) => {
-      // Hold the response until we toggle reduced motion
       await routePromise;
       await route.continue();
     });
@@ -183,9 +266,6 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     const toggle = page.locator("#motion-toggle");
     const canvas = page.locator("#signal-core");
     const poster = page.locator("#core-poster");
-
-    // Click Enable motion while normal motion is active
-    await toggle.click();
 
     // While module is in-flight, change OS preference to reduced motion
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -203,16 +283,12 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     expect(posterVis).toBe("visible");
   });
 
-  test("8. Offscreen pausing: IntersectionObserver stops animation loop when canvas is out of viewport", async ({ page }) => {
+  test("10. Offscreen pausing: IntersectionObserver stops animation loop when canvas is out of viewport", async ({ page }) => {
     await page.goto("/");
-    const toggle = page.locator("#motion-toggle");
-    await toggle.click();
-    await expect(toggle).toHaveText("Pause motion");
+    const canvas = page.locator("#signal-core");
+    await expect(canvas).toBeVisible();
 
     const idleFrames = await page.evaluate(async () => {
-      const canvas = document.querySelector("#signal-core");
-
-      // Count animation frames
       let frameCount = 0;
       const origRaf = window.requestAnimationFrame;
       window.requestAnimationFrame = (cb) => {
@@ -222,11 +298,9 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
 
       // Scroll far down out of viewport
       window.scrollTo(0, 4000);
-      // Wait for IntersectionObserver to fire
       await new Promise((r) => setTimeout(r, 400));
 
       const framesWhileOffscreenStart = frameCount;
-      // Wait another 300ms while offscreen
       await new Promise((r) => setTimeout(r, 300));
       const framesWhileOffscreenDelta = frameCount - framesWhileOffscreenStart;
 
@@ -248,11 +322,10 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     expect(idleFrames.framesAfterReturnDelta).toBeGreaterThan(0);
   });
 
-  test("9. Document visibility: cancels RAF when document is hidden and resumes when visible", async ({ page }) => {
+  test("11. Document visibility: cancels RAF when document is hidden and resumes when visible", async ({ page }) => {
     await page.goto("/");
-    const toggle = page.locator("#motion-toggle");
-    await toggle.click();
-    await expect(toggle).toHaveText("Pause motion");
+    const canvas = page.locator("#signal-core");
+    await expect(canvas).toBeVisible();
 
     const visResult = await page.evaluate(async () => {
       let frameCount = 0;
@@ -289,14 +362,12 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     expect(visResult.framesWhileVisibleDelta).toBeGreaterThan(0);
   });
 
-  test("10. WebGL context loss cleanly restores poster, hides canvas, and resets toggle", async ({ page }) => {
+  test("12. WebGL context loss cleanly restores poster, hides canvas, and resets toggle to Resume animations", async ({ page }) => {
     await page.goto("/");
     const toggle = page.locator("#motion-toggle");
     const canvas = page.locator("#signal-core");
     const poster = page.locator("#core-poster");
 
-    await toggle.click();
-    await expect(toggle).toHaveText("Pause motion");
     await expect(canvas).toBeVisible();
 
     // Trigger context lost
@@ -313,32 +384,34 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     await expect(canvas).toBeHidden();
     const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
     expect(posterVis).toBe("visible");
-    await expect(toggle).toHaveText("Enable motion");
+    await expect(toggle).toHaveText("Resume animations");
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("11. WebGL unsupported gracefully falls back to static artwork", async ({ page }) => {
-    await page.goto("/");
-
+  test("13. WebGL unsupported gracefully falls back to static artwork", async ({ page }) => {
     // Override getContext on canvas to simulate unsupported WebGL
-    await page.evaluate(() => {
-      const canvas = document.querySelector("#signal-core");
-      canvas.getContext = () => null;
+    await page.addInitScript(() => {
+      HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+        if (type === "webgl" || type === "experimental-webgl") return null;
+        return null;
+      };
     });
 
+    await page.goto("/");
     const toggle = page.locator("#motion-toggle");
     const canvas = page.locator("#signal-core");
     const poster = page.locator("#core-poster");
-
-    await toggle.click();
+    const stage = page.locator(".core-stage");
 
     await expect(toggle).toHaveText("Static artwork active");
+    await expect(toggle).toBeDisabled();
+    await expect(stage).toHaveAttribute("data-motion-state", "failed");
     await expect(canvas).toBeHidden();
     const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
     expect(posterVis).toBe("visible");
   });
 
-  test("12. Navigation to /console/ cleans up WebGL without console errors", async ({ page }) => {
+  test("14. Navigation to /console/ cleans up WebGL without console errors", async ({ page }) => {
     const consoleErrors = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") {
@@ -347,9 +420,7 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     });
 
     await page.goto("/");
-    const toggle = page.locator("#motion-toggle");
-    await toggle.click();
-    await expect(toggle).toHaveText("Pause motion");
+    await expect(page.locator("#signal-core")).toBeVisible();
 
     // Click primary CTA to console
     const consoleLink = page.locator("a[href='/console/'], a[href='/console']").first();
@@ -361,17 +432,17 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test("13. Failed enhancement module disables control and displays static artwork text", async ({ page }) => {
+  test("15. Failed enhancement module permanently disables control and displays static artwork text", async ({ page }) => {
     // Abort dynamic import of WebGL module
     await page.route("**/marketing/signal-core.js", (route) => route.abort());
 
     await page.goto("/");
     const toggle = page.locator("#motion-toggle");
-    await expect(toggle).toBeEnabled();
+    const stage = page.locator(".core-stage");
 
-    await toggle.click();
     await expect(toggle).toHaveText("Static artwork active");
     await expect(toggle).toBeDisabled();
+    await expect(stage).toHaveAttribute("data-motion-state", "failed");
     await expect(page.locator("#core-poster")).toBeVisible();
     await expect(page.locator("#signal-core")).toBeHidden();
 
@@ -385,7 +456,7 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     await expect(toggle).toBeDisabled();
   });
 
-  test("14. Pagehide during delayed import cancels activation and return restores usable control ready for re-enable", async ({ page }) => {
+  test("16. Pagehide during delayed import cancels activation and pageshow restores usable control", async ({ page }) => {
     let resolveFirstRoute;
     const firstRoutePromise = new Promise((resolve) => {
       resolveFirstRoute = resolve;
@@ -395,7 +466,6 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     await page.route("**/marketing/signal-core.js", async (route) => {
       routeCallCount++;
       if (routeCallCount === 1) {
-        // Hold the first route response
         await firstRoutePromise;
         await route.continue();
       } else {
@@ -408,10 +478,7 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     const canvas = page.locator("#signal-core");
     const poster = page.locator("#core-poster");
 
-    // Click Enable motion while normal motion is active
-    await toggle.click();
-
-    // While module is in-flight, trigger pagehide (e.g. user navigation away)
+    // While module is in-flight on auto-start, trigger pagehide (user navigating away)
     await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
 
     // Release the first route response
@@ -424,19 +491,14 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     // Trigger pageshow (user returns to page)
     await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
 
-    // Control must be restored to accurate, usable state
-    await expect(toggle).toHaveText("Enable motion");
-    await expect(toggle).toBeEnabled();
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
-
-    // User can now re-enable motion cleanly
-    await toggle.click();
-    await expect(toggle).toHaveText("Pause motion");
-    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    // Control and sculpture recover cleanly to running
     await expect(canvas).toBeVisible();
+    await expect(toggle).toHaveText("Pause animations");
+    await expect(toggle).toBeEnabled();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("15. Temporary document visibility change during delayed import cancels activation and restores usable control", async ({ page }) => {
+  test("17. Temporary document visibility change during delayed import cancels activation and restores usable control", async ({ page }) => {
     let resolveRoute;
     const routePromise = new Promise((resolve) => {
       resolveRoute = resolve;
@@ -451,9 +513,6 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
     const toggle = page.locator("#motion-toggle");
     const canvas = page.locator("#signal-core");
     const poster = page.locator("#core-poster");
-
-    // Click Enable motion
-    await toggle.click();
 
     // Temporarily switch visibility to hidden while import is in-flight
     await page.evaluate(() => {
@@ -474,9 +533,135 @@ test.describe("Task 04: Signal Core Native WebGL Sculpture Lifecycle", () => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
 
-    // Control must be restored to accurate, usable state
-    await expect(toggle).toHaveText("Enable motion");
+    // Control and sculpture recover cleanly
+    await expect(canvas).toBeVisible();
+    await expect(toggle).toHaveText("Pause animations");
     await expect(toggle).toBeEnabled();
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("18. Fine-pointer hover tilt and shell displacement applies delta-time smoothed response", async ({ page }) => {
+    await page.goto("/");
+    const canvas = page.locator("#signal-core");
+    const stage = page.locator(".core-stage");
+    await expect(canvas).toBeVisible();
+
+    // Dispatch mouse pointermove over stage (top-right quadrant: nx > 0, ny < 0)
+    await stage.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const event = new PointerEvent("pointermove", {
+        bubbles: true,
+        cancelable: true,
+        pointerType: "mouse",
+        clientX: rect.left + rect.width * 0.85,
+        clientY: rect.top + rect.height * 0.20
+      });
+      el.dispatchEvent(event);
+    });
+
+    // Allow a few RAF ticks for delta-time smoothing
+    await page.waitForTimeout(200);
+
+    const hoverState = await page.evaluate(() => {
+      const teardown = window.__signalCore?.getTeardown();
+      if (!teardown || !teardown.getTilt) return null;
+      return {
+        tilt: teardown.getTilt(),
+        disp: teardown.getDispMult()
+      };
+    });
+
+    expect(hoverState).not.toBeNull();
+    // Tilt targets should be non-zero and within ±6° (±0.1047 rad)
+    expect(hoverState.tilt.targetX).toBeGreaterThan(0); // tilted up (pointer at top)
+    expect(hoverState.tilt.targetY).toBeGreaterThan(0); // tilted right (pointer at right)
+    expect(Math.abs(hoverState.tilt.targetX)).toBeLessThanOrEqual(0.105);
+    expect(Math.abs(hoverState.tilt.targetY)).toBeLessThanOrEqual(0.105);
+
+    // Current smoothed tilt has progressed toward target
+    expect(hoverState.tilt.x).toBeGreaterThan(0);
+    expect(hoverState.tilt.y).toBeGreaterThan(0);
+
+    // Shell wave displacement is expanded
+    expect(hoverState.disp.target).toBe(1.12);
+    expect(hoverState.disp.current).toBeGreaterThan(1.0);
+
+    // Dispatch pointerleave
+    await stage.evaluate((el) => {
+      el.dispatchEvent(new PointerEvent("pointerleave", { bubbles: true }));
+    });
+
+    await page.waitForTimeout(400);
+
+    const restingState = await page.evaluate(() => {
+      const teardown = window.__signalCore?.getTeardown();
+      if (!teardown || !teardown.getTilt) return null;
+      return {
+        tilt: teardown.getTilt(),
+        disp: teardown.getDispMult()
+      };
+    });
+
+    expect(restingState.tilt.targetX).toBe(0);
+    expect(restingState.tilt.targetY).toBe(0);
+    expect(restingState.disp.target).toBe(1.0);
+    // Smoothed values returned close to rest
+    expect(Math.abs(restingState.tilt.x)).toBeLessThan(0.02);
+    expect(Math.abs(restingState.tilt.y)).toBeLessThan(0.02);
+    expect(restingState.disp.current).toBeLessThan(1.05);
+  });
+
+  test("19. Touch fallback: pointerType='touch' does not trigger hover tilt or displacement", async ({ page }) => {
+    await page.goto("/");
+    const canvas = page.locator("#signal-core");
+    const stage = page.locator(".core-stage");
+    await expect(canvas).toBeVisible();
+
+    // Dispatch touch pointermove over stage
+    await stage.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const event = new PointerEvent("pointermove", {
+        bubbles: true,
+        cancelable: true,
+        pointerType: "touch",
+        clientX: rect.left + rect.width * 0.9,
+        clientY: rect.top + rect.height * 0.1
+      });
+      el.dispatchEvent(event);
+    });
+
+    await page.waitForTimeout(100);
+
+    const touchState = await page.evaluate(() => {
+      const teardown = window.__signalCore?.getTeardown();
+      if (!teardown || !teardown.getTilt) return null;
+      return {
+        tilt: teardown.getTilt(),
+        disp: teardown.getDispMult()
+      };
+    });
+
+    expect(touchState).not.toBeNull();
+    // Targets stay at 0 / 1.0 (ambient motion only)
+    expect(touchState.tilt.targetX).toBe(0);
+    expect(touchState.tilt.targetY).toBe(0);
+    expect(touchState.disp.target).toBe(1.0);
+  });
+
+  test("20. No-JS resilience: #motion-toggle remains disabled and semantic content / poster is visible", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+
+    await page.goto("/");
+    const toggle = page.locator("#motion-toggle");
+    const poster = page.locator("#core-poster");
+    const canvas = page.locator("#signal-core");
+
+    await expect(toggle).toBeDisabled();
+    await expect(poster).toBeVisible();
+    await expect(canvas).toBeHidden();
+    await expect(page.locator("h1")).toContainText("Your knowledge. A clearer answer.");
+
+    await context.close();
   });
 });

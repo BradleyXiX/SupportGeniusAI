@@ -1,13 +1,18 @@
 import { test, expect } from "@playwright/test";
 import path from "path";
 
-test.describe("Task 03: Full Hero Screenshot Evidence & Visibility Verification", () => {
+test.describe("Task 04: Full Hero Screenshot Evidence & Visibility Verification", () => {
   test("capture fresh full-hero screenshots and verify visibility & clearance", async ({ page }) => {
     // =========================================================================
-    // 1. Desktop (1440x900) - Resting Poster Capture
+    // 1. Desktop (1440x900) - Resting Poster Capture (User Paused)
     // =========================================================================
     await page.setViewportSize({ width: 1440, height: 900 });
+    // Pre-set paused preference to capture resting poster state
+    await page.addInitScript(() => {
+      localStorage.setItem("sg_motion_v1", "paused");
+    });
     await page.goto("/", { waitUntil: "networkidle" });
+    await page.evaluate(() => window.scrollTo(0, 0));
 
     // Ensure resting state: move focus away
     await page.evaluate(() => {
@@ -35,6 +40,7 @@ test.describe("Task 03: Full Hero Screenshot Evidence & Visibility Verification"
     await expect(canvas).toBeHidden();
     await expect(caption).toBeVisible();
     await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveText("Resume animations");
 
     // Verify skip link is offscreen in resting state
     const isSkipOffscreenDesktop = await skipLink.evaluate((el) => {
@@ -81,11 +87,13 @@ test.describe("Task 03: Full Hero Screenshot Evidence & Visibility Verification"
     });
 
     // =========================================================================
-    // 3. Desktop (1440x900) - Resting Render Capture (Motion Enabled)
+    // 3. Desktop (1440x900) - Resting Render Capture (Default-On Motion Running)
     // =========================================================================
+    // Resume motion
     await toggle.click();
     await expect(canvas).toBeVisible();
     await expect(poster).toBeHidden();
+    await expect(toggle).toHaveText("Pause animations");
     await page.waitForTimeout(800);
 
     // Move focus away for clean resting render capture
@@ -93,28 +101,48 @@ test.describe("Task 03: Full Hero Screenshot Evidence & Visibility Verification"
       if (document.activeElement && document.activeElement !== document.body) {
         document.activeElement.blur();
       }
+      window.scrollTo(0, 0);
     });
     await page.waitForTimeout(300);
 
     const restingRenderFocused = await page.evaluate(() => document.activeElement === document.body);
     expect(restingRenderFocused).toBe(true);
 
+    // Verify skip link offscreen
+    const isSkipOffscreenRender = await skipLink.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.bottom <= 0 || rect.top < 0;
+    });
+    expect(isSkipOffscreenRender).toBe(true);
+
     // Capture resting desktop render (full hero container)
     await hero.screenshot({
       path: path.resolve("docs/design-v3/screenshots/hero-final-render-desktop.png")
     });
 
+    // Verify skip link geometry post-capture
+    const isSkipOffscreenAfterDesktop = await skipLink.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.bottom <= 0 || rect.top < 0;
+    });
+    expect(isSkipOffscreenAfterDesktop).toBe(true);
+
     // =========================================================================
-    // 4. Mobile (390x844) - Resting Poster Capture
+    // 4. Mobile (390x844) - Resting Poster Capture (Paused)
     // =========================================================================
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/", { waitUntil: "networkidle" });
+    // Pause motion on mobile for poster capture
+    await page.locator("#motion-toggle").click();
+    await expect(poster).toBeVisible();
+    await expect(canvas).toBeHidden();
+    await expect(page.locator("#motion-toggle")).toHaveText("Resume animations");
 
-    // Move focus away
+    // Move focus away and scroll to top
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement !== document.body) {
         document.activeElement.blur();
       }
+      window.scrollTo(0, 0);
     });
     await page.waitForTimeout(300);
 
@@ -123,12 +151,12 @@ test.describe("Task 03: Full Hero Screenshot Evidence & Visibility Verification"
     await expect(heroMobile.locator(".lead")).toBeVisible();
     await expect(heroMobile.locator(".actions .button.primary")).toBeVisible();
 
-    // Verify skip link is offscreen on mobile resting
-    const isSkipOffscreenMobile = await page.locator(".skip-link").evaluate((el) => {
+    // Verify skip link is offscreen on mobile resting before capture
+    const isSkipOffscreenMobilePre = await page.locator(".skip-link").evaluate((el) => {
       const rect = el.getBoundingClientRect();
       return rect.bottom <= 0 || rect.top < 0;
     });
-    expect(isSkipOffscreenMobile).toBe(true);
+    expect(isSkipOffscreenMobilePre).toBe(true);
 
     // Verify clearance and non-obstruction on mobile
     const stageMobile = await page.locator(".core-stage").boundingBox();
@@ -151,18 +179,28 @@ test.describe("Task 03: Full Hero Screenshot Evidence & Visibility Verification"
       path: path.resolve("docs/design-v3/screenshots/hero-final-poster-mobile.png")
     });
 
+    // Reset scroll to top and verify resting skip-link geometry post-screenshot
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const isSkipOffscreenMobilePost = await page.locator(".skip-link").evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.bottom <= 0 || rect.top < 0;
+    });
+    expect(isSkipOffscreenMobilePost).toBe(true);
+
     // =========================================================================
-    // 5. Mobile (390x844) - Resting Render Capture (Motion Enabled)
+    // 5. Mobile (390x844) - Resting Render Capture (Motion Resumed)
     // =========================================================================
     await page.locator("#motion-toggle").click();
     await expect(page.locator("#signal-core")).toBeVisible();
+    await expect(page.locator("#motion-toggle")).toHaveText("Pause animations");
     await page.waitForTimeout(800);
 
-    // Move focus away for clean resting render capture
+    // Move focus away and scroll to top for clean resting render capture
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement !== document.body) {
         document.activeElement.blur();
       }
+      window.scrollTo(0, 0);
     });
     await page.waitForTimeout(300);
 
@@ -170,5 +208,13 @@ test.describe("Task 03: Full Hero Screenshot Evidence & Visibility Verification"
     await heroMobile.screenshot({
       path: path.resolve("docs/design-v3/screenshots/hero-final-render-mobile.png")
     });
+
+    // Reset scroll to top and verify resting skip-link geometry after render screenshot
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const isSkipOffscreenMobileFinal = await page.locator(".skip-link").evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.bottom <= 0 || rect.top < 0;
+    });
+    expect(isSkipOffscreenMobileFinal).toBe(true);
   });
 });

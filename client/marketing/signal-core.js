@@ -1,6 +1,7 @@
 // Native WebGL point geometry for Signal Core.
 // Single owner for camera rotation and canvas drawing.
 // Preserves DPR <= 1.5, cancels RAF when hidden/offscreen, cleans up on dispose.
+// Adds fine-pointer hover tilt (capped at ±6°), shell wave displacement (+12%), and touch fallback.
 
 export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
   const gl = canvas.getContext('webgl', {
@@ -23,9 +24,51 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
   let uRotation;
   let uAspect;
   let uDpr;
+  let uTilt;
+  let uDispMult;
   let schedule = () => {};
   let observer;
   let resize;
+
+  // Cached dimensions — eliminates per-frame layout measurements
+  let cachedWidth = 0;
+  let cachedHeight = 0;
+  let cachedDpr = 1;
+  let cachedDprWidth = 0;
+  let cachedDprHeight = 0;
+
+  // Hover tilt & displacement state (delta-time smoothed over ~250-400ms)
+  let targetTiltX = 0;
+  let targetTiltY = 0;
+  let targetDispMult = 1.0;
+  let currentTiltX = 0;
+  let currentTiltY = 0;
+  let currentDispMult = 1.0;
+  let cachedStageRect = null;
+
+  const stage = canvas.closest('.core-stage') || canvas;
+
+  function updateDimensions(entry) {
+    if (entry && entry.contentRect) {
+      cachedWidth = entry.contentRect.width;
+      cachedHeight = entry.contentRect.height;
+    } else {
+      const r = canvas.getBoundingClientRect();
+      cachedWidth = r.width;
+      cachedHeight = r.height;
+    }
+    cachedDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    cachedDprWidth = Math.round(cachedWidth * cachedDpr);
+    cachedDprHeight = Math.round(cachedHeight * cachedDpr);
+
+    if (cachedDprWidth > 0 && cachedDprHeight > 0) {
+      if (canvas.width !== cachedDprWidth || canvas.height !== cachedDprHeight) {
+        canvas.width = cachedDprWidth;
+        canvas.height = cachedDprHeight;
+        gl.viewport(0, 0, cachedDprWidth, cachedDprHeight);
+      }
+    }
+  }
 
   const compile = (type, source) => {
     const shader = gl.createShader(type);
@@ -36,6 +79,39 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       throw new Error('Shader compilation failed');
     }
     return shader;
+  };
+
+  const onPointerEnter = (e) => {
+    if (e.pointerType === 'touch') return;
+    cachedStageRect = stage.getBoundingClientRect();
+  };
+
+  const onPointerMove = (e) => {
+    // Touch fallback: ambient motion runs without hover dependence
+    if (e.pointerType === 'touch') return;
+    if (!cachedStageRect) {
+      cachedStageRect = stage.getBoundingClientRect();
+    }
+    const width = cachedStageRect.width || 1;
+    const height = cachedStageRect.height || 1;
+    const nx = Math.max(-1, Math.min(1, ((e.clientX - cachedStageRect.left) / width) * 2 - 1));
+    const ny = Math.max(-1, Math.min(1, ((e.clientY - cachedStageRect.top) / height) * 2 - 1));
+
+    // Pitch: tilt upward when pointer is above center; capped at ±6° (0.1047 rad)
+    targetTiltX = -ny * 0.1047;
+    // Yaw: tilt rightward when pointer is to the right; capped at ±6° (0.1047 rad)
+    targetTiltY = nx * 0.1047;
+    // Shell wave displacement +12% on hover
+    targetDispMult = 1.12;
+    request();
+  };
+
+  const onPointerLeave = () => {
+    targetTiltX = 0;
+    targetTiltY = 0;
+    targetDispMult = 1.0;
+    cachedStageRect = null;
+    request();
   };
 
   function dispose() {
@@ -49,6 +125,10 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
     resize?.disconnect();
     document.removeEventListener('visibilitychange', schedule);
     canvas.removeEventListener('webglcontextlost', contextLost);
+
+    stage.removeEventListener('pointerenter', onPointerEnter);
+    stage.removeEventListener('pointermove', onPointerMove);
+    stage.removeEventListener('pointerleave', onPointerLeave);
 
     if (buffer) gl.deleteBuffer(buffer);
     if (program) gl.deleteProgram(program);
@@ -75,6 +155,8 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       'uniform float u_rotation;',
       'uniform float u_aspect;',
       'uniform float u_dpr;',
+      'uniform vec2 u_tilt;',
+      'uniform float u_disp_mult;',
       'varying float v_type;',
       'varying float v_depth;',
       'varying float v_seed;',
@@ -84,7 +166,7 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       '    float disp = sin(pos.x * 3.5 + u_time * 0.75) * cos(pos.y * 3.2 + u_time * 0.60) * 0.08',
       '               + sin(pos.z * 4.0 - u_time * 0.85) * 0.06',
       '               + sin(pos.x * pos.z * 5.0 + u_time * 1.10) * 0.04;',
-      '    pos *= (1.0 + disp);',
+      '    pos *= (1.0 + disp * u_disp_mult);',
       '  } else {',
       '    vec3 drift = vec3(',
       '      sin(u_time * 0.4 + pos.x * 2.5) * 0.015,',
@@ -93,12 +175,13 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       '    );',
       '    pos += drift;',
       '  }',
-      '  float rot = u_rotation;',
+      '  float rot = u_rotation + u_tilt.y;',
       '  float cr = cos(rot);',
       '  float sr = sin(rot);',
       '  vec3 q = vec3(pos.x * cr + pos.z * sr, pos.y, -pos.x * sr + pos.z * cr);',
-      '  float ct = 0.9781;',
-      '  float st = 0.2079;',
+      '  float tiltPitch = 0.2079 + u_tilt.x;',
+      '  float ct = cos(tiltPitch);',
+      '  float st = sin(tiltPitch);',
       '  q = vec3(q.x, q.y * ct - q.z * st, q.y * st + q.z * ct);',
       '  float d = 3.4 - q.z * 0.45;',
       '  gl_Position = vec4(q.x * 2.12 / (d * u_aspect), q.y * 2.12 / d, 0.0, 1.0);',
@@ -242,10 +325,15 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
     uRotation = gl.getUniformLocation(program, 'u_rotation');
     uAspect = gl.getUniformLocation(program, 'u_aspect');
     uDpr = gl.getUniformLocation(program, 'u_dpr');
+    uTilt = gl.getUniformLocation(program, 'u_tilt');
+    uDispMult = gl.getUniformLocation(program, 'u_disp_mult');
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.clearColor(0, 0, 0, 0);
+
+    // Initial dimension calculation before first frame
+    updateDimensions();
 
     function draw(time) {
       raf = 0;
@@ -256,22 +344,23 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
       totalTime += dt;
       angle += dt * 0.13;
 
-      const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      const w = Math.round(rect.width * dpr);
-      const h = Math.round(rect.height * dpr);
+      // Delta-time smoothing over ~250-400ms for hover tilt and displacement
+      const blend = dt > 0 ? (1.0 - Math.exp(-dt * 8.0)) : 1.0;
+      currentTiltX += (targetTiltX - currentTiltX) * blend;
+      currentTiltY += (targetTiltY - currentTiltY) * blend;
+      currentDispMult += (targetDispMult - currentDispMult) * blend;
 
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-        gl.viewport(0, 0, w, h);
+      if (cachedDprWidth <= 0 || cachedDprHeight <= 0) {
+        updateDimensions();
       }
 
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform1f(uTime, totalTime);
       gl.uniform1f(uRotation, angle + window.scrollY * 0.00035);
-      gl.uniform1f(uAspect, w / Math.max(h, 1));
-      gl.uniform1f(uDpr, dpr);
+      gl.uniform1f(uAspect, cachedDprWidth / Math.max(cachedDprHeight, 1));
+      gl.uniform1f(uDpr, cachedDpr);
+      gl.uniform2f(uTilt, currentTiltX, currentTiltY);
+      gl.uniform1f(uDispMult, currentDispMult);
       gl.drawArrays(gl.POINTS, 0, totalVertices);
 
       raf = requestAnimationFrame(draw);
@@ -308,9 +397,18 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
     }
 
     if (typeof ResizeObserver !== 'undefined') {
-      resize = new ResizeObserver(request);
+      resize = new ResizeObserver((entries) => {
+        if (entries[0]) {
+          updateDimensions(entries[0]);
+        }
+        request();
+      });
       resize.observe(canvas);
     }
+
+    stage.addEventListener('pointerenter', onPointerEnter);
+    stage.addEventListener('pointermove', onPointerMove);
+    stage.addEventListener('pointerleave', onPointerLeave);
 
     document.addEventListener('visibilitychange', schedule);
     canvas.addEventListener('webglcontextlost', contextLost);
@@ -325,6 +423,8 @@ export function mountCore(canvas, poster, { onDispose = () => {} } = {}) {
     dispose.isVisible = () => visible;
     dispose.isPaused = () => Boolean(disposed || document.hidden || !visible || !raf);
     dispose.getGl = () => gl;
+    dispose.getTilt = () => ({ x: currentTiltX, y: currentTiltY, targetX: targetTiltX, targetY: targetTiltY });
+    dispose.getDispMult = () => ({ current: currentDispMult, target: targetDispMult });
 
     return dispose;
   } catch (error) {
