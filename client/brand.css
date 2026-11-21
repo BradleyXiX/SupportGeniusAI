@@ -14,7 +14,7 @@
   --paper-ink: #18181c;
   --paper-muted: #57535a;
   --paper-crimson: #a5162a;
-  --border-control: #4a4a52;
+  --border-control: #686874;
   --focus-dark: #ffffff;
   --focus-light: #18181c;
   --mint: #ffffff; /* legacy token mapped to white dark-surface focus outline */
@@ -237,7 +237,7 @@ body[data-page="console"] .rail-guidance-text {
 
 body[data-page="console"] .btn-new-conversation {
   background-color: transparent;
-  border: 1px solid var(--border-control, #4a4a52);
+  border: 1px solid var(--border-control, #686874);
   color: var(--ink, #f7f7f5);
   border-radius: 2px;
   font-family: var(--body);
@@ -326,7 +326,7 @@ body[data-page="console"] .message.ai-message .bubble {
 
 body[data-page="console"] .message.user-message .bubble {
   background-color: var(--surface-higher, #1a1a1e);
-  border: 1px solid var(--border-control, #4a4a52);
+  border: 1px solid var(--border-control, #686874);
   color: var(--ink, #f7f7f5);
   border-radius: 4px;
   line-height: 1.7;
@@ -352,7 +352,7 @@ body[data-page="console"] .suggestions-label {
 
 body[data-page="console"] .suggestion-chip {
   background-color: transparent;
-  border: 1px solid var(--border-control, #4a4a52);
+  border: 1px solid var(--border-control, #686874);
   color: var(--muted, #c0bcc0);
   border-radius: 2px;
   font-family: var(--body);
@@ -377,7 +377,7 @@ body[data-page="console"] .console-composer {
 
 body[data-page="console"] #input {
   background-color: var(--canvas, #030304);
-  border: 1px solid var(--border-control, #4a4a52);
+  border: 1px solid var(--border-control, #686874);
   color: var(--ink, #f7f7f5);
   font-family: var(--body);
   border-radius: 4px;
