@@ -1,6 +1,6 @@
 # 01 receipt: Recolor the shared identity
 
-- Branch / parent SHA: `design/crimson-signal-v3` @ `8a2dbbd` (following task 01 initial commit `8a2dbbd`, descended from baseline `2459138`).
+- Branch / parent SHA: `design/crimson-signal-v3` @ `2459138` (`2459138870198ca6e21020087034b7f75eb82b7c`).
 - Goal and result: Recolor the shared identity across both routes (`/` and `/console/`), SVG brand assets, dynamic orb visualizer, and state colors according to the Crimson Signal v3 specifications. Replaced legacy amber/mint tokens with semantic crimson, dark surface, and warm-white tokens. Verified WCAG 2.1 AA/AAA contrast on all color pairings, completely eliminating low-contrast pink/red body text and reserving crimson strictly for buttons, logo, rules, artwork, and non-text state cues. Enforced ≥3:1 non-text contrast for essential interactive control boundaries (`--border-control: #686874`) while keeping structural dividers (`--line: #26262a`) separate.
 - Changed owned paths:
   - `client/assets/brand/favicon.svg`

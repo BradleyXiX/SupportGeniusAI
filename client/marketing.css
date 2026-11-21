@@ -41,7 +41,8 @@ body[data-page="marketing"] .skip-link {
   background: var(--accent, #bb1729);
   color: #ffffff;
   font-family: var(--mono, 'JetBrains Mono', monospace);
-  font-size: 12px;
+  font-size: 14px;
+  min-height: 44px;
   font-weight: 600;
   text-decoration: none;
   border-radius: 2px;
@@ -112,7 +113,10 @@ body[data-page="marketing"] .site-header {
 
 @media (max-width: 760px) {
   body[data-page="marketing"] .site-header {
-    height: 84px;
+    height: auto;
+    min-height: 84px;
+    padding-block: 16px;
+    flex-wrap: wrap;
     gap: 12px;
   }
 }
@@ -144,21 +148,21 @@ body[data-page="marketing"] .brand-link .brand-title {
 body[data-page="marketing"] .brand-link small {
   color: var(--ink, #f7f7f5);
   font-family: var(--mono, 'JetBrains Mono', monospace);
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0;
   margin-left: 4px;
 }
 
 @media (max-width: 760px) {
   body[data-page="marketing"] .brand-link {
-    font-size: 17px;
+    font-size: 18px;
     gap: 8px;
   }
 }
 
 @media (max-width: 370px) {
   body[data-page="marketing"] .brand-link {
-    font-size: 14px;
+    font-size: 16px;
     gap: 6px;
   }
 }
@@ -168,13 +172,14 @@ body[data-page="marketing"] .site-nav {
   display: flex;
   align-items: center;
   gap: 28px;
-  font-size: 12px;
+  font-size: 14px;
   font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
 }
 
 body[data-page="marketing"] .site-nav a {
   color: var(--muted, #c0bcc0);
   text-decoration: none;
+  font-size: 14px;
   font-weight: 500;
   transition: color 0.18s ease;
   min-height: 44px;
@@ -199,7 +204,7 @@ body[data-page="marketing"] .site-nav a:focus-visible {
 
 /* Header Primary CTA */
 body[data-page="marketing"] .header-cta {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
   white-space: nowrap;
@@ -231,9 +236,9 @@ body[data-page="marketing"] .header-cta span {
 
 @media (max-width: 760px) {
   body[data-page="marketing"] .header-cta {
-    font-size: 10px;
-    padding: 8px 12px;
-    min-height: 40px;
+    font-size: 14px;
+    padding: 10px 16px;
+    min-height: 44px;
   }
   body[data-page="marketing"] .header-cta span {
     margin-left: 6px;
@@ -257,20 +262,23 @@ body[data-page="marketing"] .hero-copy {
   flex-direction: column;
 }
 
-body[data-page="marketing"] .eyebrow,
-body[data-page="marketing"] .mono {
-  font-family: var(--mono, 'JetBrains Mono', monospace);
-  font-size: 10px;
-  line-height: 1.6;
-  letter-spacing: 0.09em;
-}
-
 body[data-page="marketing"] .eyebrow {
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: 0.08em;
   color: var(--muted, #c0bcc0);
   margin-bottom: 30px;
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+body[data-page="marketing"] .mono {
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.08em;
 }
 
 body[data-page="marketing"] .eyebrow i {
@@ -298,9 +306,9 @@ body[data-page="marketing"] h1#hero-title em {
 }
 
 body[data-page="marketing"] .lead {
-  max-width: 370px;
-  font-size: 14px;
-  line-height: 1.8;
+  max-width: 440px;
+  font-size: 18px;
+  line-height: 1.65;
   color: var(--muted, #c0bcc0);
   margin-top: 30px;
   margin-bottom: 0;
@@ -319,8 +327,8 @@ body[data-page="marketing"] .button {
   justify-content: space-between;
   gap: 36px;
   min-height: 48px;
-  padding: 13px 20px;
-  font-size: 12px;
+  padding: 13px 22px;
+  font-size: 15px;
   font-weight: 600;
   font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
   text-decoration: none;
@@ -344,7 +352,7 @@ body[data-page="marketing"] .button.primary:focus-visible {
 }
 
 body[data-page="marketing"] .text-link {
-  font-size: 12px;
+  font-size: 15px;
   font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
   display: inline-flex;
   gap: 12px;
@@ -369,8 +377,8 @@ body[data-page="marketing"] .text-link:focus-visible {
 body[data-page="marketing"] .hero-note {
   margin-top: 25px;
   margin-bottom: 0;
-  font-size: 11px;
-  line-height: 1.8;
+  font-size: 14px;
+  line-height: 1.65;
   color: var(--muted, #c0bcc0);
 }
 
@@ -393,7 +401,7 @@ body[data-page="marketing"] .core-top {
   display: flex;
   justify-content: space-between;
   color: var(--muted, #c0bcc0);
-  font-size: 10px;
+  font-size: 12px;
   width: 100%;
 }
 
@@ -419,7 +427,7 @@ body[data-page="marketing"] .core-label {
   right: 0;
   text-align: center;
   color: var(--muted, #c0bcc0);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.08em;
 }
 
@@ -434,9 +442,10 @@ body[data-page="marketing"] .core-stage figcaption {
 }
 
 body[data-page="marketing"] .core-stage figcaption .fine {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--muted, #c0bcc0);
   margin: 0;
+  line-height: 1.6;
 }
 
 body[data-page="marketing"] .quiet-button {
@@ -444,9 +453,9 @@ body[data-page="marketing"] .quiet-button {
   border: 1px solid var(--border-control, #686874);
   color: var(--ink, #f7f7f5);
   font-family: var(--mono, 'JetBrains Mono', monospace);
-  font-size: 10px;
+  font-size: 14px;
   min-height: 44px;
-  padding: 8px 12px;
+  padding: 10px 16px;
   border-radius: 2px;
   cursor: pointer;
   transition: background 0.18s, color 0.18s, border-color 0.18s;
@@ -479,12 +488,13 @@ body[data-page="marketing"] .system-strip {
   align-items: center;
   justify-content: space-between;
   color: var(--muted, #c0bcc0);
-  font-size: 9px;
+  font-size: 14px;
   gap: 20px;
 }
 
 body[data-page="marketing"] .strip-index {
   color: var(--muted, #c0bcc0);
+  font-size: 12px;
 }
 
 /* ==========================================================================
@@ -519,9 +529,9 @@ body[data-page="marketing"] .section-head h2 {
 }
 
 body[data-page="marketing"] .section-head > p:last-child {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--muted, #c0bcc0);
-  line-height: 1.8;
+  line-height: 1.65;
   padding-bottom: 4px;
   margin: 0;
 }
@@ -536,6 +546,7 @@ body[data-page="marketing"] .system-layout {
 body[data-page="marketing"] .chapter-index {
   padding-top: 30px;
   color: var(--muted, #c0bcc0);
+  font-size: 14px;
 }
 
 body[data-page="marketing"] .orbit-small {
@@ -598,7 +609,7 @@ body[data-page="marketing"] .chapters summary:focus-visible {
 
 body[data-page="marketing"] .chapters summary > span:first-child {
   color: var(--muted, #c0bcc0);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 body[data-page="marketing"] .chapters summary h3 {
@@ -628,9 +639,9 @@ body[data-page="marketing"] .chapter-body {
 }
 
 body[data-page="marketing"] .chapter-body p {
-  max-width: 470px;
-  font-size: 13px;
-  line-height: 1.8;
+  max-width: 520px;
+  font-size: 16px;
+  line-height: 1.65;
   color: var(--muted, #c0bcc0);
   margin: 0;
 }
@@ -639,7 +650,7 @@ body[data-page="marketing"] .micro-tag {
   display: inline-block;
   color: var(--muted, #c0bcc0);
   margin-top: 22px;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.08em;
 }
 
@@ -673,7 +684,7 @@ body[data-page="marketing"] .demo-bar {
   display: flex;
   justify-content: space-between;
   color: var(--muted, #c0bcc0);
-  font-size: 9px;
+  font-size: 14px;
   align-items: center;
 }
 
@@ -724,7 +735,7 @@ body[data-page="marketing"] .scenario:focus-visible {
 }
 
 body[data-page="marketing"] .scenario > span:first-child {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 body[data-page="marketing"] .scenario.selected {
@@ -742,7 +753,7 @@ body[data-page="marketing"] .scenario-list > p {
 
 body[data-page="marketing"] .sample-label {
   color: var(--muted, #c0bcc0);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.08em;
 }
 
@@ -772,9 +783,9 @@ body[data-page="marketing"] .sample-answer img {
 }
 
 body[data-page="marketing"] .sample-answer p {
-  font-size: 15px;
-  line-height: 1.8;
-  max-width: 500px;
+  font-size: 16px;
+  line-height: 1.65;
+  max-width: 520px;
   margin-top: 10px;
   margin-bottom: 0;
   color: var(--ink, #f7f7f5);
@@ -782,7 +793,7 @@ body[data-page="marketing"] .sample-answer p {
 
 body[data-page="marketing"] .example-disclosure {
   margin: 22px 0 12px 46px;
-  font-size: 10px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--muted, #c0bcc0);
 }
@@ -790,6 +801,8 @@ body[data-page="marketing"] .example-disclosure {
 body[data-page="marketing"] .sample-conversation > .text-link {
   margin-left: 46px;
   color: var(--ink, #f7f7f5);
+  font-size: 15px;
+  min-height: 44px;
 }
 
 /* Deployment Section */
@@ -806,7 +819,7 @@ body[data-page="marketing"] .deployment-grid article {
 
 body[data-page="marketing"] .deployment-grid .mono {
   color: var(--muted, #c0bcc0);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.09em;
 }
 
@@ -821,10 +834,10 @@ body[data-page="marketing"] .deployment-grid h3 {
 }
 
 body[data-page="marketing"] .deployment-grid p {
-  font-size: 13px;
-  line-height: 1.8;
+  font-size: 16px;
+  line-height: 1.65;
   color: var(--muted, #c0bcc0);
-  max-width: 360px;
+  max-width: 440px;
   margin-top: 20px;
   margin-bottom: 0;
 }
@@ -859,7 +872,7 @@ body[data-page="marketing"] .document-stack > div {
   margin-top: -5px;
   padding: 15px 20px;
   font-family: var(--mono, 'JetBrains Mono', monospace);
-  font-size: 11px;
+  font-size: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -922,6 +935,8 @@ body[data-page="marketing"] .closing .button.primary:focus-visible {
 body[data-page="marketing"] .closing .fine {
   color: var(--paper-muted, #57535a);
   margin-top: 20px;
+  font-size: 14px;
+  line-height: 1.6;
   position: relative;
   z-index: 1;
 }
@@ -954,7 +969,7 @@ body[data-page="marketing"] .closing-rings {
     bottom: -45px;
   }
   body[data-page="marketing"] .hero-note {
-    max-width: 270px;
+    max-width: none;
   }
   body[data-page="marketing"] .system-layout {
     gap: 40px;
@@ -975,13 +990,13 @@ body[data-page="marketing"] .closing-rings {
     font-size: clamp(44px, 12vw, 68px);
   }
   body[data-page="marketing"] .eyebrow {
-    font-size: 8px;
-    letter-spacing: 0.04em;
+    font-size: 14px;
+    letter-spacing: 0.06em;
     margin-bottom: 24px;
   }
   body[data-page="marketing"] .lead {
-    font-size: 13px;
-    max-width: 340px;
+    font-size: 17px;
+    max-width: none;
     margin-top: 24px;
   }
   body[data-page="marketing"] .actions {
@@ -990,13 +1005,14 @@ body[data-page="marketing"] .closing-rings {
     margin-top: 26px;
   }
   body[data-page="marketing"] .button {
-    font-size: 11px;
+    font-size: 14px;
     gap: 24px;
     width: 100%;
+    min-height: 48px;
   }
   body[data-page="marketing"] .hero-note {
     max-width: none;
-    font-size: 10px;
+    font-size: 14px;
   }
   body[data-page="marketing"] .core-stage {
     width: 100%;
@@ -1010,12 +1026,12 @@ body[data-page="marketing"] .closing-rings {
     align-items: center;
   }
   body[data-page="marketing"] .core-stage figcaption .fine {
-    max-width: 180px;
-    font-size: 10px;
+    max-width: none;
+    font-size: 14px;
   }
   body[data-page="marketing"] .core-top,
   body[data-page="marketing"] .core-label {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   body[data-page="marketing"] .system-strip {
@@ -1023,7 +1039,7 @@ body[data-page="marketing"] .closing-rings {
     justify-content: flex-start;
     gap: 14px 30px;
     padding-block: 22px;
-    font-size: 8px;
+    font-size: 14px;
     min-height: 90px;
   }
   body[data-page="marketing"] .strip-index {
@@ -1044,7 +1060,7 @@ body[data-page="marketing"] .closing-rings {
     font-size: 36px;
   }
   body[data-page="marketing"] .section-head > p:last-child {
-    font-size: 12px;
+    font-size: 16px;
   }
   body[data-page="marketing"] .system-layout {
     grid-template-columns: 1fr;
@@ -1066,19 +1082,19 @@ body[data-page="marketing"] .closing-rings {
     margin-left: 32px;
   }
   body[data-page="marketing"] .chapter-body p {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   body[data-page="marketing"] .demo-frame {
     padding: 20px;
   }
   body[data-page="marketing"] .demo-bar {
-    font-size: 8px;
+    font-size: 14px;
     gap: 15px;
     align-items: flex-start;
   }
   body[data-page="marketing"] .demo-bar > span:last-child {
-    max-width: 125px;
+    max-width: none;
     text-align: right;
   }
   body[data-page="marketing"] .demo-grid {
@@ -1094,9 +1110,9 @@ body[data-page="marketing"] .closing-rings {
     display: none;
   }
   body[data-page="marketing"] .scenario {
-    padding: 12px 4px;
+    padding: 14px 8px;
     min-height: 50px;
-    font-size: 12px;
+    font-size: 14px;
   }
   body[data-page="marketing"] .sample-question {
     font-size: 23px;
@@ -1106,10 +1122,10 @@ body[data-page="marketing"] .closing-rings {
     padding-top: 20px;
   }
   body[data-page="marketing"] .sample-answer p {
-    font-size: 13px;
+    font-size: 16px;
   }
   body[data-page="marketing"] .sample-label {
-    font-size: 8px;
+    font-size: 12px;
   }
   body[data-page="marketing"] .example-disclosure,
   body[data-page="marketing"] .sample-conversation > .text-link {
@@ -1145,17 +1161,14 @@ body[data-page="marketing"] .closing-rings {
     opacity: 0.7;
   }
   body[data-page="marketing"] .closing .fine {
-    max-width: 250px;
-    font-size: 10px;
+    max-width: none;
+    font-size: 14px;
   }
 }
 
 @media (max-width: 370px) {
   body[data-page="marketing"] h1#hero-title {
     font-size: 38px;
-  }
-  body[data-page="marketing"] .eyebrow {
-    font-size: 7px;
   }
 }
 
@@ -1168,18 +1181,18 @@ body[data-page="marketing"] .site-footer {
   gap: 28px;
   border-top: 1px solid var(--line, #26262a);
   color: var(--muted, #c0bcc0);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 body[data-page="marketing"] .site-footer .fine {
-  font-size: 11px;
-  line-height: 1.8;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--muted, #c0bcc0);
   margin: 0;
 }
 
 body[data-page="marketing"] .site-footer .text-link {
-  font-size: 12px;
+  font-size: 14px;
   display: inline-flex;
   gap: 8px;
   align-items: center;
@@ -1205,7 +1218,7 @@ body[data-page="marketing"] .site-footer .copyright {
   grid-column: 1 / -1;
   padding-top: 18px;
   border-top: 1px solid var(--line, #26262a);
-  font-size: 11px;
+  font-size: 14px;
 }
 
 @media (max-width: 760px) {
@@ -1228,6 +1241,13 @@ body[data-page="marketing"] .site-footer .copyright {
   body[data-page="marketing"] .site-wrap {
     width: calc(100% - 16px);
   }
+  body[data-page="marketing"] .site-header {
+    justify-content: center;
+  }
+  body[data-page="marketing"] .header-cta {
+    width: 100%;
+    justify-content: center;
+  }
   body[data-page="marketing"] h1 {
     font-size: clamp(32px, 9.5vw, 42px);
   }
@@ -1242,7 +1262,7 @@ body[data-page="marketing"] .site-footer .copyright {
   }
   body[data-page="marketing"] .document-stack > div {
     padding: 12px 14px;
-    font-size: 10px;
+    font-size: 12px;
   }
   body[data-page="marketing"] .document-stack > div:nth-child(2) {
     margin-left: 12px;

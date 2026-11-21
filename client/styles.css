@@ -845,7 +845,7 @@ body[data-page="console"] .brand-accent {
 }
 
 body[data-page="console"] .brand-edition {
-  font-size: 0.75rem;
+  font-size: 14px;
   color: #A8B3C4;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -855,8 +855,8 @@ body[data-page="console"] .demo-disclosure {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 0.75rem;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.5;
   color: #A8B3C4;
   background-color: #141C2E;
   padding: 10px 12px;
@@ -869,7 +869,7 @@ body[data-page="console"] .disclosure-badge {
   background-color: rgba(242, 197, 114, 0.15);
   color: #F2C572;
   font-weight: 600;
-  font-size: 0.65rem;
+  font-size: 14px;
   padding: 2px 6px;
   border-radius: 4px;
   text-transform: uppercase;
@@ -882,9 +882,9 @@ body[data-page="console"] .rail-guidance {
 }
 
 body[data-page="console"] .rail-guidance-text {
-  font-size: 0.85rem;
+  font-size: 14px;
   color: #A8B3C4;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 body[data-page="console"] .btn-new-conversation {
@@ -899,8 +899,9 @@ body[data-page="console"] .btn-new-conversation {
   border: 1px solid #293447;
   border-radius: 8px;
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 500;
+  min-height: 44px;
   cursor: pointer;
   transition: all 150ms ease;
 }
@@ -957,7 +958,7 @@ body[data-page="console"] .connection-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 14px;
   color: #A8B3C4;
   flex-wrap: wrap;
 }
@@ -978,7 +979,7 @@ body[data-page="console"] .finops-info {
 }
 
 body[data-page="console"] .finops-info .cost-label {
-  font-size: 0.7rem;
+  font-size: 14px;
   color: #A8B3C4;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -986,7 +987,7 @@ body[data-page="console"] .finops-info .cost-label {
 
 body[data-page="console"] .finops-info .cost-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 600;
   color: #85D6BD;
 }
@@ -1028,15 +1029,15 @@ body[data-page="console"] .avatar-mini {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 700;
 }
 
 body[data-page="console"] .bubble {
   padding: 12px 16px;
   border-radius: 12px;
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.65;
 }
 
 body[data-page="console"] .user-message .bubble {
@@ -1074,8 +1075,9 @@ body[data-page="console"] .code-copy-btn {
   color: #A8B3C4;
   border: 1px solid #293447;
   border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 0.75rem;
+  padding: 6px 12px;
+  font-size: 14px;
+  min-height: 44px;
   cursor: pointer;
 }
 
@@ -1095,7 +1097,7 @@ body[data-page="console"] .suggestions-container {
 }
 
 body[data-page="console"] .suggestions-label {
-  font-size: 0.75rem;
+  font-size: 14px;
   color: #A8B3C4;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1119,8 +1121,9 @@ body[data-page="console"] .suggestion-chip {
   color: #F8FAFC;
   border: 1px solid #293447;
   border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 0.8rem;
+  padding: 10px 16px;
+  min-height: 44px;
+  font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
@@ -1172,11 +1175,12 @@ body[data-page="console"] textarea#input {
   padding: 12px 48px 12px 16px;
   color: #F8FAFC;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 16px;
   resize: none;
   outline: none;
-  line-height: 1.4;
+  line-height: 1.5;
   height: 48px;
+  min-height: 48px;
   max-height: 120px;
   box-sizing: border-box;
 }
@@ -1188,7 +1192,7 @@ body[data-page="console"] textarea#input:focus {
 body[data-page="console"] .keyboard-hint {
   position: absolute;
   right: 14px;
-  font-size: 0.75rem;
+  font-size: 12px;
   color: #A8B3C4;
   pointer-events: none;
 }
@@ -1204,6 +1208,7 @@ body[data-page="console"] #send-btn {
   width: 48px;
   height: 48px;
   min-width: 48px;
+  min-height: 48px;
   background-color: #85D6BD;
   color: #090D16;
   border: none;
@@ -1254,13 +1259,15 @@ body[data-page="console"] #send-btn:focus-visible {
 
   body[data-page="console"] .demo-disclosure {
     margin-top: 0;
-    padding: 4px 8px;
-    font-size: 0.7rem;
+    padding: 6px 10px;
+    font-size: 14px;
   }
 
   body[data-page="console"] .btn-new-conversation {
     width: auto;
-    padding: 8px 12px;
+    padding: 10px 16px;
+    font-size: 14px;
+    min-height: 44px;
   }
 
   body[data-page="console"] .console-header {
@@ -1286,14 +1293,17 @@ body[data-page="console"] #send-btn:focus-visible {
 /* Task 2 / A2: 429 Rate Limit Affordance */
 body[data-page="console"] .btn-retry-429 {
   margin-top: 10px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: #141C2E;
   color: #F2C572;
   border: 1px solid #293447;
   border-radius: 6px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 14px;
+  min-height: 44px;
   font-weight: 500;
   cursor: pointer;
   transition: all 150ms ease;
@@ -1311,14 +1321,17 @@ body[data-page="console"] .btn-retry-429:disabled {
 
 body[data-page="console"] .btn-retry-init {
   margin-top: 10px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: #141C2E;
   color: #F2C572;
   border: 1px solid #293447;
   border-radius: 6px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 14px;
+  min-height: 44px;
   font-weight: 500;
   cursor: pointer;
   transition: all 150ms ease;
