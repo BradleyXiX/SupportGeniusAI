@@ -41,6 +41,21 @@ export function isValidCapabilities(cap) {
   return true;
 }
 
+function createAvatarElement() {
+  const avatar = document.createElement("div");
+  avatar.className = "avatar-mini";
+  avatar.setAttribute("aria-hidden", "true");
+  const img = document.createElement("img");
+  img.src = "/assets/brand/avatar-sphere.svg";
+  img.width = 24;
+  img.height = 24;
+  img.alt = "";
+  img.className = "avatar-sphere-mark";
+  img.setAttribute("aria-hidden", "true");
+  avatar.appendChild(img);
+  return avatar;
+}
+
 export function initConsole() {
   const chatMessages = document.getElementById("chat-messages");
   const inputField = document.getElementById("input");
@@ -167,15 +182,13 @@ export function initConsole() {
 
   function showInitError(messageText) {
     removeInitError();
+    consoleOrb?.setState("recovery");
+    window.__consoleOrbState = "recovery";
     const banner = document.createElement("div");
     banner.id = "init-error-banner";
     banner.className = "message ai-message error-message init-error-banner";
 
-    const avatar = document.createElement("div");
-    avatar.className = "avatar-mini";
-    avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = "SG";
-    banner.appendChild(avatar);
+    banner.appendChild(createAvatarElement());
 
     const bubble = document.createElement("div");
     bubble.className = "bubble";
@@ -242,7 +255,9 @@ export function initConsole() {
 
     chatMessages.innerHTML = `
       <div class="message ai-message">
-        <div class="avatar-mini" aria-hidden="true">SG</div>
+        <div class="avatar-mini" aria-hidden="true">
+          <img src="/assets/brand/avatar-sphere.svg" width="24" height="24" alt="" class="avatar-sphere-mark" aria-hidden="true">
+        </div>
         <div class="bubble">
           <p>${welcomeText}</p>
         </div>
@@ -445,11 +460,7 @@ export function initConsole() {
     msgDiv.className = "message ai-message loading";
     msgDiv.id = "loading-message";
 
-    const avatar = document.createElement("div");
-    avatar.className = "avatar-mini";
-    avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = "SG";
-    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(createAvatarElement());
 
     const bubbleDiv = document.createElement("div");
     bubbleDiv.className = "bubble loading-bubble";
@@ -496,11 +507,7 @@ export function initConsole() {
     msgDiv.className = `message ${isUser ? "user-message" : "ai-message"}${isError ? " error-message" : ""}`;
 
     if (!isUser) {
-      const avatar = document.createElement("div");
-      avatar.className = "avatar-mini";
-      avatar.setAttribute("aria-hidden", "true");
-      avatar.textContent = "SG";
-      msgDiv.appendChild(avatar);
+      msgDiv.appendChild(createAvatarElement());
     }
 
     const bubbleDiv = document.createElement("div");
@@ -562,14 +569,12 @@ export function initConsole() {
   }
 
   function renderRateLimitNotice(retrySeconds, originalText) {
+    consoleOrb?.setState("error");
+    window.__consoleOrbState = "error";
     const msgDiv = document.createElement("div");
     msgDiv.className = "message ai-message error-message";
 
-    const avatar = document.createElement("div");
-    avatar.className = "avatar-mini";
-    avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = "SG";
-    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(createAvatarElement());
 
     const bubbleDiv = document.createElement("div");
     bubbleDiv.className = "bubble rate-limit-bubble";
@@ -665,6 +670,8 @@ export function initConsole() {
       if (res.status === 401) {
         reqLoadingElement.remove();
         sessionStatus = "needsRecovery";
+        consoleOrb?.setState("recovery");
+        window.__consoleOrbState = "recovery";
         appendMessage("Session required or expired. Please start a new conversation.", false, true);
         showInitError("Session expired. Please restart the conversation.");
         updateControlState();
@@ -673,12 +680,14 @@ export function initConsole() {
 
       if (res.status === 409) {
         reqLoadingElement.remove();
+        consoleOrb?.setState("error");
         appendMessage("A reply is already being processed. Please wait.", false, true);
         return;
       }
 
       if (res.status === 429) {
         reqLoadingElement.remove();
+        consoleOrb?.setState("error");
         const retryHeader = res.headers.get("Retry-After");
         let retrySeconds = parseInt(retryHeader, 10);
         if (isNaN(retrySeconds) || retrySeconds <= 0) {
@@ -698,6 +707,7 @@ export function initConsole() {
           }
         }
         reqLoadingElement.remove();
+        consoleOrb?.setState("error");
 
         if (!acceptsReply(chatState, { requestId, generation: requestGeneration })) {
           return;
@@ -714,6 +724,7 @@ export function initConsole() {
 
       if (!res.ok) {
         reqLoadingElement.remove();
+        consoleOrb?.setState("error");
         if (!acceptsReply(chatState, { requestId, generation: requestGeneration })) {
           return;
         }
@@ -740,6 +751,7 @@ export function initConsole() {
       }
     } catch (err) {
       reqLoadingElement.remove();
+      consoleOrb?.setState("error");
 
       if (!acceptsReply(chatState, { requestId, generation: requestGeneration })) {
         return;
@@ -761,7 +773,9 @@ export function initConsole() {
 
       if (acceptsReply(chatState, { requestId, generation: requestGeneration })) {
         chatState = completeRequest(chatState, { requestId, generation: requestGeneration });
-        consoleOrb?.setState("idle");
+        if (consoleOrb && typeof consoleOrb.getState === "function" && consoleOrb.getState() !== "settling") {
+          consoleOrb.setState("idle");
+        }
         window.__consoleOrbState = "idle";
 
         // Only revert to ready if sessionStatus was still chatPending

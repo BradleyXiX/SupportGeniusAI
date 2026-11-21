@@ -1150,8 +1150,8 @@ body[data-page="console"] .suggestion-chip.chip-disabled {
 /* Fixed Composer Form */
 body[data-page="console"] .console-composer {
   padding: 16px 24px;
-  background-color: #090D16;
-  border-top: 1px solid #293447;
+  background-color: var(--surface, #101012);
+  border-top: 1px solid var(--line, #26262a);
 }
 
 body[data-page="console"] .composer-form {
@@ -1169,11 +1169,11 @@ body[data-page="console"] .composer-input-wrapper {
 
 body[data-page="console"] textarea#input {
   width: 100%;
-  background-color: #0D121F;
-  border: 1px solid #293447;
-  border-radius: 8px;
+  background-color: var(--canvas, #030304);
+  border: 1px solid var(--border-control, #686874);
+  border-radius: 4px;
   padding: 12px 48px 12px 16px;
-  color: #F8FAFC;
+  color: var(--ink, #F7F7F5);
   font-family: inherit;
   font-size: 16px;
   resize: none;
@@ -1181,27 +1181,37 @@ body[data-page="console"] textarea#input {
   line-height: 1.5;
   height: 48px;
   min-height: 48px;
-  max-height: 120px;
+  max-height: 140px;
   box-sizing: border-box;
+  transition: border-color 0.18s ease;
 }
 
-body[data-page="console"] textarea#input:focus {
-  border-color: #85D6BD;
+body[data-page="console"] textarea#input::placeholder {
+  color: #8c888c;
+  opacity: 1;
+}
+
+body[data-page="console"] textarea#input:focus,
+body[data-page="console"] textarea#input:focus-visible {
+  border-color: var(--ink, #F7F7F5);
+  outline: 3px solid var(--focus-dark, #FFFFFF);
+  outline-offset: 2px;
 }
 
 body[data-page="console"] .keyboard-hint {
   position: absolute;
   right: 14px;
   font-size: 12px;
-  color: #A8B3C4;
+  color: var(--muted, #C0BCC0);
   pointer-events: none;
 }
 
 body[data-page="console"] .keyboard-hint kbd {
-  background: #141C2E;
-  border: 1px solid #293447;
+  background: var(--surface-higher, #1A1A1E);
+  border: 1px solid var(--line, #26262a);
   border-radius: 4px;
   padding: 2px 6px;
+  color: var(--muted, #C0BCC0);
 }
 
 body[data-page="console"] #send-btn {
@@ -1209,29 +1219,36 @@ body[data-page="console"] #send-btn {
   height: 48px;
   min-width: 48px;
   min-height: 48px;
-  background-color: #85D6BD;
-  color: #090D16;
-  border: none;
-  border-radius: 8px;
+  background-color: var(--accent, #BB1729);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 150ms ease;
+  padding: 0;
+  transition: background-color 0.18s ease, transform 0.1s ease;
 }
 
-body[data-page="console"] #send-btn:hover {
-  background-color: #9fe2cd;
+body[data-page="console"] #send-btn:hover:not(:disabled) {
+  background-color: var(--accent-hot, #D52A38);
+}
+
+body[data-page="console"] #send-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 body[data-page="console"] #send-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+  transform: none;
+  background-color: var(--accent, #BB1729);
 }
 
 body[data-page="console"] #send-btn:focus-visible {
-  outline: 2px solid #F2C572;
-  outline-offset: 2px;
+  outline: 3px solid var(--focus-dark, #FFFFFF);
+  outline-offset: 3px;
 }
 
 /* Mobile responsive collapse */

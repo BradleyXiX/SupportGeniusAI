@@ -501,8 +501,9 @@ test.describe("Task 4 / A4: Responsive Console & Accessibility Polish", () => {
 
   test("keyboard-only navigation tabs through interactive controls with visible focus ring", async ({ page }) => {
     await page.goto("/console/");
+    await expect(page.locator("#input")).toBeEnabled();
 
-    // Press Tab from top of page
+    // Focus the skip link first or press Tab from top of page
     await page.keyboard.press("Tab"); // Skip link
     const activeTagName1 = await page.evaluate(() => document.activeElement.tagName);
     expect(["A", "BUTTON", "TEXTAREA"]).toContain(activeTagName1);

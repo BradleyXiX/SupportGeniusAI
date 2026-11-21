@@ -330,12 +330,27 @@ body[data-page="console"] .chat-messages {
   background-color: var(--canvas, #030304);
 }
 
+body[data-page="console"] .avatar-mini,
 body[data-page="console"] .message.ai-message .avatar-mini {
   background-color: var(--surface, #101012);
   border: 1px solid var(--line, #26262a);
   color: var(--ink, #f7f7f5);
-  font-family: var(--mono);
-  font-size: 12px;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+}
+
+body[data-page="console"] .avatar-sphere-mark {
+  width: 24px;
+  height: 24px;
+  display: block;
+  pointer-events: none;
 }
 
 body[data-page="console"] .message.ai-message .bubble {
@@ -458,7 +473,14 @@ body[data-page="console"] #input {
   border-radius: 4px;
 }
 
+body[data-page="console"] #input::placeholder {
+  color: #8c888c;
+  opacity: 1;
+}
+
+body[data-page="console"] #input:focus,
 body[data-page="console"] #input:focus-visible {
+  border-color: var(--ink, #f7f7f5);
   outline: 3px solid var(--focus-dark, #ffffff);
   outline-offset: 2px;
 }
@@ -466,17 +488,35 @@ body[data-page="console"] #input:focus-visible {
 body[data-page="console"] #send-btn {
   background-color: var(--accent, #bb1729);
   color: #ffffff;
-  border: 0;
-  border-radius: 2px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   font-size: 14px;
   font-weight: 600;
-  min-height: 44px;
-  min-width: 44px;
-  transition: background 0.18s ease;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.18s ease, transform 0.1s ease;
 }
 
 body[data-page="console"] #send-btn:hover:not(:disabled) {
   background-color: var(--accent-hot, #d52a38);
+}
+
+body[data-page="console"] #send-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+body[data-page="console"] #send-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  background-color: var(--accent, #bb1729);
 }
 
 body[data-page="console"] #send-btn:focus-visible {
