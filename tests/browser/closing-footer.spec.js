@@ -358,7 +358,27 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
   });
 
   test('13. Capture visual evidence of unified closing contact, footer, and hero actions', async ({ page }) => {
-    // 1. Desktop 1440x900
+    // 1. Desktop 1440x1000 Integrated Hero Capture
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/');
+
+    await page.screenshot({
+      path: 'docs/design-v3/screenshots/landing-desktop-1440.png',
+      clip: { x: 0, y: 0, width: 1440, height: 1000 },
+    });
+
+    // Integrated Console Capture in Demo Mode (1440x1000)
+    await page.goto('/console/');
+    await expect(page.locator('#input')).toBeEnabled();
+    await page.locator('#input').fill('What is the returns policy and processing timeframe?');
+    await page.locator('#send-btn').click();
+    await expect(page.locator('#chat-messages')).toContainText('refunds are processed within 3 business days');
+    await page.screenshot({
+      path: 'docs/design-v3/screenshots/console-answered-1440.png',
+      clip: { x: 0, y: 0, width: 1440, height: 1000 },
+    });
+
+    // 2. Desktop 1440x900 Detailed Section Captures
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
@@ -387,7 +407,7 @@ test.describe('Task 08: Closing Journey & Branded Footer (.closing & .site-foote
       path: 'docs/design-v3/screenshots/contact-footer-desktop.png',
     });
 
-    // 2. Mobile 390x844
+    // 3. Mobile 390x844
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
 
