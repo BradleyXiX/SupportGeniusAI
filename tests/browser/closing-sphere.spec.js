@@ -460,4 +460,67 @@ test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
     });
   });
 
+  test('12. Records motion preview video and measures frame rate and rendering performance', async ({ browser }) => {
+    test.setTimeout(60000);
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const videoDir = path.resolve('docs/design-v3/recordings');
+    if (!fs.existsSync(videoDir)) {
+      fs.mkdirSync(videoDir, { recursive: true });
+    }
+
+    const context = await browser.newContext({
+      recordVideo: {
+        dir: videoDir,
+        size: { width: 1280, height: 720 }
+      }
+    });
+    const page = await context.newPage();
+    await page.goto('/');
+    await page.locator('.closing').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+
+    // Measure frame deltas over 60 RAF frames
+    const perfData = await page.evaluate(async () => {
+      return new Promise((resolve) => {
+        const frameTimes = [];
+        let start = performance.now();
+        let last = start;
+        let count = 0;
+
+        function frame(now) {
+          const delta = now - last;
+          last = now;
+          if (count > 0) frameTimes.push(delta);
+          count++;
+          if (count < 60) {
+            requestAnimationFrame(frame);
+          } else {
+            const totalDuration = now - start;
+            const avgDelta = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
+            const maxDelta = Math.max(...frameTimes);
+            const longFrames = frameTimes.filter(d => d > 33.3).length;
+            resolve({ totalDuration, avgDelta, maxDelta, longFrames, frameCount: frameTimes.length });
+          }
+        }
+        requestAnimationFrame(frame);
+      });
+    });
+
+    // Allow 2s of visible motion to record to the WebM video
+    await page.waitForTimeout(2000);
+
+    const video = page.video();
+    await page.close();
+
+    if (video) {
+      const recordedPath = await video.path();
+      const targetPath = path.resolve('docs/design-v3/recordings/closing-ribbons-preview.webm');
+      fs.copyFileSync(recordedPath, targetPath);
+    }
+    await context.close();
+
+    expect(perfData.avgDelta).toBeLessThanOrEqual(33.3);
+  });
+
 });

@@ -174,7 +174,9 @@ export function mountCore(canvas, poster, {
   }
 
   try {
-    const vertexSource = [
+    const isRibbonVariant = (theme === 'light' || id === 'closing-sphere');
+
+    const coreVertexSource = [
       'attribute vec3 p;',
       'attribute float t;',
       'attribute float s;',
@@ -224,7 +226,7 @@ export function mountCore(canvas, poster, {
       '}'
     ].join('\n');
 
-    const fragmentSource = [
+    const coreFragmentSource = [
       'precision mediump float;',
       'uniform float u_theme;',
       'varying float v_type;',
@@ -234,84 +236,121 @@ export function mountCore(canvas, poster, {
       '  float dist = length(gl_PointCoord - vec2(0.5));',
       '  if (dist > 0.5) discard;',
       '  float shape = (u_theme > 0.5) ? (1.0 - smoothstep(0.24, 0.5, dist)) : (1.0 - smoothstep(0.06, 0.5, dist));',
-      '  if (u_theme > 0.5) {',
-      '    // Light theme (closing section on paper background): deep wine & garnet',
-      '    if (v_type > 0.5) {',
-      '      vec3 garnetBlack = vec3(0.12, 0.015, 0.03);',
-      '      vec3 garnetDeep = vec3(0.22, 0.03, 0.06);',
-      '      vec3 wineRich = vec3(0.42, 0.05, 0.10);',
-      '      vec3 crimsonDeep = vec3(0.55, 0.07, 0.13);',
-      '      if (v_seed > 0.40) {',
-      '        float coreFactor = 1.0 - smoothstep(0.0, 0.40, dist);',
-      '        vec3 rgb = mix(wineRich, garnetBlack, coreFactor * coreFactor);',
-      '        float alpha = shape * (0.92 + (v_depth + 1.0) * 0.06);',
-      '        gl_FragColor = vec4(rgb, alpha);',
-      '      } else {',
-      '        vec3 rgb = mix(garnetDeep, crimsonDeep, 0.4 + v_depth * 0.5);',
-      '        float alpha = shape * (0.84 + (v_depth + 1.0) * 0.12);',
-      '        gl_FragColor = vec4(rgb, alpha);',
-      '      }',
+      '  if (v_type > 0.5) {',
+      '    vec3 crimsonDeep = vec3(0.55, 0.06, 0.10);',
+      '    vec3 crimsonVibrant = vec3(0.733, 0.090, 0.161);',
+      '    vec3 whiteWarm = vec3(0.969, 0.969, 0.961);',
+      '    if (v_seed > 0.40) {',
+      '      float coreFactor = 1.0 - smoothstep(0.0, 0.38, dist);',
+      '      vec3 rgb = mix(crimsonVibrant, whiteWarm, coreFactor * coreFactor);',
+      '      float alpha = shape * (0.85 + (v_depth + 1.0) * 0.10);',
+      '      gl_FragColor = vec4(rgb, alpha);',
       '    } else {',
-      '      vec3 wineDark = vec3(0.26, 0.03, 0.06);',
-      '      vec3 wineMid = vec3(0.40, 0.05, 0.09);',
-      '      vec3 crimsonDark = vec3(0.54, 0.06, 0.12);',
-      '      vec3 rimGarnet = vec3(0.16, 0.02, 0.04);',
-      '      vec3 rgb;',
-      '      float alpha;',
-      '      if (v_depth < 0.0) {',
-      '        float factor = (v_depth + 1.0);',
-      '        rgb = mix(wineDark, wineMid, factor * 0.75);',
-      '        alpha = shape * (0.78 + factor * 0.18);',
-      '      } else {',
-      '        float factor = v_depth;',
-      '        rgb = mix(wineMid, crimsonDark, factor * 0.80);',
-      '        if (v_seed > 0.93 && v_depth > 0.20) {',
-      '          rgb = mix(rgb, rimGarnet, 0.85);',
-      '        }',
-      '        alpha = shape * (0.86 + factor * 0.12);',
-      '      }',
+      '      vec3 rgb = mix(crimsonDeep, crimsonVibrant, 0.5 + v_depth * 0.5);',
+      '      float alpha = shape * (0.65 + (v_depth + 1.0) * 0.20);',
       '      gl_FragColor = vec4(rgb, alpha);',
       '    }',
       '  } else {',
-      '    // Dark theme (hero section on dark canvas)',
-      '    if (v_type > 0.5) {',
-      '      vec3 crimsonDeep = vec3(0.55, 0.06, 0.10);',
-      '      vec3 crimsonVibrant = vec3(0.733, 0.090, 0.161);',
-      '      vec3 whiteWarm = vec3(0.969, 0.969, 0.961);',
-      '      if (v_seed > 0.40) {',
-      '        float coreFactor = 1.0 - smoothstep(0.0, 0.38, dist);',
-      '        vec3 rgb = mix(crimsonVibrant, whiteWarm, coreFactor * coreFactor);',
-      '        float alpha = shape * (0.85 + (v_depth + 1.0) * 0.10);',
-      '        gl_FragColor = vec4(rgb, alpha);',
-      '      } else {',
-      '        vec3 rgb = mix(crimsonDeep, crimsonVibrant, 0.5 + v_depth * 0.5);',
-      '        float alpha = shape * (0.65 + (v_depth + 1.0) * 0.20);',
-      '        gl_FragColor = vec4(rgb, alpha);',
-      '      }',
+      '    vec3 wineDark = vec3(0.48, 0.06, 0.10);',
+      '    vec3 crimsonMid = vec3(0.733, 0.090, 0.161);',
+      '    vec3 crimsonHot = vec3(0.86, 0.12, 0.20);',
+      '    vec3 rimWhite = vec3(0.969, 0.969, 0.961);',
+      '    vec3 rgb;',
+      '    float alpha;',
+      '    if (v_depth < 0.0) {',
+      '      float factor = (v_depth + 1.0);',
+      '      rgb = mix(wineDark, crimsonMid, factor * 0.70);',
+      '      alpha = shape * (0.42 + factor * 0.35);',
       '    } else {',
-      '      vec3 wineDark = vec3(0.48, 0.06, 0.10);',
-      '      vec3 crimsonMid = vec3(0.733, 0.090, 0.161);',
-      '      vec3 crimsonHot = vec3(0.86, 0.12, 0.20);',
-      '      vec3 rimWhite = vec3(0.969, 0.969, 0.961);',
-      '      vec3 rgb;',
-      '      float alpha;',
-      '      if (v_depth < 0.0) {',
-      '        float factor = (v_depth + 1.0);',
-      '        rgb = mix(wineDark, crimsonMid, factor * 0.70);',
-      '        alpha = shape * (0.42 + factor * 0.35);',
-      '      } else {',
-      '        float factor = v_depth;',
-      '        rgb = mix(crimsonMid, crimsonHot, factor * 0.75);',
-      '        if (v_seed > 0.93 && v_depth > 0.20) {',
-      '          rgb = mix(rgb, rimWhite, 0.85);',
-      '        }',
-      '        alpha = shape * (0.68 + factor * 0.30);',
+      '      float factor = v_depth;',
+      '      rgb = mix(crimsonMid, crimsonHot, factor * 0.75);',
+      '      if (v_seed > 0.93 && v_depth > 0.20) {',
+      '        rgb = mix(rgb, rimWhite, 0.85);',
       '      }',
-      '      gl_FragColor = vec4(rgb, alpha);',
+      '      alpha = shape * (0.68 + factor * 0.30);',
       '    }',
+      '    gl_FragColor = vec4(rgb, alpha);',
       '  }',
       '}'
     ].join('\n');
+
+    // Ribbon variant shaders: hollow spherical envelope of flowing particle ribbons
+    const ribbonVertexSource = [
+      'attribute vec3 p;',
+      'attribute float t;',
+      'attribute float s;',
+      'uniform float u_time;',
+      'uniform float u_rotation;',
+      'uniform float u_aspect;',
+      'uniform float u_dpr;',
+      'uniform vec2 u_tilt;',
+      'uniform float u_disp_mult;',
+      'varying float v_seam;',
+      'varying float v_depth;',
+      'varying float v_seed;',
+      'void main() {',
+      '  vec3 pos = p;',
+      '  float w1 = sin(pos.x * 2.8 + pos.y * 2.2 + u_time * 0.85);',
+      '  float w2 = cos(pos.z * 3.1 - pos.x * 1.9 + u_time * 0.70);',
+      '  float w3 = sin(pos.y * 3.4 + pos.z * 2.6 - u_time * 1.05);',
+      '  vec3 n = normalize(pos);',
+      '  float ribbonWave = (w1 * 0.035 + w2 * 0.028 + w3 * 0.020) * u_disp_mult;',
+      '  vec3 tanFlow = vec3(-pos.z, 0.0, pos.x) * (0.015 * sin(u_time * 0.75 + s * 3.14159) * u_disp_mult);',
+      '  pos += n * ribbonWave + tanFlow;',
+      '  float rot = u_rotation + u_tilt.y;',
+      '  float cr = cos(rot);',
+      '  float sr = sin(rot);',
+      '  vec3 q = vec3(pos.x * cr + pos.z * sr, pos.y, -pos.x * sr + pos.z * cr);',
+      '  float tiltPitch = 0.2079 + u_tilt.x;',
+      '  float ct = cos(tiltPitch);',
+      '  float st = sin(tiltPitch);',
+      '  q = vec3(q.x, q.y * ct - q.z * st, q.y * st + q.z * ct);',
+      '  float d = 3.4 - q.z * 0.45;',
+      '  gl_Position = vec4(q.x * 2.12 / (d * u_aspect), q.y * 2.12 / d, 0.0, 1.0);',
+      '  float baseSize = mix(2.3, 3.1, t);',
+      '  gl_PointSize = (baseSize + (q.z + 1.0) * 0.85) * (0.90 + s * 0.24) * u_dpr;',
+      '  v_seam = t;',
+      '  v_depth = q.z;',
+      '  v_seed = s;',
+      '}'
+    ].join('\n');
+
+    const ribbonFragmentSource = [
+      'precision mediump float;',
+      'varying float v_seam;',
+      'varying float v_depth;',
+      'varying float v_seed;',
+      'void main() {',
+      '  float dist = length(gl_PointCoord - vec2(0.5));',
+      '  if (dist > 0.5) discard;',
+      '  float shape = 1.0 - smoothstep(0.24, 0.5, dist);',
+      '  vec3 garnetDark = vec3(0.18, 0.020, 0.045);',
+      '  vec3 wineDeep   = vec3(0.32, 0.035, 0.075);',
+      '  vec3 wineMid    = vec3(0.48, 0.052, 0.110);',
+      '  vec3 crimsonBold = vec3(0.66, 0.082, 0.148);',
+      '  vec3 crimsonSeam = vec3(0.77, 0.102, 0.172);',
+      '  float frontFactor = clamp((v_depth + 0.8) / 1.6, 0.0, 1.0);',
+      '  vec3 rgb;',
+      '  float alpha;',
+      '  if (v_seam > 0.68) {',
+      '    float seamVal = (v_seam - 0.68) / 0.32;',
+      '    vec3 baseColor = mix(wineMid, crimsonBold, frontFactor);',
+      '    rgb = mix(baseColor, crimsonSeam, seamVal * 0.90);',
+      '    alpha = shape * (0.90 + frontFactor * 0.08);',
+      '  } else {',
+      '    vec3 backColor = mix(garnetDark, wineDeep, frontFactor * 0.6);',
+      '    rgb = mix(backColor, wineMid, frontFactor * 0.85);',
+      '    if (v_seed > 0.91 && v_depth > 0.10) {',
+      '      rgb = mix(rgb, crimsonBold, 0.70);',
+      '    }',
+      '    alpha = shape * (0.86 + frontFactor * 0.12);',
+      '  }',
+      '  gl_FragColor = vec4(rgb, alpha);',
+      '}'
+    ].join('\n');
+
+    const vertexSource = isRibbonVariant ? ribbonVertexSource : coreVertexSource;
+    const fragmentSource = isRibbonVariant ? ribbonFragmentSource : coreFragmentSource;
 
     const vertex = compile(gl.VERTEX_SHADER, vertexSource);
     const fragment = compile(gl.FRAGMENT_SHADER, fragmentSource);
@@ -331,46 +370,172 @@ export function mountCore(canvas, poster, {
       return s - Math.floor(s);
     }
 
-    const pts = [];
-    const shellCount = 3200;
-    const goldenRatio = (1 + Math.sqrt(5)) / 2;
+    function generateCorePoints(rnd) {
+      const pts = [];
+      const shellCount = 3200;
+      const goldenRatio = (1 + Math.sqrt(5)) / 2;
 
-    for (let i = 0; i < shellCount; i++) {
-      const theta = 2 * Math.PI * i / goldenRatio;
-      const phi = Math.acos(1 - 2 * (i + 0.5) / shellCount);
-      const x = Math.sin(phi) * Math.cos(theta);
-      const y = Math.cos(phi);
-      const z = Math.sin(phi) * Math.sin(theta);
-      const seed = pseudoRandom(i + 1);
-      pts.push(x, y, z, 0.0, seed);
-    }
-
-    const clusterCenters = [
-      { cx: -0.24, cy: 0.16, cz: 0.12, count: 160, spread: 0.075 },
-      { cx: 0.22, cy: -0.15, cz: 0.10, count: 150, spread: 0.070 },
-      { cx: 0.18, cy: 0.20, cz: -0.14, count: 140, spread: 0.070 },
-      { cx: -0.20, cy: -0.18, cz: -0.12, count: 130, spread: 0.065 },
-      { cx: 0.02, cy: 0.03, cz: -0.02, count: 120, spread: 0.060 }
-    ];
-
-    let seedCounter = shellCount + 100;
-    for (const cluster of clusterCenters) {
-      for (let j = 0; j < cluster.count; j++) {
-        seedCounter++;
-        const u1 = pseudoRandom(seedCounter * 1.13);
-        const u2 = pseudoRandom(seedCounter * 2.37);
-        const u3 = pseudoRandom(seedCounter * 3.71);
-        const r = cluster.spread * Math.sqrt(-2 * Math.log(Math.max(u1, 0.001)));
-        const theta = 2 * Math.PI * u2;
-        const phi = Math.acos(2 * u3 - 1);
-        const x = cluster.cx + r * Math.sin(phi) * Math.cos(theta);
-        const y = cluster.cy + r * Math.sin(phi) * Math.sin(theta);
-        const z = cluster.cz + r * Math.cos(phi);
-        const seed = pseudoRandom(seedCounter * 4.93);
-        pts.push(x, y, z, 1.0, seed);
+      for (let i = 0; i < shellCount; i++) {
+        const theta = 2 * Math.PI * i / goldenRatio;
+        const phi = Math.acos(1 - 2 * (i + 0.5) / shellCount);
+        const x = Math.sin(phi) * Math.cos(theta);
+        const y = Math.cos(phi);
+        const z = Math.sin(phi) * Math.sin(theta);
+        const seed = rnd(i + 1);
+        pts.push(x, y, z, 0.0, seed);
       }
+
+      const clusterCenters = [
+        { cx: -0.24, cy: 0.16, cz: 0.12, count: 160, spread: 0.075 },
+        { cx: 0.22, cy: -0.15, cz: 0.10, count: 150, spread: 0.070 },
+        { cx: 0.18, cy: 0.20, cz: -0.14, count: 140, spread: 0.070 },
+        { cx: -0.20, cy: -0.18, cz: -0.12, count: 130, spread: 0.065 },
+        { cx: 0.02, cy: 0.03, cz: -0.02, count: 120, spread: 0.060 }
+      ];
+
+      let seedCounter = shellCount + 100;
+      for (const cluster of clusterCenters) {
+        for (let j = 0; j < cluster.count; j++) {
+          seedCounter++;
+          const u1 = rnd(seedCounter * 1.13);
+          const u2 = rnd(seedCounter * 2.37);
+          const u3 = rnd(seedCounter * 3.71);
+          const r = cluster.spread * Math.sqrt(-2 * Math.log(Math.max(u1, 0.001)));
+          const theta = 2 * Math.PI * u2;
+          const phi = Math.acos(2 * u3 - 1);
+          const x = cluster.cx + r * Math.sin(phi) * Math.cos(theta);
+          const y = cluster.cy + r * Math.sin(phi) * Math.sin(theta);
+          const z = cluster.cz + r * Math.cos(phi);
+          const seed = rnd(seedCounter * 4.93);
+          pts.push(x, y, z, 1.0, seed);
+        }
+      }
+      return pts;
     }
 
+    function generateRibbonPoints(rnd) {
+      const pts = [];
+      const ribbonCount = 10;
+      const ptsPerRibbon = 440;
+      const ribbonWidth = 0.34;
+      const goldenRatio = (1 + Math.sqrt(5)) / 2;
+
+      for (let r = 0; r < ribbonCount; r++) {
+        const thetaNorm = (2 * Math.PI * r) / goldenRatio;
+        const phiNorm = Math.acos(1 - (2 * (r + 0.5)) / ribbonCount);
+        const nx = Math.sin(phiNorm) * Math.cos(thetaNorm);
+        const ny = Math.cos(phiNorm);
+        const nz = Math.sin(phiNorm) * Math.sin(thetaNorm);
+
+        const refX = Math.abs(ny) < 0.9 ? 0 : 1;
+        const refY = Math.abs(ny) < 0.9 ? 1 : 0;
+        const refZ = 0;
+
+        let ax = refY * nz - refZ * ny;
+        let ay = refZ * nx - refX * nz;
+        let az = refX * ny - refY * nx;
+        const aLen = Math.hypot(ax, ay, az) || 1;
+        ax /= aLen; ay /= aLen; az /= aLen;
+
+        const bx = ny * az - nz * ay;
+        const by = nz * ax - nx * az;
+        const bz = nx * ay - ny * ax;
+
+        const foldFreq = 3.0 + (r % 3) * 0.5;
+        const foldPhase = r * 1.618;
+
+        for (let i = 0; i < ptsPerRibbon; i++) {
+          const u = (2 * Math.PI * i) / ptsPerRibbon + (rnd(r * 1000 + i * 1.1) - 0.5) * (2 * Math.PI / ptsPerRibbon);
+          const randV = rnd(r * 2000 + i * 2.3);
+          const signV = randV < 0.5 ? -1 : 1;
+          const v = signV * Math.pow(Math.abs(randV - 0.5) * 2, 0.72);
+
+          const uWarp = u + 0.15 * Math.sin(2.0 * u + foldPhase);
+          const cu = Math.cos(uWarp);
+          const su = Math.sin(uWarp);
+
+          const p0x = ax * cu + bx * su;
+          const p0y = ay * cu + by * su;
+          const p0z = az * cu + bz * su;
+
+          const fold = 0.045 * Math.cos(foldFreq * u + 2.5 * v + foldPhase) * (1.0 - 0.25 * v * v);
+
+          const wDist = v * (ribbonWidth * 0.5);
+          const rx = p0x + nx * wDist;
+          const ry = p0y + ny * wDist;
+          const rz = p0z + nz * wDist;
+          const rLen = Math.hypot(rx, ry, rz) || 1;
+
+          const baseRadius = 1.15 * (1.0 + fold + 0.02 * Math.sin(2.0 * u + r));
+          const px = (rx / rLen) * baseRadius;
+          const py = (ry / rLen) * baseRadius;
+          const pz = (rz / rLen) * baseRadius;
+
+          let seamFactor = Math.abs(v);
+          if (fold > 0.025) {
+            seamFactor = Math.max(seamFactor, 0.88);
+          }
+
+          const seed = rnd(r * 5000 + i * 3.7);
+          pts.push(px, py, pz, seamFactor, seed);
+        }
+      }
+
+      const seamCount = 800;
+      for (let s = 0; s < seamCount; s++) {
+        const r = s % ribbonCount;
+        const thetaNorm = (2 * Math.PI * r) / goldenRatio;
+        const phiNorm = Math.acos(1 - (2 * (r + 0.5)) / ribbonCount);
+        const nx = Math.sin(phiNorm) * Math.cos(thetaNorm);
+        const ny = Math.cos(phiNorm);
+        const nz = Math.sin(phiNorm) * Math.sin(thetaNorm);
+
+        const refX = Math.abs(ny) < 0.9 ? 0 : 1;
+        const refY = Math.abs(ny) < 0.9 ? 1 : 0;
+        const refZ = 0;
+        let ax = refY * nz - refZ * ny;
+        let ay = refZ * nx - refX * nz;
+        let az = refX * ny - refY * nx;
+        const aLen = Math.hypot(ax, ay, az) || 1;
+        ax /= aLen; ay /= aLen; az /= aLen;
+
+        const bx = ny * az - nz * ay;
+        const by = nz * ax - nx * az;
+        const bz = nx * ay - ny * ax;
+
+        const foldFreq = 3.0 + (r % 3) * 0.5;
+        const foldPhase = r * 1.618;
+
+        const u = (2 * Math.PI * s) / seamCount;
+        const v = (s % 2 === 0 ? 0.95 : -0.95);
+
+        const uWarp = u + 0.15 * Math.sin(2.0 * u + foldPhase);
+        const cu = Math.cos(uWarp);
+        const su = Math.sin(uWarp);
+        const p0x = ax * cu + bx * su;
+        const p0y = ay * cu + by * su;
+        const p0z = az * cu + bz * su;
+
+        const fold = 0.045 * Math.cos(foldFreq * u + 2.5 * v + foldPhase) * (1.0 - 0.25 * v * v);
+        const wDist = v * (0.34 * 0.5);
+        const rx = p0x + nx * wDist;
+        const ry = p0y + ny * wDist;
+        const rz = p0z + nz * wDist;
+        const rLen = Math.hypot(rx, ry, rz) || 1;
+
+        const baseRadius = 1.15 * (1.0 + fold + 0.02 * Math.sin(2.0 * u + r));
+        const px = (rx / rLen) * baseRadius;
+        const py = (ry / rLen) * baseRadius;
+        const pz = (rz / rLen) * baseRadius;
+
+        const seed = rnd(9000 + s * 4.3);
+        pts.push(px, py, pz, 1.0, seed);
+      }
+
+      return pts;
+    }
+
+    const pts = isRibbonVariant ? generateRibbonPoints(pseudoRandom) : generateCorePoints(pseudoRandom);
     const totalVertices = pts.length / 5;
 
     buffer = gl.createBuffer();
@@ -431,7 +596,7 @@ export function mountCore(canvas, poster, {
       gl.uniform1f(uDpr, cachedDpr);
       gl.uniform2f(uTilt, currentTiltX, currentTiltY);
       gl.uniform1f(uDispMult, currentDispMult);
-      gl.uniform1f(uTheme, theme === 'light' ? 1.0 : 0.0);
+      if (uTheme) gl.uniform1f(uTheme, theme === 'light' ? 1.0 : 0.0);
       gl.drawArrays(gl.POINTS, 0, totalVertices);
 
       raf = requestAnimationFrame(draw);

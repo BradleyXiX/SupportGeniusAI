@@ -1251,6 +1251,7 @@ body[data-page="marketing"] .contact-address-line .selectable-address {
 
 body[data-page="marketing"] .closing-stage {
   position: relative;
+  left: 32px;
   width: 100%;
   max-width: 380px;
   aspect-ratio: 1 / 1;
@@ -1550,6 +1551,7 @@ body[data-page="marketing"] .closing-poster {
     position: absolute;
     top: 0;
     right: 0;
+    left: auto;
     width: 76px;
     height: 76px;
     max-width: 76px;
