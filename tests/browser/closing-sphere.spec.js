@@ -276,7 +276,7 @@ test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
     expect(activeAfterPageHide.length).toBe(0);
   });
 
-  test('9. Mobile reflow (390px and 320px): stacks poster beneath CTA, zero overflow', async ({ page }) => {
+  test('9. Mobile reflow (390px and 320px): renders 72-88px decorative mark in top row beside eyebrow above headline, finishes ~40-48px after email, zero overflow', async ({ page }) => {
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto('/');
@@ -291,12 +291,48 @@ test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
       await expect(canvas).toBeHidden();
       await expect(poster).toBeVisible();
 
-      // Check vertical ordering: poster is below CTA
-      const ctaBox = await closing.locator('a.button.primary').boundingBox();
+      // Check decorative mark sizing: 72-88px
       const posterBox = await poster.boundingBox();
-      expect(ctaBox).toBeTruthy();
       expect(posterBox).toBeTruthy();
-      expect(posterBox.y).toBeGreaterThan(ctaBox.y + ctaBox.height);
+      expect(posterBox.width).toBeGreaterThanOrEqual(72);
+      expect(posterBox.width).toBeLessThanOrEqual(88);
+      expect(posterBox.height).toBeGreaterThanOrEqual(72);
+      expect(posterBox.height).toBeLessThanOrEqual(88);
+
+      // Check vertical ordering: poster is above headline and beside eyebrow
+      const headline = closing.locator('h2#closing-title');
+      const eyebrow = closing.locator('.eyebrow');
+      const lead = closing.locator('.closing-lead');
+      const cta = closing.locator('a.button.primary');
+      const address = closing.locator('.contact-address-line');
+
+      const headlineBox = await headline.boundingBox();
+      const eyebrowBox = await eyebrow.boundingBox();
+      const leadBox = await lead.boundingBox();
+      const ctaBox = await cta.boundingBox();
+      const addressBox = await address.boundingBox();
+
+      expect(headlineBox).toBeTruthy();
+      expect(eyebrowBox).toBeTruthy();
+      expect(leadBox).toBeTruthy();
+      expect(ctaBox).toBeTruthy();
+      expect(addressBox).toBeTruthy();
+
+      // Poster sits in top row with eyebrow, above headline
+      expect(posterBox.y).toBeLessThan(headlineBox.y);
+      expect(Math.abs(posterBox.y - eyebrowBox.y)).toBeLessThanOrEqual(40);
+
+      // Normal reading order: headline -> lead -> actions/cta -> address
+      expect(headlineBox.y).toBeLessThan(leadBox.y);
+      expect(leadBox.y).toBeLessThan(ctaBox.y);
+      expect(ctaBox.y).toBeLessThan(addressBox.y);
+
+      // Check section finishes ~40-48px after email line
+      const closingBox = await closing.boundingBox();
+      expect(closingBox).toBeTruthy();
+      const spaceAfterEmail = (closingBox.y + closingBox.height) - (addressBox.y + addressBox.height);
+      expect(spaceAfterEmail).toBeGreaterThanOrEqual(36);
+      expect(spaceAfterEmail).toBeLessThanOrEqual(56);
 
       // Horizontal overflow check
       const hasOverflow = await page.evaluate(() => {
@@ -333,7 +369,7 @@ test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
     await context.close();
   });
 
-  test('11. Capture screenshot evidence for running, paused, and mobile states', async ({ page }) => {
+  test('11. Capture screenshot evidence for running, paused, mobile states, and combined closing/footer vertical rhythm', async ({ page }) => {
     // 1. Desktop running
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
@@ -353,14 +389,70 @@ test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
       path: 'docs/design-v3/screenshots/closing-sphere-desktop-paused.png'
     });
 
-    // 3. Mobile reflow
+    // 3. Mobile 390px: capture complete closing section and footer together
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
-    await page.locator('.closing').scrollIntoViewIfNeeded();
+    const closingMobile = page.locator('.closing');
+    const footerMobile = page.locator('.site-footer');
+    await closingMobile.scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
-    await closingEl.screenshot({
+
+    await closingMobile.screenshot({
       path: 'docs/design-v3/screenshots/closing-sphere-mobile-reflow.png'
     });
+    await closingMobile.screenshot({
+      path: 'docs/design-v3/screenshots/closing-contact-mobile.png'
+    });
+
+    // Combined closing and footer capture at 390px
+    const closingBox390 = await closingMobile.boundingBox();
+    const footerBox390 = await footerMobile.boundingBox();
+    if (closingBox390 && footerBox390) {
+      const topY = Math.min(closingBox390.y, footerBox390.y);
+      const totalH = (footerBox390.y + footerBox390.height) - topY;
+      await page.screenshot({
+        path: 'docs/design-v3/screenshots/closing-footer-mobile-390.png',
+        clip: { x: 0, y: topY, width: 390, height: totalH }
+      });
+    }
+
+    // 4. Mobile 320px: capture complete closing section and footer together
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto('/');
+    const closing320 = page.locator('.closing');
+    const footer320 = page.locator('.site-footer');
+    await closing320.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+
+    const closingBox320 = await closing320.boundingBox();
+    const footerBox320 = await footer320.boundingBox();
+    if (closingBox320 && footerBox320) {
+      const topY = Math.min(closingBox320.y, footerBox320.y);
+      const totalH = (footerBox320.y + footerBox320.height) - topY;
+      await page.screenshot({
+        path: 'docs/design-v3/screenshots/closing-footer-mobile-320.png',
+        clip: { x: 0, y: topY, width: 320, height: totalH }
+      });
+    }
+
+    // 5. 200% Zoom (640px equivalent width or page zoom): capture closing and footer
+    await page.setViewportSize({ width: 640, height: 800 });
+    await page.goto('/');
+    const closingZoom = page.locator('.closing');
+    const footerZoom = page.locator('.site-footer');
+    await closingZoom.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+
+    const closingBoxZoom = await closingZoom.boundingBox();
+    const footerBoxZoom = await footerZoom.boundingBox();
+    if (closingBoxZoom && footerBoxZoom) {
+      const topY = Math.min(closingBoxZoom.y, footerBoxZoom.y);
+      const totalH = (footerBoxZoom.y + footerBoxZoom.height) - topY;
+      await page.screenshot({
+        path: 'docs/design-v3/screenshots/closing-footer-zoom-200.png',
+        clip: { x: 0, y: topY, width: 640, height: totalH }
+      });
+    }
 
     // Clean up stored preference
     await page.evaluate(() => {

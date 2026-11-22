@@ -1492,22 +1492,39 @@ body[data-page="marketing"] .closing-poster {
 
 @media (max-width: 760px) {
   body[data-page="marketing"] .closing {
-    padding-block: 64px;
+    padding-top: 56px;
+    padding-bottom: 44px;
   }
   body[data-page="marketing"] .closing-inner {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
   }
   body[data-page="marketing"] .closing-copy {
     max-width: 100%;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+  body[data-page="marketing"] .closing .eyebrow {
+    display: flex;
+    align-items: center;
+    min-height: 76px;
+    padding-right: 88px;
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
   }
   body[data-page="marketing"] .closing h2 {
-    font-size: clamp(36px, 9vw, 44px);
+    font-size: clamp(34px, 8.5vw, 44px);
+    margin: 0;
   }
   body[data-page="marketing"] .closing-lead {
     font-size: 16px;
-    margin: 18px 0 24px 0;
+    margin: 16px 0 24px 0;
   }
   body[data-page="marketing"] .closing-actions {
     flex-direction: column;
@@ -1523,21 +1540,38 @@ body[data-page="marketing"] .closing-poster {
   }
   body[data-page="marketing"] .closing-secondary-link {
     justify-content: center;
+    min-height: 44px;
+  }
+  body[data-page="marketing"] .contact-address-line {
+    margin: 0;
   }
   body[data-page="marketing"] .closing-stage,
   body[data-page="marketing"] .closing-rings {
-    position: static;
-    transform: none;
-    width: 100%;
-    max-width: 260px;
-    height: 260px;
-    margin: 28px auto 0 auto;
-    align-self: center;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 76px;
+    height: 76px;
+    max-width: 76px;
+    aspect-ratio: 1 / 1;
+    margin: 0;
+    padding: 0;
+    align-self: auto;
+    pointer-events: none;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   body[data-page="marketing"] .closing-canvas {
     display: none !important;
   }
   body[data-page="marketing"] .closing-poster {
+    width: 76px;
+    height: 76px;
+    max-width: 76px;
+    max-height: 76px;
+    object-fit: contain;
     display: block !important;
     visibility: visible !important;
   }

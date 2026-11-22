@@ -2,147 +2,151 @@
   "cpuThrottling": "6x slowdown via Chrome DevTools Protocol",
   "journey": "Page load -> hero hover tilt/wave -> smooth scroll through system/experience/closing -> closing dwell -> scroll top",
   "desktopEnabled": {
-    "frameCount": 311,
-    "avgDeltaMs": 34,
+    "frameCount": 332,
+    "avgDeltaMs": 29.7,
     "minDeltaMs": 16.5,
-    "maxDeltaMs": 966.6,
-    "p95DeltaMs": 50.1,
-    "effectiveFps": 29,
-    "longTaskCount": 14,
-    "totalLongTaskDurationMs": 2802,
-    "maxLongTaskDurationMs": 965,
+    "maxDeltaMs": 803.6,
+    "p95DeltaMs": 50,
+    "effectiveFps": 34,
+    "longTaskCount": 13,
+    "totalLongTaskDurationMs": 2889,
+    "maxLongTaskDurationMs": 1801,
     "longTasks": [
       {
-        "startTime": 1453,
-        "duration": 65
+        "startTime": 1092,
+        "duration": 1801
       },
       {
-        "startTime": 1623,
-        "duration": 965
+        "startTime": 2904,
+        "duration": 83
       },
       {
-        "startTime": 2615,
-        "duration": 629
+        "startTime": 2988,
+        "duration": 124
       },
       {
-        "startTime": 3292,
-        "duration": 198
+        "startTime": 3117,
+        "duration": 66
       },
       {
-        "startTime": 3778,
-        "duration": 151
+        "startTime": 3518,
+        "duration": 134
       },
       {
-        "startTime": 3930,
-        "duration": 140
+        "startTime": 3652,
+        "duration": 120
       },
       {
-        "startTime": 4071,
-        "duration": 86
+        "startTime": 3773,
+        "duration": 81
       },
       {
-        "startTime": 4184,
-        "duration": 127
+        "startTime": 3946,
+        "duration": 163
       },
       {
-        "startTime": 6609,
-        "duration": 92
+        "startTime": 4195,
+        "duration": 60
       },
       {
-        "startTime": 6752,
+        "startTime": 6660,
+        "duration": 69
+      },
+      {
+        "startTime": 7695,
+        "duration": 83
+      },
+      {
+        "startTime": 7779,
         "duration": 52
       },
       {
-        "startTime": 6913,
-        "duration": 84
-      },
-      {
-        "startTime": 7924,
-        "duration": 90
-      },
-      {
-        "startTime": 8015,
-        "duration": 61
-      },
-      {
-        "startTime": 10736,
-        "duration": 62
+        "startTime": 8373,
+        "duration": 53
       }
     ]
   },
   "desktopPaused": {
-    "frameCount": 435,
-    "avgDeltaMs": 22.1,
+    "frameCount": 434,
+    "avgDeltaMs": 19.9,
     "minDeltaMs": 16.5,
-    "maxDeltaMs": 833.4,
+    "maxDeltaMs": 483.2,
     "p95DeltaMs": 16.8,
-    "effectiveFps": 45,
+    "effectiveFps": 50,
     "longTaskCount": 4,
-    "totalLongTaskDurationMs": 1447,
-    "maxLongTaskDurationMs": 840,
+    "totalLongTaskDurationMs": 1590,
+    "maxLongTaskDurationMs": 1025,
     "longTasks": [
       {
-        "startTime": 650,
-        "duration": 840
+        "startTime": 761,
+        "duration": 1025
       },
       {
-        "startTime": 1532,
-        "duration": 200
+        "startTime": 1826,
+        "duration": 374
       },
       {
-        "startTime": 1763,
-        "duration": 331
+        "startTime": 2219,
+        "duration": 103
       },
       {
-        "startTime": 2228,
-        "duration": 76
+        "startTime": 2347,
+        "duration": 88
       }
     ]
   },
   "mobileEnabled": {
-    "frameCount": 295,
-    "avgDeltaMs": 25.2,
+    "frameCount": 286,
+    "avgDeltaMs": 25.1,
     "minDeltaMs": 16.5,
-    "maxDeltaMs": 849.9,
+    "maxDeltaMs": 883.3,
     "p95DeltaMs": 33.4,
     "effectiveFps": 40,
-    "longTaskCount": 7,
-    "totalLongTaskDurationMs": 1628,
-    "maxLongTaskDurationMs": 857,
+    "longTaskCount": 9,
+    "totalLongTaskDurationMs": 2324,
+    "maxLongTaskDurationMs": 879,
     "longTasks": [
       {
-        "startTime": 717,
-        "duration": 857
+        "startTime": 981,
+        "duration": 201
       },
       {
-        "startTime": 1623,
-        "duration": 223
+        "startTime": 1224,
+        "duration": 113
       },
       {
-        "startTime": 1949,
-        "duration": 111
+        "startTime": 1434,
+        "duration": 879
       },
       {
-        "startTime": 2098,
-        "duration": 169
+        "startTime": 2347,
+        "duration": 595
       },
       {
-        "startTime": 2269,
-        "duration": 130
+        "startTime": 2993,
+        "duration": 108
       },
       {
-        "startTime": 2705,
-        "duration": 86
+        "startTime": 3183,
+        "duration": 142
       },
       {
-        "startTime": 4557,
-        "duration": 52
+        "startTime": 3325,
+        "duration": 138
+      },
+      {
+        "startTime": 3673,
+        "duration": 85
+      },
+      {
+        "startTime": 5553,
+        "duration": 63
       }
     ]
   },
   "comparison": {
-    "desktopFpsDelta": "29 FPS enabled vs 45 FPS paused",
-    "longTaskImpact": "Enabled: 14 long tasks (2802ms total) vs Paused: 4 long tasks (1447ms total)",
-    "mobileBehavior": "Mobile runs at 40 FPS with 7 long tasks, using static poster fallback for closing sphere on small screens"
+    "desktopFpsDelta": "34 FPS enabled vs 50 FPS paused",
+    "longTaskImpact": "Enabled: 13 long tasks (2889ms total) vs Paused: 4 long tasks (1590ms total)",
+    "mobileBehavior": "Mobile runs at 40 FPS with 9 long tasks, using static poster fallback for closing sphere on small screens"
   }
 }

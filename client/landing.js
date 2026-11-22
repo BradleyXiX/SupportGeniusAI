@@ -417,7 +417,7 @@ export function initClosingSphere() {
   const poster = stage.querySelector('.closing-poster');
   if (!canvas || !poster) return null;
 
-  // On phones (<= 760px), stack static poster fallback beneath CTA as specified
+  // On phones (<= 760px), display compact static poster mark in top row beside eyebrow
   const isPhone = window.matchMedia('(max-width: 760px)').matches;
   if (isPhone) {
     canvas.hidden = true;
