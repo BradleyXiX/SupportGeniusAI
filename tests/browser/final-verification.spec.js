@@ -31,8 +31,15 @@ test.describe('Task 11: Final Integrated Verification, Cross-Device Audits & Per
               if (!entry.hadRecentInput) {
                 window.__perfMetrics.cls += entry.value;
                 window.__perfMetrics.shifts.push({
+                  startTime: entry.startTime,
                   value: entry.value,
-                  sources: (entry.sources || []).map(s => s.node ? s.node.nodeName : 'unknown')
+                  sources: (entry.sources || []).map(s => ({
+                    tag: s.node ? s.node.nodeName : 'unknown',
+                    id: s.node && s.node.id ? s.node.id : '',
+                    class: s.node && s.node.className ? s.node.className : '',
+                    prev: s.previousRect ? { x: s.previousRect.x, y: s.previousRect.y, w: s.previousRect.width, h: s.previousRect.height } : null,
+                    curr: s.currentRect ? { x: s.currentRect.x, y: s.currentRect.y, w: s.currentRect.width, h: s.currentRect.height } : null
+                  }))
                 });
               }
             }
@@ -111,89 +118,238 @@ test.describe('Task 11: Final Integrated Verification, Cross-Device Audits & Per
 
     console.log('Landing shifts:', JSON.stringify(landingRuns[0].shifts, null, 2));
 
+    // Inspect child elements of .hero-copy before and after fonts load
+    const debugContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+    const debugPage = await debugContext.newPage();
+    await debugPage.goto('/', { waitUntil: 'domcontentloaded' });
+    const childrenInfo = await debugPage.evaluate(async () => {
+      const copy = document.querySelector('.hero-copy');
+      const getInfo = () => Array.from(copy.children).map(c => ({
+        tag: c.tagName,
+        cls: c.className,
+        rect: c.getBoundingClientRect(),
+        text: c.innerText.slice(0, 30)
+      }));
+      const before = getInfo();
+      await document.fonts.ready;
+      const after = getInfo();
+      return { before, after, copyBefore: copy.getBoundingClientRect(), copyAfter: copy.getBoundingClientRect() };
+    });
+    console.log('Children info before/after fonts:', JSON.stringify(childrenInfo, null, 2));
+    await debugContext.close();
+
     expect(landingStats.medianLCP).toBeGreaterThan(0);
+    expect(landingStats.medianCLS).toBeLessThanOrEqual(0.1);
     expect(consoleStats.medianLCP).toBeGreaterThan(0);
     expect(consoleStats.medianCLS).toBeLessThan(0.1);
   });
 
-  test('2. 6x CPU-Throttled Motion, Scroll & Hover Trace', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
+  test('2. 6x CPU-Throttled Comprehensive Trace (Hover, Scroll, Section Handoffs, Closing & Mobile)', async ({ browser }) => {
+    test.setTimeout(90000);
 
-    const client = await page.context().newCDPSession(page);
-    await client.send('Emulation.setCPUThrottlingRate', { rate: 6 });
-
-    await page.goto('/', { waitUntil: 'networkidle' });
-
-    // Measure requestAnimationFrame frame deltas during hero animation under 6x CPU throttling
-    const traceResults = await page.evaluate(async () => {
-      const frameDeltas = [];
-      let lastTime = performance.now();
-
-      await new Promise((resolve) => {
-        let frameCount = 0;
-        function onFrame(now) {
-          const delta = now - lastTime;
-          lastTime = now;
-          if (frameCount > 0) {
-            frameDeltas.push(delta);
-          }
-          frameCount++;
-          if (frameCount < 60) {
-            requestAnimationFrame(onFrame);
-          } else {
-            resolve();
-          }
-        }
-        requestAnimationFrame(onFrame);
+    // Helper to run a full throttled interaction journey
+    async function runThrottledJourney({ viewport, isPaused = false, isTouch = false }) {
+      const context = await browser.newContext({
+        viewport,
+        hasTouch: isTouch
       });
 
-      const avgDelta = frameDeltas.reduce((a, b) => a + b, 0) / frameDeltas.length;
-      const maxDelta = Math.max(...frameDeltas);
-      const minDelta = Math.min(...frameDeltas);
-      const p95Delta = frameDeltas.sort((a, b) => a - b)[Math.floor(frameDeltas.length * 0.95)];
+      await context.addInitScript(({ paused }) => {
+        if (paused) {
+          localStorage.setItem('sg_motion_v1', 'paused');
+        } else {
+          localStorage.removeItem('sg_motion_v1');
+        }
 
-      return {
-        sampleCount: frameDeltas.length,
-        avgDeltaMs: Math.round(avgDelta * 10) / 10,
-        minDeltaMs: Math.round(minDelta * 10) / 10,
-        maxDeltaMs: Math.round(maxDelta * 10) / 10,
-        p95DeltaMs: Math.round(p95Delta * 10) / 10,
-        effectiveFps: Math.round(1000 / avgDelta)
-      };
-    });
+        window.__longTasks = [];
+        try {
+          const poLong = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              window.__longTasks.push({
+                startTime: Math.round(entry.startTime),
+                duration: Math.round(entry.duration)
+              });
+            }
+          });
+          poLong.observe({ entryTypes: ['longtask'] });
+        } catch (e) {}
 
-    // Hover over hero sphere
-    const heroWrapper = page.locator('#hero-stage-wrapper');
-    if (await heroWrapper.isVisible()) {
-      const box = await heroWrapper.boundingBox();
-      if (box) {
-        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-        await page.mouse.move(box.x + box.width * 0.75, box.y + box.height * 0.25);
-        await page.waitForTimeout(300);
+        window.__frameDeltas = [];
+        let last = performance.now();
+        let running = true;
+        window.__stopFrameTracking = () => { running = false; };
+
+        function onFrame(now) {
+          if (!running) return;
+          const dt = now - last;
+          last = now;
+          if (dt > 0 && dt < 1000) {
+            window.__frameDeltas.push(dt);
+          }
+          requestAnimationFrame(onFrame);
+        }
+        requestAnimationFrame(onFrame);
+      }, { paused: isPaused });
+
+      const page = await context.newPage();
+
+      // Enable 6x CPU Throttling via Chrome DevTools Protocol
+      const client = await context.newCDPSession(page);
+      await client.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+
+      // Phase 1: Load and initial hero dwell (1.2s)
+      await page.goto('/', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(1200);
+
+      // Phase 2: Actual hero hover (desktop fine-pointer)
+      if (!isTouch) {
+        const heroStage = page.locator('.core-stage');
+        if (await heroStage.isVisible()) {
+          const box = await heroStage.boundingBox();
+          if (box) {
+            // Move into center, then to top-right to exercise yaw tilt and displacement
+            await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5, { steps: 5 });
+            await page.waitForTimeout(300);
+            await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.25, { steps: 5 });
+            await page.waitForTimeout(400);
+            await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.75, { steps: 5 });
+            await page.waitForTimeout(300);
+            await page.mouse.move(box.x - 50, box.y - 50, { steps: 3 }); // leave
+            await page.waitForTimeout(200);
+          }
+        }
       }
+
+      // Phase 3: Scroll through section handoffs
+      // Scroll to System Chapters (hero leaves viewport -> suspends hero WebGL)
+      await page.evaluate(() => {
+        const sys = document.querySelector('#system');
+        if (sys) sys.scrollIntoView({ behavior: 'smooth' });
+      });
+      await page.waitForTimeout(1000);
+
+      // Scroll to Experience section
+      await page.evaluate(() => {
+        const exp = document.querySelector('#experience');
+        if (exp) exp.scrollIntoView({ behavior: 'smooth' });
+      });
+      await page.waitForTimeout(800);
+
+      // Scroll to Closing section (closing sphere enters viewport -> activates)
+      await page.evaluate(() => {
+        const closing = document.querySelector('.closing');
+        if (closing) closing.scrollIntoView({ behavior: 'smooth' });
+      });
+      await page.waitForTimeout(1200);
+
+      // Dwell on closing sphere or interaction
+      if (!isTouch) {
+        const closingStage = page.locator('.closing-stage');
+        if (await closingStage.isVisible()) {
+          const box = await closingStage.boundingBox();
+          if (box) {
+            await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5, { steps: 5 });
+            await page.waitForTimeout(400);
+          }
+        }
+      }
+
+      // Phase 4: Scroll back to top
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+      await page.waitForTimeout(800);
+
+      // Collect metrics
+      const results = await page.evaluate(() => {
+        if (window.__stopFrameTracking) window.__stopFrameTracking();
+        const deltas = window.__frameDeltas || [];
+        const longTasks = window.__longTasks || [];
+
+        const totalLongTaskDuration = longTasks.reduce((acc, t) => acc + t.duration, 0);
+        const maxLongTask = longTasks.length > 0 ? Math.max(...longTasks.map(t => t.duration)) : 0;
+
+        let avgDelta = 0;
+        let p95Delta = 0;
+        let maxDelta = 0;
+        let minDelta = 0;
+        let effectiveFps = 0;
+
+        if (deltas.length > 0) {
+          const sorted = [...deltas].sort((a, b) => a - b);
+          avgDelta = Math.round((deltas.reduce((a, b) => a + b, 0) / deltas.length) * 10) / 10;
+          p95Delta = Math.round(sorted[Math.floor(sorted.length * 0.95)] * 10) / 10;
+          maxDelta = Math.round(Math.max(...deltas) * 10) / 10;
+          minDelta = Math.round(Math.min(...deltas) * 10) / 10;
+          effectiveFps = avgDelta > 0 ? Math.round(1000 / avgDelta) : 0;
+        }
+
+        return {
+          frameCount: deltas.length,
+          avgDeltaMs: avgDelta,
+          minDeltaMs: minDelta,
+          maxDeltaMs: maxDelta,
+          p95DeltaMs: p95Delta,
+          effectiveFps,
+          longTaskCount: longTasks.length,
+          totalLongTaskDurationMs: totalLongTaskDuration,
+          maxLongTaskDurationMs: maxLongTask,
+          longTasks
+        };
+      });
+
+      await client.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      await context.close();
+      return results;
     }
 
-    // Scroll down through page under 6x CPU throttling
-    await page.evaluate(() => window.scrollBy({ top: 1200, behavior: 'smooth' }));
-    await page.waitForTimeout(500);
+    // 1. Desktop Motion Enabled (1440x1000)
+    const desktopEnabled = await runThrottledJourney({
+      viewport: { width: 1440, height: 1000 },
+      isPaused: false,
+      isTouch: false
+    });
 
-    await page.evaluate(() => window.scrollBy({ top: 1200, behavior: 'smooth' }));
-    await page.waitForTimeout(500);
+    // 2. Desktop Paused (1440x1000)
+    const desktopPaused = await runThrottledJourney({
+      viewport: { width: 1440, height: 1000 },
+      isPaused: true,
+      isTouch: false
+    });
+
+    // 3. Mobile Motion Enabled (390x844, Touch)
+    const mobileEnabled = await runThrottledJourney({
+      viewport: { width: 390, height: 844 },
+      isPaused: false,
+      isTouch: true
+    });
 
     const perfDir = path.resolve('docs/design-v3/performance');
     if (!fs.existsSync(perfDir)) {
       fs.mkdirSync(perfDir, { recursive: true });
     }
 
+    const throttledTraceData = {
+      cpuThrottling: "6x slowdown via Chrome DevTools Protocol",
+      journey: "Page load -> hero hover tilt/wave -> smooth scroll through system/experience/closing -> closing dwell -> scroll top",
+      desktopEnabled,
+      desktopPaused,
+      mobileEnabled,
+      comparison: {
+        desktopFpsDelta: `${desktopEnabled.effectiveFps} FPS enabled vs ${desktopPaused.effectiveFps} FPS paused`,
+        longTaskImpact: `Enabled: ${desktopEnabled.longTaskCount} long tasks (${desktopEnabled.totalLongTaskDurationMs}ms total) vs Paused: ${desktopPaused.longTaskCount} long tasks (${desktopPaused.totalLongTaskDurationMs}ms total)`,
+        mobileBehavior: `Mobile runs at ${mobileEnabled.effectiveFps} FPS with ${mobileEnabled.longTaskCount} long tasks, using static poster fallback for closing sphere on small screens`
+      }
+    };
+
     fs.writeFileSync(
       path.join(perfDir, 'throttled-trace.json'),
-      JSON.stringify(traceResults, null, 2)
+      JSON.stringify(throttledTraceData, null, 2)
     );
 
-    // Reset CPU throttling
-    await client.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    console.log('Throttled trace comparison:', JSON.stringify(throttledTraceData.comparison, null, 2));
 
-    expect(traceResults.sampleCount).toBeGreaterThan(50);
+    expect(desktopEnabled.frameCount).toBeGreaterThan(100);
+    expect(desktopPaused.frameCount).toBeGreaterThan(100);
+    expect(mobileEnabled.frameCount).toBeGreaterThan(100);
   });
 
   test('3. Responsive Reflow & Screenshot Evidence across 1440, 390, and 320 viewports', async ({ page }) => {
@@ -345,7 +501,9 @@ test.describe('Task 11: Final Integrated Verification, Cross-Device Audits & Per
     await context.close();
   });
 
-  test('7. Persistent Pause Preference Across Reloads & Scene Sync', async ({ page }) => {
+  test('7. Persistent Pause Preference Across Reloads & Scene Sync', async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
@@ -373,9 +531,12 @@ test.describe('Task 11: Final Integrated Verification, Cross-Device Audits & Per
     await expect(toggleAfterReload).toHaveText(/Pause animations/i);
     const storedResumed = await page.evaluate(() => localStorage.getItem('sg_motion_v1'));
     expect(storedResumed).toBeNull();
+    await context.close();
   });
 
-  test('8. Fault Injection Resilience: Storage Failure, Import Failure, WebGL Loss, Console Error', async ({ page }) => {
+  test('8. Fault Injection Resilience: Storage Failure, Import Failure, WebGL Loss, Console Error', async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await page.setViewportSize({ width: 1440, height: 1000 });
 
     // 1. Storage failure injection
@@ -414,6 +575,7 @@ test.describe('Task 11: Final Integrated Verification, Cross-Device Audits & Per
       await resetBtn.click();
       await expect(page.locator('#chat-messages')).toContainText('Welcome to the SupportGenius Signal Desk demonstration');
     }
+    await context.close();
   });
 
   test('9. Browser Back/Forward & Navigation Lifecycle', async ({ page }) => {

@@ -322,6 +322,10 @@ body[data-page="marketing"] .actions {
   margin-top: 32px;
 }
 
+body[data-page="marketing"] .hero .actions .text-link {
+  flex-basis: 100%;
+}
+
 body[data-page="marketing"] .button {
   display: inline-flex;
   align-items: center;

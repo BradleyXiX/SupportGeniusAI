@@ -190,8 +190,12 @@ export function initSignalCore() {
       const { mountCore } = await import('./marketing/signal-core.js');
 
       // Cancellation check: was activation invalidated while import was in flight?
+      if (attempt !== generation) {
+        // Newer attempt or cancellation occurred; do not modify state.
+        return;
+      }
+
       if (
-        attempt !== generation ||
         isReducedMotionPreferred() ||
         document.hidden ||
         getStoredMotionPreference() === 'paused'
@@ -219,8 +223,15 @@ export function initSignalCore() {
         }
       });
 
+      if (visibilityObserver) {
+        visibilityObserver.disconnect();
+        visibilityObserver = null;
+      }
+
       applyUIState(MotionState.RUNNING);
-    } catch {
+    } catch (err) {
+      if (attempt !== generation) return;
+      console.error('ACTIVATE ERROR:', err);
       failed = true;
       applyUIState(MotionState.FAILED);
     }
@@ -331,8 +342,6 @@ export function initSignalCore() {
       visibilityObserver = new IntersectionObserver((entries) => {
         isStageVisible = Boolean(entries[0]?.isIntersecting);
         if (isStageVisible && !teardown && !failed && currentState === MotionState.ELIGIBLE && !document.hidden) {
-          visibilityObserver.disconnect();
-          visibilityObserver = null;
           activate();
         }
       }, { threshold: 0.02 });
@@ -340,17 +349,17 @@ export function initSignalCore() {
     }
 
     // Auto-start after first paint for visible eligible hero
-    requestAnimationFrame(() => {
-      if (!teardown && !failed && currentState === MotionState.ELIGIBLE && !document.hidden) {
-        const rect = stage.getBoundingClientRect();
-        const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
-        if (inViewport) {
-          visibilityObserver?.disconnect();
-          visibilityObserver = null;
+    const tryAutoStart = () => {
+      if (!teardown && !failed && currentState === MotionState.ELIGIBLE) {
+        if (!document.hidden) {
           activate();
+        } else {
+          requestAnimationFrame(tryAutoStart);
         }
       }
-    });
+    };
+    requestAnimationFrame(tryAutoStart);
+    setTimeout(tryAutoStart, 50);
   }
 
   const controller = {

@@ -50,6 +50,7 @@ export function mountCore(canvas, poster, {
   const sceneRegistration = registerScene(id, { priority });
   let unsubscribeMotion = null;
   let unsubscribeScheduler = null;
+  let request = () => {};
 
   // Cached dimensions — eliminates per-frame layout measurements
   let cachedWidth = 0;
@@ -436,12 +437,12 @@ export function mountCore(canvas, poster, {
       raf = requestAnimationFrame(draw);
     }
 
-    function request() {
+    request = () => {
       if (!raf && !disposed && !document.hidden && visible && primaryActive) {
         last = 0;
         raf = requestAnimationFrame(draw);
       }
-    }
+    };
 
     schedule = () => {
       const allowed = isMotionAllowed();

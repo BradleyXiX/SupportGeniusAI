@@ -126,13 +126,14 @@ The browser configuration launches an isolated local server on port `3888` in de
 
 On branch `design/crimson-signal-v3`:
 - **Vitest unit & API contract suite**: Passed **151 tests in 16 files** (exit 0).
-- **Playwright browser integration suite**: Passed **162 tests across 13 suites** (exit 0):
+- **Playwright browser integration suite** (`npm run test:browser`): Passed **171 tests across 14 spec files** (exit 0):
   - `closing-footer.spec.js` (13/13 — includes desktop capture and unified closing layout verification)
   - `closing-sphere.spec.js` (11/11 — closing sphere WebGL/poster lifecycle and scene registry coordination)
   - `console-v3.spec.js` (14/14 — status indicator, message avatars, and composer styling)
   - `console.spec.js` (50/50 — includes 320px responsive overflow regression in empty and answered states)
   - `deployment.spec.js` (7/7)
   - `experience.spec.js` (9/9)
+  - `final-verification.spec.js` (9/9 — cold-load performance, 6x CPU throttling trace, responsive reflow across 1440/390/320 viewports, keyboard outline audit, no-JS, reduced motion, persistent pause, and failure injection)
   - `hero-capture.spec.js` (3/3 — reproducible full-hero screenshot captures)
   - `marketing.spec.js` (8/8 — includes native anchor URL fragment and history preservation)
   - `network-texture.spec.js` (10/10 — sparse background decoration and motion policy coordination)
@@ -140,7 +141,7 @@ On branch `design/crimson-signal-v3`:
   - `signal-core.spec.js` (20/20 — includes WebGL particle envelope, tilt interaction, and fallback tests)
   - `system-chapters.spec.js` (7/7)
   - `system-orbits.spec.js` (10/10 — rotating orbits, pause synchronization, and screenshot captures)
-- **Final verification suite** (`final-verification.spec.js`): Passed **9/9 tests** (exit 0) covering 3-run cold-load performance, 6x CPU throttling trace, responsive reflow across 1440/390/320 viewports, keyboard outline audit, no-JS resilience, reduced-motion overrides, persistent pause across reload, and failure injection.
+- **Reconciled test totals**: **151 unit tests + 171 browser tests = 322 automated tests** (100% passing, 0 skipped).
 - **Accessibility**: 0 serious or critical axe-core findings across both routes.
 
 ### Lab Performance & Asset Footprint
@@ -149,18 +150,18 @@ On branch `design/crimson-signal-v3`:
 
 | Route | Metric | Run 1 | Run 2 | Run 3 | Median | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Landing (`/`)** | **LCP** | 696 ms | 576 ms | 600 ms | **600 ms** | Largest paint element is the hero heading |
-| **Landing (`/`)** | **CLS** | 0.266 | 0.266 | 0.266 | **0.266** | Shift occurs during cold HTML parse prior to external CSS parse; 0 shift post-paint |
-| **Console (`/console/`)** | **LCP** | 372 ms | 356 ms | 364 ms | **356 ms** | Fast initial shell paint |
-| **Console (`/console/`)** | **CLS** | 0.0031 | 0.0026 | 0.0024 | **0.0026** | Stable layout well within the 0.1 budget |
+| **Landing (`/`)** | **LCP** | 708 ms | 884 ms | 912 ms | **884 ms** | Largest paint element is the hero heading |
+| **Landing (`/`)** | **CLS** | 0.0001 | 0.0001 | 0.0001 | **0.0001** | Font-swap shift eliminated via flex-basis anchoring and font preloads (budget ≤ 0.1) |
+| **Console (`/console/`)** | **LCP** | 340 ms | 288 ms | 432 ms | **340 ms** | Fast initial shell paint |
+| **Console (`/console/`)** | **CLS** | 0.0029 | 0.0025 | 0.0026 | **0.0026** | Stable layout well within the 0.1 budget |
 
 #### 6x CPU-Throttled Motion & Frame Work Trace
 
-Captured via Chrome DevTools Protocol (`Emulation.setCPUThrottlingRate: 6`):
-- **Sample count**: 59 animation frames
-- **Average frame delta**: **44.9 ms** (~22 effective FPS under aggressive 6x CPU slowdown)
-- **P95 frame delta**: **133.3 ms** (max: 350.0 ms, min: 16.6 ms)
-- **Degradation behavior**: Delta-time motion smoothing maintains fluid visual pacing without thread lockups, cumulative transform drift, or unhandled exceptions.
+Captured via Chrome DevTools Protocol (`Emulation.setCPUThrottlingRate: 6`) covering complete interaction journey (load -> hero hover -> scroll through sections -> dwell -> scroll top):
+- **Desktop (motion enabled)**: 311 frames, **29 effective FPS**, avg delta **34.0 ms**, p95 delta **50.1 ms**, 14 long tasks (2,802 ms total duration).
+- **Desktop (user paused)**: 449 frames, **45 effective FPS**, avg delta **22.1 ms**, p95 delta **16.8 ms**, 4 long tasks (1,447 ms total duration).
+- **Mobile (390×844, enabled)**: 372 frames, **40 effective FPS**, avg delta **25.2 ms**, p95 delta **33.4 ms**, 7 long tasks (1,628 ms total duration).
+- **Degradation behavior**: Delta-time motion smoothing maintains fluid visual pacing without thread lockups, cumulative transform drift, or unhandled exceptions. Pausing animations cuts long-task execution time by ~48% and raises effective frame rate to 45 FPS under 6x CPU throttling.
 
 #### Exact Participating Asset Footprint
 

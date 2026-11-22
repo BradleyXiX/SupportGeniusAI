@@ -13,8 +13,7 @@ Task 11 performs the final, comprehensive behavioral, accessibility, and perform
 
 1. **Automated Test Suites**:
    - **Vitest Unit & Contract Suite**: **151/151 tests passed** across 16 test files (exit 0).
-   - **Playwright Full Browser Suite**: **162/162 tests passed** across 13 test spec files (exit 0, zero skipped).
-   - **Final Verification Suite**: **9/9 tests passed** in `tests/browser/final-verification.spec.js` (exit 0).
+   - **Playwright Full Browser Suite**: **171/171 tests passed** across all 14 test spec files (exit 0, zero skipped).
    - **Total Verified Tests**: **322 tests passed** with 0 failures and 0 skipped tests.
 
 2. **Cross-Viewport & Responsive Reflow**:
@@ -35,11 +34,13 @@ Task 11 performs the final, comprehensive behavioral, accessibility, and perform
 
 5. **Cold-Load & 6x CPU-Throttled Performance Evidence**:
    - Captured 3 independent cold-load runs in isolated incognito contexts:
-     - **Landing (`/`)**: Median LCP **600 ms** (576–696 ms); Median CLS **0.266** (shift during cold HTML parse before external CSS loads; 0 shift post-paint).
-     - **Console (`/console/`)**: Median LCP **356 ms** (356–372 ms); Median CLS **0.0026** (well within the 0.1 budget).
-   - Captured 6x CPU-throttled motion trace via CDP (`Emulation.setCPUThrottlingRate: 6`):
-     - 59 frames sampled; average frame delta **44.9 ms** (~22 effective FPS); p95 delta **133.3 ms**.
-     - Delta-time motion smoothing maintains fluid visual pacing without cumulative position drift or thread locking.
+     - **Landing (`/`)**: Median LCP **884 ms** (708–912 ms); Median CLS **0.0001** (eliminating the previous 0.266 font-swap shift via flex-basis anchoring and font preloads; fully satisfies the ≤ 0.1 budget).
+     - **Console (`/console/`)**: Median LCP **340 ms** (288–432 ms); Median CLS **0.0026** (well within the 0.1 budget).
+   - Captured 6x CPU-throttled motion trace via CDP (`Emulation.setCPUThrottlingRate: 6`) covering complete interaction journey (load -> hero hover -> scroll through sections -> dwell -> scroll top):
+     - **Desktop (motion enabled)**: 311 frames, **29 effective FPS**, avg delta **34.0 ms**, p95 delta **50.1 ms**, 14 long tasks (2,802 ms total duration).
+     - **Desktop (user paused)**: 449 frames, **45 effective FPS**, avg delta **22.1 ms**, p95 delta **16.8 ms**, 4 long tasks (1,447 ms total duration).
+     - **Mobile (390×844, enabled)**: 372 frames, **40 effective FPS**, avg delta **25.2 ms**, p95 delta **33.4 ms**, 7 long tasks (1,628 ms total duration).
+     - **Degradation behavior**: Delta-time motion smoothing maintains fluid visual pacing without thread lockups, cumulative transform drift, or unhandled exceptions. Pausing animations cuts long-task execution time by ~48% and raises effective frame rate to 45 FPS under 6x CPU throttling.
 
 ---
 
@@ -64,16 +65,17 @@ Task 11 performs the final, comprehensive behavioral, accessibility, and perform
 - **Exit Code**: `0`
 - **Result**: `16 passed (16 files, 151 passed)` in 12.26s.
 
-### Full Project Playwright Browser Suite (13 Spec Files)
+### Full Project Playwright Browser Suite (14 Spec Files)
 - **Command**: `npm run test:browser` (`playwright test`)
 - **Exit Code**: `0`
-- **Result**: `162 passed (4.0m)` across all 13 project spec files:
+- **Result**: `171 passed (6.3m)` across all 14 project spec files:
   - `closing-footer.spec.js` (13/13)
   - `closing-sphere.spec.js` (11/11)
   - `console-v3.spec.js` (14/14)
   - `console.spec.js` (50/50)
   - `deployment.spec.js` (7/7)
   - `experience.spec.js` (9/9)
+  - `final-verification.spec.js` (9/9)
   - `hero-capture.spec.js` (3/3)
   - `marketing.spec.js` (8/8)
   - `network-texture.spec.js` (10/10)
@@ -82,10 +84,10 @@ Task 11 performs the final, comprehensive behavioral, accessibility, and perform
   - `system-chapters.spec.js` (7/7)
   - `system-orbits.spec.js` (10/10)
 
-### Final Verification Suite
-- **Command**: `npx playwright test tests/browser/final-verification.spec.js`
-- **Exit Code**: `0`
-- **Result**: `9 passed (52.1s)`
+### Reconciled Test Counts
+- **Unit Tests**: 151 passed across 16 files
+- **Unique Browser Tests**: 171 passed across 14 spec files
+- **Total Automated Tests**: 322 passed, 0 skipped, 0 failed (exit 0)
 
 ### Documentation Relative & Image Link Integrity
 - **Command**: Scripted regex scan across `README.md`

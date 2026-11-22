@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
+  test.afterEach(async ({ page }) => {
+    try {
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      await page.evaluate(() => {
+        try { localStorage.clear(); } catch {}
+        try { window.scrollTo(0, 0); } catch {}
+      });
+    } catch {}
+  });
 
   test('1. Renders closing sphere stage against paper background with headline and CTA preserved', async ({ page }) => {
     await page.goto('/');
@@ -177,7 +186,8 @@ test.describe('Task 07: Closing Sphere & Scheduler Coordination', () => {
 
   test('7. Scene registry coordinates hero, closing, and network textures without single-boolean conflicts', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(300);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.locator('#signal-core')).toBeVisible();
 
     // At top of page: hero is visible, closing is offscreen
     const stateAtTop = await page.evaluate(async () => {

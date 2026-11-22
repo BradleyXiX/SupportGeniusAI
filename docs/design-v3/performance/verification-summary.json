@@ -1,6 +1,6 @@
 {
   "suite": "SupportGenius AI Crimson Signal v3 Final Integrated Verification",
-  "timestamp": "2026-11-22T01:40:00+03:00",
+  "timestamp": "2026-11-22T14:35:00+03:00",
   "branch": "design/crimson-signal-v3",
   "testExecution": {
     "vitest": {
@@ -9,61 +9,91 @@
       "filesPassed": 16,
       "testsPassed": 151,
       "skipped": 0,
-      "duration": "12.26s"
+      "duration": "8.59s"
     },
     "playwrightFullSuite": {
       "command": "npm run test:browser",
       "exitCode": 0,
-      "suitesPassed": 13,
-      "testsPassed": 162,
+      "suitesPassed": 14,
+      "testsPassed": 171,
       "skipped": 0,
-      "duration": "4.0m"
+      "duration": "6.3m"
     },
     "playwrightFinalVerificationSuite": {
       "command": "npx playwright test tests/browser/final-verification.spec.js",
       "exitCode": 0,
       "testsPassed": 9,
       "skipped": 0,
-      "duration": "52.1s"
+      "duration": "58.2s"
+    },
+    "reconciledTestCounts": {
+      "unitTests": 151,
+      "uniqueBrowserTests": 171,
+      "totalAutomatedTests": 322,
+      "allPassed": true
     }
   },
   "coldLoadPerformance": {
     "landing": {
       "description": "3 independent cold-load runs in fresh browser context at 1440x1000 viewport",
       "runs": [
-        { "run": 1, "lcpMs": 696, "cls": 0.266, "domContentLoadedMs": 560, "loadMs": 681 },
-        { "run": 2, "lcpMs": 576, "cls": 0.266, "domContentLoadedMs": 452, "loadMs": 487 },
-        { "run": 3, "lcpMs": 600, "cls": 0.266, "domContentLoadedMs": 479, "loadMs": 518 }
+        { "run": 1, "lcpMs": 708, "cls": 0.0001, "domContentLoadedMs": 460, "loadMs": 508 },
+        { "run": 2, "lcpMs": 884, "cls": 0.0001, "domContentLoadedMs": 451, "loadMs": 489 },
+        { "run": 3, "lcpMs": 912, "cls": 0.0001, "domContentLoadedMs": 472, "loadMs": 511 }
       ],
-      "medianLcpMs": 600,
-      "minLcpMs": 576,
-      "maxLcpMs": 696,
-      "medianCls": 0.266,
-      "clsNote": "Initial shift occurs during cold parse before external stylesheets apply; layout is 100% stable post-paint"
+      "medianLcpMs": 884,
+      "minLcpMs": 708,
+      "maxLcpMs": 912,
+      "medianCls": 0.0001,
+      "clsNote": "Eliminated font-swap layout shift by establishing flex-basis: 100% on .hero .actions .text-link and preloading primary web fonts; CLS reduced from 0.266 to 0.0001 (<= 0.1 budget met)"
     },
     "console": {
       "description": "3 independent cold-load runs in fresh browser context at 1440x1000 viewport",
       "runs": [
-        { "run": 1, "lcpMs": 372, "cls": 0.0031, "domContentLoadedMs": 287, "loadMs": 308 },
-        { "run": 2, "lcpMs": 356, "cls": 0.0026, "domContentLoadedMs": 348, "loadMs": 372 },
-        { "run": 3, "lcpMs": 364, "cls": 0.0024, "domContentLoadedMs": 312, "loadMs": 339 }
+        { "run": 1, "lcpMs": 340, "cls": 0.0029, "domContentLoadedMs": 281, "loadMs": 312 },
+        { "run": 2, "lcpMs": 288, "cls": 0.0025, "domContentLoadedMs": 272, "loadMs": 298 },
+        { "run": 3, "lcpMs": 432, "cls": 0.0026, "domContentLoadedMs": 310, "loadMs": 341 }
       ],
-      "medianLcpMs": 356,
-      "minLcpMs": 356,
-      "maxLcpMs": 372,
+      "medianLcpMs": 340,
+      "minLcpMs": 288,
+      "maxLcpMs": 432,
       "medianCls": 0.0026,
       "clsNote": "CLS well below 0.1 threshold"
     }
   },
   "throttledTrace": {
-    "condition": "6x CPU throttling via Chrome DevTools Protocol Emulation.setCPUThrottlingRate",
-    "sampleCount": 59,
-    "avgDeltaMs": 44.9,
-    "minDeltaMs": 16.6,
-    "maxDeltaMs": 350.0,
-    "p95DeltaMs": 133.3,
-    "effectiveFps": 22,
-    "degradationBehavior": "Delta-time animation pacing ensures fluid visual transitions without cumulative position drift or thread deadlock under heavy CPU slowdown"
+    "condition": "6x CPU throttling via Chrome DevTools Protocol Emulation.setCPUThrottlingRate covering complete user interaction journey (load -> hero hover -> smooth scroll through system/experience/closing -> dwell -> scroll top)",
+    "desktopEnabled": {
+      "frameCount": 311,
+      "effectiveFps": 29,
+      "avgDeltaMs": 34.0,
+      "minDeltaMs": 16.5,
+      "maxDeltaMs": 966.6,
+      "p95DeltaMs": 50.1,
+      "longTaskCount": 14,
+      "totalLongTaskDurationMs": 2802
+    },
+    "desktopPaused": {
+      "frameCount": 449,
+      "effectiveFps": 45,
+      "avgDeltaMs": 22.1,
+      "minDeltaMs": 16.5,
+      "maxDeltaMs": 894.4,
+      "p95DeltaMs": 16.8,
+      "longTaskCount": 4,
+      "totalLongTaskDurationMs": 1447
+    },
+    "mobileEnabled": {
+      "frameCount": 372,
+      "effectiveFps": 40,
+      "avgDeltaMs": 25.2,
+      "minDeltaMs": 16.5,
+      "maxDeltaMs": 905.8,
+      "p95DeltaMs": 33.4,
+      "longTaskCount": 7,
+      "totalLongTaskDurationMs": 1628
+    },
+    "degradationBehavior": "Delta-time animation pacing ensures fluid visual transitions without cumulative position drift or thread deadlock under heavy CPU slowdown; offscreen and hidden tabs cleanly suspend frame loops"
   },
   "verifiedCrossDeviceConditions": {
     "viewports": [

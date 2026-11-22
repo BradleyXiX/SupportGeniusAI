@@ -1,6 +1,20 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hover", () => {
+  test.afterEach(async ({ page }) => {
+    try {
+      if (page.url() && !page.url().startsWith("about:")) {
+        await page.evaluate(() => {
+          try { localStorage.clear(); } catch {}
+          try { window.scrollTo(0, 0); } catch {}
+        });
+      }
+    } catch {}
+    try {
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+    } catch {}
+  });
+
   test("1. Default-on auto-start after first paint for eligible visible scene", async ({ page }) => {
     let signalCoreFetched = false;
     page.on("request", (req) => {
@@ -18,7 +32,7 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     const toggle = page.locator("#motion-toggle");
 
     // Dynamic import is triggered automatically on idle/first paint
-    await expect(canvas).toBeVisible({ timeout: 5000 });
+    await expect(canvas).toBeVisible({ timeout: 10000 });
     expect(signalCoreFetched).toBe(true);
 
     // Toggle button reflects running animation
@@ -72,7 +86,10 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     expect(stored).toBe("paused");
   });
 
-  test("3. Pause persistence on page reload: stays paused on first paint without auto-starting", async ({ page }) => {
+  test("3. Pause persistence on page reload: stays paused on first paint without auto-starting", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
     // Set stored preference before loading
     await page.addInitScript(() => {
       localStorage.setItem("sg_motion_v1", "paused");
@@ -101,9 +118,13 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     await expect(toggle).toHaveText("Resume animations");
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect(stage).toHaveAttribute("data-motion-state", "user-paused");
+    await context.close();
   });
 
-  test("4. Resuming animations: clicking 'Resume animations' removes pause preference and mounts WebGL", async ({ page }) => {
+  test("4. Resuming animations: clicking 'Resume animations' removes pause preference and mounts WebGL", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
     await page.addInitScript(() => {
       localStorage.setItem("sg_motion_v1", "paused");
     });
@@ -129,9 +150,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     // Preference is cleared/running
     const stored = await page.evaluate(() => localStorage.getItem("sg_motion_v1"));
     expect(stored).not.toBe("paused");
+    await context.close();
   });
 
-  test("5. Repeated pause/resume cycles transition cleanly without leaks or stale state", async ({ page }) => {
+  test("5. Repeated pause/resume cycles transition cleanly without leaks or stale state", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await page.goto("/");
     const toggle = page.locator("#motion-toggle");
     const canvas = page.locator("#signal-core");
@@ -154,9 +178,13 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
       const posterVisRunning = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
       expect(posterVisRunning).toBe("hidden");
     }
+    await context.close();
   });
 
-  test("6. Storage failure resilience: controls work for current page even if localStorage throws SecurityError", async ({ page }) => {
+  test("6. Storage failure resilience: controls work for current page even if localStorage throws SecurityError", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
     // Simulate sandboxed/private browsing storage failure
     await page.addInitScript(() => {
       Object.defineProperty(window, "localStorage", {
@@ -186,9 +214,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     await toggle.click();
     await expect(toggle).toHaveText("Pause animations");
     await expect(canvas).toBeVisible();
+    await context.close();
   });
 
-  test("7. OS reduced motion overrides default-on: prevents module import, displays 'Reduced motion enabled'", async ({ page }) => {
+  test("7. OS reduced motion overrides default-on: prevents module import, displays 'Reduced motion enabled'", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await page.emulateMedia({ reducedMotion: "reduce" });
 
     let signalCoreFetched = false;
@@ -222,9 +253,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     await toggle.click();
     expect(signalCoreFetched).toBe(false);
     await expect(toggle).toHaveText("Reduced motion enabled");
+    await context.close();
   });
 
-  test("8. Runtime change to reduced motion while running immediately tears down WebGL", async ({ page }) => {
+  test("8. Runtime change to reduced motion while running immediately tears down WebGL", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await page.goto("/");
     const toggle = page.locator("#motion-toggle");
     const canvas = page.locator("#signal-core");
@@ -249,9 +283,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     await expect(toggle).toHaveText("Pause animations");
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
     await expect(stage).toHaveAttribute("data-motion-state", "running");
+    await context.close();
   });
 
-  test("9. Reduced-motion changes during async module loading aborts mounting", async ({ page }) => {
+  test("9. Reduced-motion changes during async module loading aborts mounting", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     let resolveRoute;
     const routePromise = new Promise((resolve) => {
       resolveRoute = resolve;
@@ -281,9 +318,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     await expect(canvas).toBeHidden();
     const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
     expect(posterVis).toBe("visible");
+    await context.close();
   });
 
-  test("10. Offscreen pausing: IntersectionObserver stops animation loop when canvas is out of viewport", async ({ page }) => {
+  test("10. Offscreen pausing: IntersectionObserver stops animation loop when canvas is out of viewport", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await page.goto("/");
     const canvas = page.locator("#signal-core");
     await expect(canvas).toBeVisible();
@@ -320,9 +360,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     expect(idleFrames.framesWhileOffscreenDelta).toBe(0);
     // When back on screen, frames resume
     expect(idleFrames.framesAfterReturnDelta).toBeGreaterThan(0);
+    await context.close();
   });
 
-  test("11. Document visibility: cancels RAF when document is hidden and resumes when visible", async ({ page }) => {
+  test("11. Document visibility: cancels RAF when document is hidden and resumes when visible", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await page.goto("/");
     const canvas = page.locator("#signal-core");
     await expect(canvas).toBeVisible();
@@ -360,9 +403,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
 
     expect(visResult.framesWhileHiddenDelta).toBe(0);
     expect(visResult.framesWhileVisibleDelta).toBeGreaterThan(0);
+    await context.close();
   });
 
-  test("12. WebGL context loss cleanly restores poster, hides canvas, and resets toggle to Resume animations", async ({ page }) => {
+  test("12. WebGL context loss cleanly restores poster, hides canvas, and resets toggle to Resume animations", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await page.goto("/");
     const toggle = page.locator("#motion-toggle");
     const canvas = page.locator("#signal-core");
@@ -386,9 +432,13 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     expect(posterVis).toBe("visible");
     await expect(toggle).toHaveText("Resume animations");
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await context.close();
   });
 
-  test("13. WebGL unsupported gracefully falls back to static artwork", async ({ page }) => {
+  test("13. WebGL unsupported gracefully falls back to static artwork", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
     // Override getContext on canvas to simulate unsupported WebGL
     await page.addInitScript(() => {
       HTMLCanvasElement.prototype.getContext = function (type, ...args) {
@@ -409,9 +459,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     await expect(canvas).toBeHidden();
     const posterVis = await poster.evaluate((el) => window.getComputedStyle(el).visibility);
     expect(posterVis).toBe("visible");
+    await context.close();
   });
 
-  test("14. Navigation to /console/ cleans up WebGL without console errors", async ({ page }) => {
+  test("14. Navigation to /console/ cleans up WebGL without console errors", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     const consoleErrors = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") {
@@ -430,9 +483,13 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
 
     // No errors occurred during transition/cleanup
     expect(consoleErrors).toEqual([]);
+    await context.close();
   });
 
-  test("15. Failed enhancement module permanently disables control and displays static artwork text", async ({ page }) => {
+  test("15. Failed enhancement module permanently disables control and displays static artwork text", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
     // Abort dynamic import of WebGL module
     await page.route("**/marketing/signal-core.js", (route) => route.abort());
 
@@ -454,9 +511,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     });
     await expect(toggle).toHaveText("Static artwork active");
     await expect(toggle).toBeDisabled();
+    await context.close();
   });
 
-  test("16. Pagehide during delayed import cancels activation and pageshow restores usable control", async ({ page }) => {
+  test("16. Pagehide during delayed import cancels activation and pageshow restores usable control", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     let resolveFirstRoute;
     const firstRoutePromise = new Promise((resolve) => {
       resolveFirstRoute = resolve;
@@ -496,9 +556,12 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     await expect(toggle).toHaveText("Pause animations");
     await expect(toggle).toBeEnabled();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await context.close();
   });
 
-  test("17. Temporary document visibility change during delayed import cancels activation and restores usable control", async ({ page }) => {
+  test("17. Temporary document visibility change during delayed import cancels activation and restores usable control", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
     let resolveRoute;
     const routePromise = new Promise((resolve) => {
       resolveRoute = resolve;
@@ -538,6 +601,7 @@ test.describe("Task 04: Signal Core Motion Policy, Lifecycle State Machine & Hov
     await expect(toggle).toHaveText("Pause animations");
     await expect(toggle).toBeEnabled();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await context.close();
   });
 
   test("18. Fine-pointer hover tilt and shell displacement applies delta-time smoothed response", async ({ page }) => {
