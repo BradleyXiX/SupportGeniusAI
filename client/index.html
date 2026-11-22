@@ -4,9 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="SupportGenius AI • Signal Desk. A support assistant configured around your documentation and workflows.">
-  <title>SupportGenius AI — Knowledge, made clear.</title>
+  <title>SupportGenius AI - Knowledge, made clear.</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/brand/favicon.svg">
+  <link rel="preload" href="/assets/fonts/display-1.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/body-1.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/brand.css">
   <link rel="stylesheet" href="/marketing.css">
   <link rel="stylesheet" href="/styles.css">
@@ -27,6 +29,7 @@
         <a href="#system">The system</a>
         <a href="#experience">Experience</a>
         <a href="#deployment">Deployment</a>
+        <a href="#implementation-contact">Contact</a>
       </nav>
 
       <a href="/console/" class="header-cta">Open assistant <span aria-hidden="true">&nearr;</span></a>
@@ -41,6 +44,7 @@
         <p class="lead">Turn your business documentation into a focused support conversation. Built around what your team knows.</p>
         <div class="actions">
           <a class="button primary" href="/console/">Explore the assistant <span aria-hidden="true">&nearr;</span></a>
+          <a class="button secondary" href="#implementation-contact">Discuss implementation <span aria-hidden="true">&darr;</span></a>
           <a class="text-link" href="#system">See the system <span aria-hidden="true">&darr;</span></a>
         </div>
         <p class="fine hero-note">A working foundation for tailored client deployments.</p>
@@ -56,7 +60,7 @@
         <span class="core-label mono">QUESTION &rarr; CONTEXT &rarr; ANSWER</span>
         <figcaption>
           <span class="fine">An illustration of clarity, taking shape.</span>
-          <button id="motion-toggle" type="button" class="quiet-button" aria-pressed="false" disabled>Enable motion</button>
+          <button id="motion-toggle" type="button" class="quiet-button" aria-pressed="false" disabled>Pause animations</button>
         </figcaption>
       </figure>
     </section>
@@ -78,8 +82,40 @@
       </div>
       <div class="system-layout">
         <div class="chapter-index">
+          <div class="network-backdrop system-network-backdrop" aria-hidden="true">
+            <canvas class="network-canvas" hidden></canvas>
+            <img class="network-poster" src="/assets/brand/network-texture-poster.svg" alt="" width="300" height="400">
+          </div>
           <p class="mono">THE SUPPORTGENIUS APPROACH</p>
-          <div class="orbit-small" aria-hidden="true"><span></span><span></span><span></span><b>SG</b></div>
+          <div class="orbit-small" aria-hidden="true">
+            <div class="orbit-track track-1">
+              <div class="orbit-tilt">
+                <div class="orbit-spin">
+                  <span class="orbit-path"></span>
+                  <span class="orbit-node"></span>
+                </div>
+              </div>
+            </div>
+            <div class="orbit-track track-2">
+              <div class="orbit-tilt">
+                <div class="orbit-spin">
+                  <span class="orbit-path"></span>
+                  <span class="orbit-node"></span>
+                </div>
+              </div>
+            </div>
+            <div class="orbit-track track-3">
+              <div class="orbit-tilt">
+                <div class="orbit-spin">
+                  <span class="orbit-path"></span>
+                  <span class="orbit-node"></span>
+                </div>
+              </div>
+            </div>
+            <div class="orbit-center">
+              <img src="/assets/brand/supportgenius-mark.svg" alt="" width="36" height="36" class="orbit-prism-mark">
+            </div>
+          </div>
           <p class="fine">Select a step to explore the system.<br>Illustration, not live processing telemetry.</p>
         </div>
         <div class="chapters">
@@ -165,6 +201,10 @@
     </section>
     <!-- Deployment Section (Boundaries & Model Choice) -->
     <section id="deployment" class="deployment site-wrap section" aria-labelledby="deployment-title">
+      <div class="network-backdrop deployment-network-backdrop" aria-hidden="true">
+        <canvas class="network-canvas" hidden></canvas>
+        <img class="network-poster" src="/assets/brand/network-texture-poster.svg" alt="" width="1200" height="500">
+      </div>
       <div class="section-head">
         <p class="eyebrow">03 / BUILT AROUND YOUR BUSINESS</p>
         <h2 id="deployment-title">Your documents.<br>Your deployment.</h2>
@@ -196,28 +236,56 @@
       </div>
     </section>
 
-    <!-- Closing Section -->
+    <!-- Closing Section / Implementation Contact -->
     <section class="closing section" aria-labelledby="closing-title">
       <div class="site-wrap closing-inner">
-        <p class="eyebrow">KNOWLEDGE, MADE CLEAR.</p>
-        <h2 id="closing-title">Make the next<br>question count.</h2>
-        <a class="button primary" href="/console/">Explore Signal Desk <span aria-hidden="true">&nearr;</span></a>
-        <p class="fine">Open the live assistant console to test your configured knowledge and workflows.</p>
-        <span class="closing-rings" aria-hidden="true"></span>
+        <div id="implementation-contact" class="closing-copy">
+          <p class="eyebrow">KNOWLEDGE, MADE CLEAR.</p>
+          <h2 id="closing-title">Make the next<br>question count.</h2>
+          <p class="closing-lead">Bring SupportGenius AI to your business. Let’s build around your knowledge and support workflow.</p>
+          <div class="closing-actions">
+            <a class="button primary contact-email-btn" href="mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry">Discuss implementation <span aria-hidden="true">&nearr;</span></a>
+            <a class="text-link closing-secondary-link" href="/console/">Try Signal Desk <span aria-hidden="true">&nearr;</span></a>
+          </div>
+          <p class="fine contact-address-line">
+            <span class="contact-note">Opens your email app. Or copy:</span>
+            <span class="contact-email selectable-address">BradJohn70@gmail.com</span>
+          </p>
+        </div>
+        <div class="closing-stage closing-rings" aria-hidden="true">
+          <canvas class="closing-canvas" width="360" height="360" aria-hidden="true" hidden></canvas>
+          <img class="closing-poster" src="/assets/brand/closing-sphere-poster.svg" alt="" width="360" height="360" aria-hidden="true">
+        </div>
       </div>
     </section>
   </main>
 
-    <!-- Footer -->
-    <footer class="site-footer site-wrap">
+  <!-- Footer -->
+  <footer class="site-footer site-wrap">
+    <div class="footer-primary">
       <a href="#main-content" class="brand-link" aria-label="SupportGenius AI home">
         <img src="/assets/brand/supportgenius-mark.svg" width="32" height="32" alt="" class="brand-prism-mark" aria-hidden="true">
         <span class="brand-title">SupportGenius <small class="brand-accent">AI</small></span>
       </a>
       <p class="fine">Document-based support intelligence.</p>
+    </div>
+
+    <div class="footer-author-block">
+      <p class="footer-author fine">Built by Bradley Chiwo</p>
+      <ul class="footer-links" aria-label="Professional contact and profiles">
+        <li><a href="mailto:BradJohn70@gmail.com" class="footer-link">Email</a></li>
+        <li><a href="https://bradleychiwo.netlify.app/" target="_blank" rel="noopener noreferrer" class="footer-link">Portfolio <span class="sr-only">(opens in new tab)</span><span aria-hidden="true">&nearr;</span></a></li>
+        <li><a href="https://www.linkedin.com/in/bradley-john-chiwo/" target="_blank" rel="noopener noreferrer" class="footer-link">LinkedIn <span class="sr-only">(opens in new tab)</span><span aria-hidden="true">&nearr;</span></a></li>
+        <li><a href="https://github.com/BradleyXiX" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub <span class="sr-only">(opens in new tab)</span><span aria-hidden="true">&nearr;</span></a></li>
+      </ul>
+    </div>
+
+    <div class="footer-actions">
       <a href="#main-content" class="text-link">Back to top &uarr;</a>
-      <p class="fine copyright">&copy; 2026 SupportGenius AI &bull; Knowledge, made clear.</p>
-    </footer>
+    </div>
+
+    <p class="fine copyright">&copy; 2026 SupportGenius AI &bull; Knowledge, made clear.</p>
+  </footer>
   </div>
 
   <script type="module" src="/landing.js"></script>

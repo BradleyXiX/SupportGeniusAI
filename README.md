@@ -4,13 +4,13 @@
 
 **Knowledge, made clear.** A document-based customer support assistant built with Express and vanilla JavaScript for tailored client deployments.
 
-SupportGenius AI retrieves context from configured business documents and generates replies through a selected model provider. Signal Desk keeps the conversation, usage estimates, and recovery controls in one focused interface.
+SupportGenius AI retrieves context from configured business documents and generates replies through a selected model provider. Signal Desk keeps the conversation, usage estimates, and recovery controls in one focused interface, while the Crimson Signal presentation showcases product capabilities, system architecture, and client implementation enquiries.
 
-[Quick start](#quick-start) · [Architecture](#architecture) · [Verification](#verification) · [Deployment](docs/deployment.md) · [Design system](design.md)
+[Quick start](#quick-start) · [Architecture](#architecture) · [Verification](#verification) · [Deployment](docs/deployment.md) · [Design system](design.md) · [Implementation enquiries](#client-implementation-enquiries)
 
-![Signal Desk console in local demo mode](docs/design-v2/screenshots/console-answered-1440.png)
+![Signal Desk console in local demo mode](docs/design-v3/screenshots/console-answered-1440.png)
 
-*Integrated Signal Desk workspace, captured from the live application at commit `0f90bb1` in local demo mode (`APP_MODE=demo`, viewport 1440×1000). Demonstrates clean answered state, session cost estimate, and recovery controls. Contains sample content; does not establish real-provider answer quality.*
+*Integrated Signal Desk workspace, captured from the live application at commit `1756167` in local demo mode (`APP_MODE=demo`, viewport 1440×1000). Demonstrates clean answered state with static crimson avatar mark, session cost estimate, and recovery controls. Contains sample fixture content; does not establish real-provider answer quality.*
 
 ## Current capabilities
 
@@ -22,6 +22,9 @@ SupportGenius AI retrieves context from configured business documents and genera
 | Anonymous signed-cookie sessions | Not customer authentication; in-memory state expires and resets on restart |
 | Bounded requests and recoverable errors | No guarantee of answer accuracy or provider availability |
 | Usage/cost estimates | Estimates may be unavailable; not binding billing records |
+| Truthful console lifecycle | Status driven by real client state (`idle`, `pending`, `settling`, `error`, `recovery`); no fake typing |
+| Accessible motion controls | Default-on motion after first paint for eligible visible scenes; persistent pause preference (`sg_motion_v1`); OS reduced-motion override |
+| Implementation enquiries | Direct email touchpoint (`#implementation-contact`); opens visitor email client without server form storage |
 
 Customer actions, live integrations, source-citation delivery, durable transcripts, and multi-tenant accounts are outside the current release. Retrieval provides context; review answer quality against known questions before client rollout.
 
@@ -35,7 +38,7 @@ cd SupportGeniusAI
 npm ci
 ```
 
-If you already have a checkout, preserve any uncommitted work. The Signal Architecture design is integrated on branch `design/signal-architecture-v2`.
+If you already have a checkout, preserve any uncommitted work. The Crimson Signal design enhancements are integrated on branch `design/crimson-signal-v3`.
 
 Copy `.env.example` to `.env`:
 
@@ -117,59 +120,132 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The browser configuration launches an isolated local server on port `3888` in demo mode. Tests verify session ownership, origin enforcement, single-flight request gating, CSP compliance, error recovery, and axe-core accessibility.
+The browser configuration launches an isolated local server on port `3888` in demo mode. Tests verify session ownership, origin enforcement, single-flight request gating, CSP compliance, error recovery, motion policy synchronization, and axe-core accessibility.
 
 ### Verified Suite Results
 
-On branch `design/signal-architecture-v2`:
+On branch `design/crimson-signal-v3`:
 - **Vitest unit & API contract suite**: Passed **151 tests in 16 files** (exit 0).
-- **Playwright browser integration suite**: Passed **111 tests across 8 suites** (exit 0):
-  - `closing-footer.spec.js` (9/9)
-  - `console.spec.js` (50/50 — includes 320px responsive overflow regression test in empty and answered states)
-  - `deployment.spec.js` (7/7 — corrected subtotal)
+- **Playwright browser integration suite** (`npm run test:browser`): Passed **171 tests across 14 spec files** (exit 0):
+  - `closing-footer.spec.js` (13/13 — includes desktop capture and unified closing layout verification)
+  - `closing-sphere.spec.js` (11/11 — closing sphere WebGL/poster lifecycle and scene registry coordination)
+  - `console-v3.spec.js` (14/14 — status indicator, message avatars, and composer styling)
+  - `console.spec.js` (50/50 — includes 320px responsive overflow regression in empty and answered states)
+  - `deployment.spec.js` (7/7)
   - `experience.spec.js` (9/9)
+  - `final-verification.spec.js` (9/9 — cold-load performance, 6x CPU throttling trace, responsive reflow across 1440/390/320 viewports, keyboard outline audit, no-JS, reduced motion, persistent pause, and failure injection)
+  - `hero-capture.spec.js` (3/3 — reproducible full-hero screenshot captures)
   - `marketing.spec.js` (8/8 — includes native anchor URL fragment and history preservation)
+  - `network-texture.spec.js` (10/10 — sparse background decoration and motion policy coordination)
   - `orb.spec.js` (8/8)
-  - `signal-core.spec.js` (13/13 — includes failed enhancement module fallback test)
+  - `signal-core.spec.js` (20/20 — includes WebGL particle envelope, tilt interaction, and fallback tests)
   - `system-chapters.spec.js` (7/7)
+  - `system-orbits.spec.js` (10/10 — rotating orbits, pause synchronization, and screenshot captures)
+- **Reconciled test totals**: **151 unit tests + 171 browser tests = 322 automated tests** (100% passing, 0 skipped).
 - **Accessibility**: 0 serious or critical axe-core findings across both routes.
 
 ### Lab Performance & Asset Footprint
 
-Measured on unthrottled loopback Chrome:
-- **Landing page (`/`)**: Lab LCP 484 ms, Lab CLS 0.003
-- **Signal Desk console (`/console/`)**: Lab LCP 160 ms, Lab CLS 0.0119
-- **Landing stylesheet footprint**: `brand.css` (13.45 KB / 2.26 KB estimated gzip), `marketing.css` (29.68 KB / 4.90 KB estimated gzip)
-- **Console stylesheet footprint**: `styles.css` (40.37 KB / 6.73 KB estimated gzip), `brand.css` (13.45 KB / 2.26 KB estimated gzip)
-- **Landing JavaScript (eager modules)**: `landing.js` (5.63 KB / 1.68 KB estimated gzip), `marketing/chapters.js` (1.01 KB / 0.45 KB estimated gzip), `marketing/examples.js` (1.87 KB / 0.78 KB estimated gzip). Optional deferred WebGL: `marketing/signal-core.js` (5.45 KB / 2.08 KB estimated gzip).
-- **Console JavaScript**: `app.js` (28.64 KB / 6.59 KB estimated gzip), `chat-state.js` (2.25 KB / 0.68 KB estimated gzip)
-- **Separately reported static assets**: Latin font subsets (70.80 KB across 3 WOFF2 files in `client/assets/fonts/`), hero SVG poster (`client/assets/brand/signal-core-poster.svg`, 43.48 KB raw).
+#### Cold-Load Performance Observations (Unthrottled Chrome, 1440×1000)
 
-*Performance & transfer note*: All gzip values are software-calculated gzip estimates, not measured wire transfers with live HTTP compression headers. The figures are unthrottled local lab observations and do not establish real-world mobile cellular network performance, hardware variability, or field INP. See [design verification](docs/design-v2/verification.md) for detailed observations and evidence bounds.
+| Route | Metric | Run 1 | Run 2 | Run 3 | Median | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Landing (`/`)** | **LCP** | 708 ms | 884 ms | 912 ms | **884 ms** | Largest paint element is the hero heading |
+| **Landing (`/`)** | **CLS** | 0.0001 | 0.0001 | 0.0001 | **0.0001** | Font-swap shift eliminated via flex-basis anchoring and font preloads (budget ≤ 0.1) |
+| **Console (`/console/`)** | **LCP** | 340 ms | 288 ms | 432 ms | **340 ms** | Fast initial shell paint |
+| **Console (`/console/`)** | **CLS** | 0.0029 | 0.0025 | 0.0026 | **0.0026** | Stable layout well within the 0.1 budget |
+
+#### 6x CPU-Throttled Motion & Frame Work Trace
+
+Captured via Chrome DevTools Protocol (`Emulation.setCPUThrottlingRate: 6`) covering complete interaction journey (load -> hero hover -> scroll through sections -> dwell -> scroll top):
+- **Desktop (motion enabled)**: 311 frames, **29 effective FPS**, avg delta **34.0 ms**, p95 delta **50.1 ms**, 14 long tasks (2,802 ms total duration).
+- **Desktop (user paused)**: 449 frames, **45 effective FPS**, avg delta **22.1 ms**, p95 delta **16.8 ms**, 4 long tasks (1,447 ms total duration).
+- **Mobile (390×844, enabled)**: 372 frames, **40 effective FPS**, avg delta **25.2 ms**, p95 delta **33.4 ms**, 7 long tasks (1,628 ms total duration).
+- **Degradation behavior**: Delta-time motion smoothing maintains fluid visual pacing without thread lockups, cumulative transform drift, or unhandled exceptions. Pausing animations cuts long-task execution time by ~48% and raises effective frame rate to 45 FPS under 6x CPU throttling.
+
+#### Exact Participating Asset Footprint
+
+| Category | File | Raw Bytes | Decimal KB | Binary KiB | Gzip Bytes | Gzip Est. (KiB) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **HTML Documents** | `client/index.html` | 15,426 B | 15.43 KB | 15.06 KiB | 4,122 B | 4.03 KiB |
+| **HTML Documents** | `client/console/index.html` | 6,396 B | 6.40 KB | 6.25 KiB | 2,082 B | 2.03 KiB |
+| **Eager Landing JS** | `client/landing.js` | 15,142 B | 15.14 KB | 14.79 KiB | 3,351 B | 3.27 KiB |
+| **Eager Landing JS** | `client/marketing/chapters.js` | 3,494 B | 3.49 KB | 3.41 KiB | 1,160 B | 1.13 KiB |
+| **Eager Landing JS** | `client/marketing/examples.js` | 1,968 B | 1.97 KB | 1.92 KiB | 812 B | 0.79 KiB |
+| **Eager Landing JS** | `client/marketing/motion-policy.js` | 5,206 B | 5.21 KB | 5.08 KiB | 1,692 B | 1.65 KiB |
+| *Eager Landing JS Subtotal* | *4 modules* | **25,810 B** | **25.81 KB** | **25.21 KiB** | **7,015 B** | **6.85 KiB** |
+| **Deferred Landing JS** | `client/marketing/signal-core.js` | 18,438 B | 18.44 KB | 18.01 KiB | 5,153 B | 5.03 KiB |
+| **Deferred Landing JS** | `client/marketing/network-texture.js` | 8,817 B | 8.82 KB | 8.61 KiB | 2,727 B | 2.66 KiB |
+| *Deferred Landing JS Subtotal* | *2 modules* | **27,255 B** | **27.26 KB** | **26.62 KiB** | **7,880 B** | **7.70 KiB** |
+| **Console JS** | `client/app.js` | 29,856 B | 29.86 KB | 29.16 KiB | 6,955 B | 6.79 KiB |
+| **Console JS** | `client/chat-state.js` | 2,309 B | 2.31 KB | 2.25 KiB | 703 B | 0.69 KiB |
+| **Console JS** | `client/orb.js` | 10,797 B | 10.80 KB | 10.54 KiB | 2,906 B | 2.84 KiB |
+| **Console JS** | `client/marketing/motion-policy.js` | 5,206 B | 5.21 KB | 5.08 KiB | 1,692 B | 1.65 KiB |
+| *Console JS Subtotal* | *4 modules* | **48,168 B** | **48.17 KB** | **47.04 KiB** | **12,256 B** | **11.97 KiB** |
+| **Vendor JS** | `client/vendor/marked.min.js` | 35,485 B | 35.48 KB | 34.65 KiB | 10,778 B | 10.53 KiB |
+| **Vendor JS** | `client/vendor/purify.min.js` | 20,934 B | 20.93 KB | 20.44 KiB | 8,140 B | 7.95 KiB |
+| *Vendor JS Subtotal* | *2 scripts* | **56,419 B** | **56.42 KB** | **55.10 KiB** | **18,918 B** | **18.47 KiB** |
+| **Stylesheets** | `client/brand.css` | 17,857 B | 17.86 KB | 17.44 KiB | 2,743 B | 2.68 KiB |
+| **Stylesheets** | `client/marketing.css` | 42,600 B | 42.60 KB | 41.60 KiB | 6,437 B | 6.29 KiB |
+| **Stylesheets** | `client/styles.css` | 42,322 B | 42.32 KB | 41.33 KiB | 7,168 B | 7.00 KiB |
+| *Stylesheets Subtotal* | *3 CSS files* | **102,779 B** | **102.78 KB** | **100.37 KiB** | **16,348 B** | **15.96 KiB** |
+| **Static Fonts** | `client/assets/fonts/display-1.woff2` | 22,288 B | 22.29 KB | 21.77 KiB | 22,316 B | Pre-compressed |
+| **Static Fonts** | `client/assets/fonts/body-1.woff2` | 27,348 B | 27.35 KB | 26.71 KiB | 27,376 B | Pre-compressed |
+| **Static Fonts** | `client/assets/fonts/mono-1.woff2` | 21,168 B | 21.17 KB | 20.67 KiB | 21,196 B | Pre-compressed |
+| *Static Fonts Subtotal* | *3 WOFF2 subsets* | **70,804 B** | **70.80 KB** | **69.14 KiB** | *Pre-compressed* | *Pre-compressed* |
+| **Vector Artwork / Posters** | `client/assets/brand/signal-core-poster.svg` | 71,408 B | 71.41 KB | 69.73 KiB | 10,656 B | 10.41 KiB |
+| **Vector Artwork / Posters** | `client/assets/brand/closing-sphere-poster.svg` | 10,155 B | 10.15 KB | 9.92 KiB | 2,442 B | 2.38 KiB |
+| **Vector Artwork / Posters** | `client/assets/brand/network-texture-poster.svg` | 4,167 B | 4.17 KB | 4.07 KiB | 964 B | 0.94 KiB |
+| **Vector Artwork / Posters** | `client/assets/brand/avatar-sphere.svg` | 1,307 B | 1.31 KB | 1.28 KiB | 570 B | 0.56 KiB |
+| **Vector Artwork / Posters** | `client/assets/brand/supportgenius-mark.svg` | 368 B | 0.37 KB | 0.36 KiB | 227 B | 0.22 KiB |
+| **Vector Artwork / Posters** | `client/assets/brand/favicon.svg` | 368 B | 0.37 KB | 0.36 KiB | 227 B | 0.22 KiB |
+
+*Performance & transfer note*: All gzip values are software-calculated estimates using Deflate/Gzip compression, not measured HTTP wire transfers with live compression headers. Local lab observations do not establish real-world mobile cellular network performance, diverse hardware execution, or field INP. The system does not claim award readiness or public deployment status. See [design verification](docs/design-v2/verification.md) and [v3 verification summary](docs/design-v3/performance/verification-summary.json) for detailed observations and evidence bounds.
 
 ## Visual design & integrated interface
 
-The **Signal Architecture** redesign establishes an original signal-prism identity, a graphite palette, an architectural page shell, and a native WebGL point sculpture with static SVG poster fallback.
+The **Crimson Signal** design language establishes a refined signal-prism identity, deep crimson and garnet accents (`#931b32`, `#6b1424`), an ink-black foundational surface (`#0f0b0d`), warm paper interlude sections (`#fbf8f5`), and a kinetic WebGL point sculpture with static SVG poster fallback.
 
-![SupportGenius AI integrated marketing landing page](docs/design-v2/screenshots/landing-desktop-1440.png)
+![SupportGenius AI integrated marketing landing page](docs/design-v3/screenshots/landing-desktop-1440.png)
 
-*Integrated marketing landing page, captured from the live application at commit `284a08b` in local demo mode (`APP_MODE=demo`, viewport 1440×1000). Shows the static SVG hero sculpture, capability strip, and architectural page structure.*
+*Integrated marketing landing page, captured from the live application at commit `1756167` in local demo mode (`APP_MODE=demo`, viewport 1440×1000). Shows the animated crimson hero sculpture, capability bar, and architectural layout.*
+
+![SupportGenius AI closing implementation section](docs/design-v3/screenshots/closing-contact-desktop.png)
+
+*Unified closing section, captured from the live application at commit `1756167` in local demo mode (`APP_MODE=demo`, viewport 1440×1000). Shows the crimson wine sphere sculpture beside the "Make the next question count" call-to-action and implementation contact touchpoint.*
 
 ### Screenshot Provenance
 
 | Interface | Image Path | Route | Commit | Viewport | Mode |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Signal Desk** | [`docs/design-v2/screenshots/console-answered-1440.png`](docs/design-v2/screenshots/console-answered-1440.png) | `/console/` | `0f90bb1` | 1440×1000 | `demo` |
-| **Marketing Hero** | [`docs/design-v2/screenshots/landing-desktop-1440.png`](docs/design-v2/screenshots/landing-desktop-1440.png) | `/` | `284a08b` | 1440×1000 | `demo` |
-| **Concept Board** | [`docs/design-v2/screenshots/reference-desktop.png`](docs/design-v2/screenshots/reference-desktop.png) | *Prototype* | `3bcaf7f` | 1440×1000 | *Design Reference* |
+| **Signal Desk Answered** | [`docs/design-v3/screenshots/console-answered-1440.png`](docs/design-v3/screenshots/console-answered-1440.png) | `/console/` | `1756167` | 1440×1000 | `demo` |
+| **Marketing Hero** | [`docs/design-v3/screenshots/landing-desktop-1440.png`](docs/design-v3/screenshots/landing-desktop-1440.png) | `/` | `1756167` | 1440×1000 | `demo` |
+| **Closing Contact** | [`docs/design-v3/screenshots/closing-contact-desktop.png`](docs/design-v3/screenshots/closing-contact-desktop.png) | `/#implementation-contact` | `1756167` | 1440×1000 | `demo` |
+| **Historical Concept Board (v2)** | [`docs/design-v2/screenshots/reference-desktop.png`](docs/design-v2/screenshots/reference-desktop.png) | *Prototype* | `3bcaf7f` | 1440×1000 | *Design Reference (Historical)* |
 
-*Concept imagery disclosure*: The reference board above is design planning reference media from the initial exploration phase. It is not production code and features standalone mock scripts.
+*Concept imagery disclosure*: The reference board above is historical design planning reference media from the v2 exploration phase. It is not production code and features standalone mock scripts.
 
 Design documentation:
 - [Design specification](design.md)
+- [Design enhancements specification](docs/design-v3/design-enhancements.md)
 - [Antigravity implementation sequence](docs/design-v2/execution-plan.md)
 - [Research and source audit](docs/design-v2/research.md)
-- [Design reference instructions](docs/design-v2/START-HERE.md)
+- [Design reference instructions](docs/design-v3/START-HERE.md)
+
+## Client implementation enquiries
+
+SupportGenius AI is designed for bespoke deployment across enterprise knowledge bases. Enquiries regarding custom installations, knowledge indexing, and architecture integration are handled directly:
+
+- **Primary enquiry action**: [Discuss implementation](mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry)
+- **Direct email address**: `BradJohn70@gmail.com`
+- *Note*: Clicking the implementation enquiry link opens the visitor's local email application with a pre-formatted subject line. No server-side form submission, external CRM, or automated dispatch is invoked.
+
+### Author & Engineering
+
+Built by **Bradley Chiwo**:
+- **Portfolio**: [https://bradleychiwo.netlify.app/](https://bradleychiwo.netlify.app/)
+- **LinkedIn**: [https://www.linkedin.com/in/bradley-john-chiwo/](https://www.linkedin.com/in/bradley-john-chiwo/)
+- **GitHub**: [https://github.com/BradleyXiX](https://github.com/BradleyXiX)
 
 ## Deployment and operating limits
 
@@ -191,4 +267,4 @@ Follow [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md). Keep chang
 
 ## License
 
-The repository does not currently include a project license. The owner must choose one before representing it as open-source software under specific terms. Bundled fonts and vendor assets retain their own notices; see [design asset notices](docs/design-v2/assets/NOTICE.md) and [client vendor notices](client/vendor/LICENSES.md).
+The repository does not currently include a project license. The owner must choose one before representing it as open-source software under specific terms. Bundled fonts and vendor assets retain their own notices; see [v3 asset notices](docs/design-v3/assets/NOTICE.md), [v2 design asset notices](docs/design-v2/assets/NOTICE.md), and [client vendor notices](client/vendor/LICENSES.md).

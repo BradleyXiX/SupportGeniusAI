@@ -845,7 +845,7 @@ body[data-page="console"] .brand-accent {
 }
 
 body[data-page="console"] .brand-edition {
-  font-size: 0.75rem;
+  font-size: 14px;
   color: #A8B3C4;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -855,8 +855,8 @@ body[data-page="console"] .demo-disclosure {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 0.75rem;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.5;
   color: #A8B3C4;
   background-color: #141C2E;
   padding: 10px 12px;
@@ -869,7 +869,7 @@ body[data-page="console"] .disclosure-badge {
   background-color: rgba(242, 197, 114, 0.15);
   color: #F2C572;
   font-weight: 600;
-  font-size: 0.65rem;
+  font-size: 14px;
   padding: 2px 6px;
   border-radius: 4px;
   text-transform: uppercase;
@@ -882,9 +882,9 @@ body[data-page="console"] .rail-guidance {
 }
 
 body[data-page="console"] .rail-guidance-text {
-  font-size: 0.85rem;
+  font-size: 14px;
   color: #A8B3C4;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 body[data-page="console"] .btn-new-conversation {
@@ -899,8 +899,9 @@ body[data-page="console"] .btn-new-conversation {
   border: 1px solid #293447;
   border-radius: 8px;
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 500;
+  min-height: 44px;
   cursor: pointer;
   transition: all 150ms ease;
 }
@@ -957,7 +958,7 @@ body[data-page="console"] .connection-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 14px;
   color: #A8B3C4;
   flex-wrap: wrap;
 }
@@ -978,7 +979,7 @@ body[data-page="console"] .finops-info {
 }
 
 body[data-page="console"] .finops-info .cost-label {
-  font-size: 0.7rem;
+  font-size: 14px;
   color: #A8B3C4;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -986,7 +987,7 @@ body[data-page="console"] .finops-info .cost-label {
 
 body[data-page="console"] .finops-info .cost-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 600;
   color: #85D6BD;
 }
@@ -1028,15 +1029,15 @@ body[data-page="console"] .avatar-mini {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 700;
 }
 
 body[data-page="console"] .bubble {
   padding: 12px 16px;
   border-radius: 12px;
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.65;
 }
 
 body[data-page="console"] .user-message .bubble {
@@ -1074,8 +1075,9 @@ body[data-page="console"] .code-copy-btn {
   color: #A8B3C4;
   border: 1px solid #293447;
   border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 0.75rem;
+  padding: 6px 12px;
+  font-size: 14px;
+  min-height: 44px;
   cursor: pointer;
 }
 
@@ -1095,7 +1097,7 @@ body[data-page="console"] .suggestions-container {
 }
 
 body[data-page="console"] .suggestions-label {
-  font-size: 0.75rem;
+  font-size: 14px;
   color: #A8B3C4;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1119,8 +1121,9 @@ body[data-page="console"] .suggestion-chip {
   color: #F8FAFC;
   border: 1px solid #293447;
   border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 0.8rem;
+  padding: 10px 16px;
+  min-height: 44px;
+  font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
@@ -1147,8 +1150,8 @@ body[data-page="console"] .suggestion-chip.chip-disabled {
 /* Fixed Composer Form */
 body[data-page="console"] .console-composer {
   padding: 16px 24px;
-  background-color: #090D16;
-  border-top: 1px solid #293447;
+  background-color: var(--surface, #101012);
+  border-top: 1px solid var(--line, #26262a);
 }
 
 body[data-page="console"] .composer-form {
@@ -1166,67 +1169,86 @@ body[data-page="console"] .composer-input-wrapper {
 
 body[data-page="console"] textarea#input {
   width: 100%;
-  background-color: #0D121F;
-  border: 1px solid #293447;
-  border-radius: 8px;
+  background-color: var(--canvas, #030304);
+  border: 1px solid var(--border-control, #686874);
+  border-radius: 4px;
   padding: 12px 48px 12px 16px;
-  color: #F8FAFC;
+  color: var(--ink, #F7F7F5);
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 16px;
   resize: none;
   outline: none;
-  line-height: 1.4;
+  line-height: 1.5;
   height: 48px;
-  max-height: 120px;
+  min-height: 48px;
+  max-height: 140px;
   box-sizing: border-box;
+  transition: border-color 0.18s ease;
 }
 
-body[data-page="console"] textarea#input:focus {
-  border-color: #85D6BD;
+body[data-page="console"] textarea#input::placeholder {
+  color: #8c888c;
+  opacity: 1;
+}
+
+body[data-page="console"] textarea#input:focus,
+body[data-page="console"] textarea#input:focus-visible {
+  border-color: var(--ink, #F7F7F5);
+  outline: 3px solid var(--focus-dark, #FFFFFF);
+  outline-offset: 2px;
 }
 
 body[data-page="console"] .keyboard-hint {
   position: absolute;
   right: 14px;
-  font-size: 0.75rem;
-  color: #A8B3C4;
+  font-size: 12px;
+  color: var(--muted, #C0BCC0);
   pointer-events: none;
 }
 
 body[data-page="console"] .keyboard-hint kbd {
-  background: #141C2E;
-  border: 1px solid #293447;
+  background: var(--surface-higher, #1A1A1E);
+  border: 1px solid var(--line, #26262a);
   border-radius: 4px;
   padding: 2px 6px;
+  color: var(--muted, #C0BCC0);
 }
 
 body[data-page="console"] #send-btn {
   width: 48px;
   height: 48px;
   min-width: 48px;
-  background-color: #85D6BD;
-  color: #090D16;
-  border: none;
-  border-radius: 8px;
+  min-height: 48px;
+  background-color: var(--accent, #BB1729);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 150ms ease;
+  padding: 0;
+  transition: background-color 0.18s ease, transform 0.1s ease;
 }
 
-body[data-page="console"] #send-btn:hover {
-  background-color: #9fe2cd;
+body[data-page="console"] #send-btn:hover:not(:disabled) {
+  background-color: var(--accent-hot, #D52A38);
+}
+
+body[data-page="console"] #send-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 body[data-page="console"] #send-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+  transform: none;
+  background-color: var(--accent, #BB1729);
 }
 
 body[data-page="console"] #send-btn:focus-visible {
-  outline: 2px solid #F2C572;
-  outline-offset: 2px;
+  outline: 3px solid var(--focus-dark, #FFFFFF);
+  outline-offset: 3px;
 }
 
 /* Mobile responsive collapse */
@@ -1254,13 +1276,15 @@ body[data-page="console"] #send-btn:focus-visible {
 
   body[data-page="console"] .demo-disclosure {
     margin-top: 0;
-    padding: 4px 8px;
-    font-size: 0.7rem;
+    padding: 6px 10px;
+    font-size: 14px;
   }
 
   body[data-page="console"] .btn-new-conversation {
     width: auto;
-    padding: 8px 12px;
+    padding: 10px 16px;
+    font-size: 14px;
+    min-height: 44px;
   }
 
   body[data-page="console"] .console-header {
@@ -1286,14 +1310,17 @@ body[data-page="console"] #send-btn:focus-visible {
 /* Task 2 / A2: 429 Rate Limit Affordance */
 body[data-page="console"] .btn-retry-429 {
   margin-top: 10px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: #141C2E;
   color: #F2C572;
   border: 1px solid #293447;
   border-radius: 6px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 14px;
+  min-height: 44px;
   font-weight: 500;
   cursor: pointer;
   transition: all 150ms ease;
@@ -1311,22 +1338,25 @@ body[data-page="console"] .btn-retry-429:disabled {
 
 body[data-page="console"] .btn-retry-init {
   margin-top: 10px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: #141C2E;
   color: #F2C572;
   border: 1px solid #293447;
   border-radius: 6px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 14px;
+  min-height: 44px;
   font-weight: 500;
   cursor: pointer;
   transition: all 150ms ease;
 }
 
 body[data-page="console"] .btn-retry-init:hover:not(:disabled) {
-  background-color: #1a253d;
-  border-color: #F2C572;
+  background-color: rgba(187, 23, 41, 0.16);
+  border-color: #bb1729;
 }
 
 body[data-page="console"] .btn-retry-init:disabled {
@@ -1335,7 +1365,7 @@ body[data-page="console"] .btn-retry-init:disabled {
 }
 
 body[data-page="console"] .error-message .bubble {
-  border-color: rgba(242, 166, 166, 0.4);
+  border-color: #bb1729;
 }
 
 

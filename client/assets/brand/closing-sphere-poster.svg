@@ -1,0 +1,254 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" width="360" height="360" fill="none" aria-hidden="true">
+  <defs>
+    <!-- Background spherical depth envelope gradient for paper background (deep wine, zero pink) -->
+    <radialGradient id="closing-hollow-depth" cx="50%" cy="48%" r="48%">
+      <stop offset="0%" stop-color="#38080F" stop-opacity="0.02" />
+      <stop offset="70%" stop-color="#240409" stop-opacity="0.04" />
+      <stop offset="92%" stop-color="#1A0306" stop-opacity="0.03" />
+      <stop offset="100%" stop-color="#1A0306" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Gradients for ribbon bodies and folds -->
+    <linearGradient id="ribbon-rear-1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A0306" stop-opacity="0.55" />
+      <stop offset="50%" stop-color="#2C040B" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#1A0306" stop-opacity="0.50" />
+    </linearGradient>
+
+    <linearGradient id="ribbon-rear-2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#220409" stop-opacity="0.50" />
+      <stop offset="50%" stop-color="#3A060E" stop-opacity="0.60" />
+      <stop offset="100%" stop-color="#220409" stop-opacity="0.45" />
+    </linearGradient>
+
+    <linearGradient id="ribbon-mid-1" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#38060E" stop-opacity="0.80" />
+      <stop offset="40%" stop-color="#5E0B19" stop-opacity="0.85" />
+      <stop offset="70%" stop-color="#7A0E1F" stop-opacity="0.88" />
+      <stop offset="100%" stop-color="#38060E" stop-opacity="0.75" />
+    </linearGradient>
+
+    <linearGradient id="ribbon-mid-2" x1="0%" y1="30%" x2="100%" y2="70%">
+      <stop offset="0%" stop-color="#440711" stop-opacity="0.82" />
+      <stop offset="50%" stop-color="#6E0D1B" stop-opacity="0.88" />
+      <stop offset="85%" stop-color="#8E1123" stop-opacity="0.90" />
+      <stop offset="100%" stop-color="#440711" stop-opacity="0.78" />
+    </linearGradient>
+
+    <linearGradient id="ribbon-front-flow" x1="10%" y1="20%" x2="90%" y2="80%">
+      <stop offset="0%" stop-color="#550814" stop-opacity="0.88" />
+      <stop offset="35%" stop-color="#8A1021" stop-opacity="0.92" />
+      <stop offset="65%" stop-color="#BD192A" stop-opacity="0.96" />
+      <stop offset="100%" stop-color="#6B0D1B" stop-opacity="0.90" />
+    </linearGradient>
+
+    <linearGradient id="ribbon-seam-bright" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6E0D1B" />
+      <stop offset="30%" stop-color="#BD192A" />
+      <stop offset="70%" stop-color="#D52A38" />
+      <stop offset="100%" stop-color="#8A1021" />
+    </linearGradient>
+  </defs>
+
+  <!-- Open spherical hollow volume: faint perimeter boundary, empty interior -->
+  <circle cx="180" cy="180" r="122" fill="url(#closing-hollow-depth)" />
+
+  <!-- ========================================================================= -->
+  <!-- 1. REAR RIBBONS (visible through the open interior, darker wine/garnet)    -->
+  <!-- ========================================================================= -->
+  <g opacity="0.65" stroke-linecap="round">
+    <!-- Rear transverse loop -->
+    <path d="M 98,142 C 122,110 168,102 214,116 C 252,127 274,152 284,178 C 272,162 244,142 208,134 C 164,124 124,130 98,142 Z" fill="url(#ribbon-rear-1)" />
+    <!-- Rear oblique diagonal band -->
+    <path d="M 124,242 C 146,260 190,268 232,250 C 262,238 280,214 286,186 C 278,206 254,228 224,238 C 184,252 148,244 124,242 Z" fill="url(#ribbon-rear-2)" />
+    <!-- Rear vertical spiral strand -->
+    <path d="M 194,62 C 166,88 152,130 156,176 C 160,220 182,260 202,298 C 190,262 172,224 168,178 C 164,136 176,96 194,62 Z" fill="url(#ribbon-rear-1)" />
+  </g>
+
+  <!-- Rear ribbon seam particles -->
+  <g fill="#2C040B" opacity="0.70">
+    <circle cx="120" cy="128" r="1.3" />
+    <circle cx="145" cy="118" r="1.2" />
+    <circle cx="175" cy="114" r="1.4" />
+    <circle cx="205" cy="118" r="1.3" />
+    <circle cx="235" cy="128" r="1.2" />
+    <circle cx="260" cy="144" r="1.4" />
+    <circle cx="140" cy="248" r="1.3" />
+    <circle cx="170" cy="256" r="1.4" />
+    <circle cx="205" cy="254" r="1.3" />
+    <circle cx="240" cy="240" r="1.2" />
+    <circle cx="265" cy="216" r="1.3" />
+  </g>
+
+  <!-- ========================================================================= -->
+  <!-- 2. MID-LAYER FOLDED SHEETS & RIBBONS (deep wine, garnet, rich contours)   -->
+  <!-- ========================================================================= -->
+  <!-- Equatorial undulating wave ribbon -->
+  <path d="M 64,168 C 88,144 128,138 174,152 C 220,166 264,160 296,188 C 298,198 290,208 274,212 C 242,188 206,182 168,172 C 122,160 84,172 64,196 C 60,188 60,176 64,168 Z" fill="url(#ribbon-mid-1)" />
+
+  <!-- Diagonal wrapping loop (top-left to bottom-right) -->
+  <path d="M 106,78 C 136,86 178,114 208,154 C 238,194 254,242 258,282 C 248,284 238,278 232,266 C 224,232 208,188 182,154 C 156,120 120,98 96,92 C 98,84 102,80 106,78 Z" fill="url(#ribbon-mid-2)" />
+
+  <!-- Ascending transverse folded sheet (bottom-left to top-right) -->
+  <path d="M 76,218 C 94,188 126,164 166,158 C 206,152 248,162 282,142 C 286,148 288,158 284,166 C 252,184 212,176 174,180 C 136,184 106,204 88,232 C 82,228 78,224 76,218 Z" fill="url(#ribbon-mid-1)" />
+
+  <!-- ========================================================================= -->
+  <!-- 3. FOREGROUND FLOWING PARTICLE RIBBONS (rich wine, crimson highlights)    -->
+  <!-- ========================================================================= -->
+  <!-- Main flowing crest ribbon -->
+  <path d="M 82,118 C 114,94 164,96 212,120 C 256,142 284,178 298,214 C 290,222 278,224 270,216 C 254,184 230,156 194,138 C 154,118 112,118 84,136 C 80,130 80,122 82,118 Z" fill="url(#ribbon-front-flow)" />
+
+  <!-- Overlapping front helical ribbon fold -->
+  <path d="M 132,68 C 168,76 214,102 242,146 C 268,188 274,236 254,276 C 246,280 236,276 232,266 C 248,230 244,190 222,154 C 198,118 160,96 128,90 C 128,80 130,72 132,68 Z" fill="url(#ribbon-front-flow)" />
+
+  <!-- Lower folded sheet with undulating lip -->
+  <path d="M 104,238 C 132,216 176,212 218,226 C 256,238 278,258 286,274 C 278,282 266,284 254,280 C 238,268 214,254 182,246 C 146,238 116,242 98,256 C 96,248 100,242 104,238 Z" fill="url(#ribbon-mid-2)" />
+
+  <!-- ========================================================================= -->
+  <!-- 4. BRIGHT SEAMS & OVERLAPPING FOLD CRESTS (crimson accent highlights)     -->
+  <!-- ========================================================================= -->
+  <g stroke="url(#ribbon-seam-bright)" stroke-linecap="round" fill="none">
+    <!-- Seam 1: Main front ribbon upper edge -->
+    <path d="M 82,118 C 114,94 164,96 212,120 C 256,142 284,178 298,214" stroke-width="1.8" />
+    <!-- Seam 2: Front helical ribbon crest fold -->
+    <path d="M 132,68 C 168,76 214,102 242,146 C 268,188 274,236 254,276" stroke-width="1.7" />
+    <!-- Seam 3: Transverse crossing ridge -->
+    <path d="M 64,168 C 88,144 128,138 174,152 C 220,166 264,160 296,188" stroke-width="1.5" />
+    <!-- Seam 4: Lower folded sheet lip -->
+    <path d="M 104,238 C 132,216 176,212 218,226 C 256,238 286,274" stroke-width="1.6" />
+    <!-- Seam 5: Polar envelope contour seam -->
+    <path d="M 106,78 C 136,86 178,114 208,154 C 238,194 258,282" stroke-width="1.4" opacity="0.85" />
+    <!-- Secondary fine folded crease lines -->
+    <path d="M 94,132 C 122,114 160,116 198,134 C 234,152 260,180 274,212" stroke-width="0.9" opacity="0.75" stroke-dasharray="4 3" />
+    <path d="M 142,84 C 172,94 210,118 232,156 C 252,190 254,228 242,262" stroke-width="0.9" opacity="0.70" stroke-dasharray="3 3" />
+    <path d="M 74,184 C 98,162 134,156 174,168 C 214,178 250,174 278,198" stroke-width="0.8" opacity="0.65" stroke-dasharray="2 3" />
+  </g>
+
+  <!-- ========================================================================= -->
+  <!-- 5. STIPPLED PARTICLE POINTS ALONG RIBBONS & FOLDS (Dark Wine & Crimson)   -->
+  <!-- ========================================================================= -->
+  <!-- Outer boundary silhouette stipples (r ~ 120px) ensuring clear contour against paper -->
+  <g fill="#240409" opacity="0.92">
+    <circle cx="180" cy="58" r="1.6" />
+    <circle cx="198" cy="61" r="1.5" />
+    <circle cx="162" cy="62" r="1.4" />
+    <circle cx="218" cy="68" r="1.6" />
+    <circle cx="142" cy="71" r="1.5" />
+    <circle cx="240" cy="80" r="1.7" />
+    <circle cx="124" cy="83" r="1.6" />
+    <circle cx="260" cy="98" r="1.6" />
+    <circle cx="106" cy="102" r="1.7" />
+    <circle cx="276" cy="118" r="1.7" />
+    <circle cx="90" cy="124" r="1.8" />
+    <circle cx="289" cy="142" r="1.8" />
+    <circle cx="76" cy="146" r="1.7" />
+    <circle cx="297" cy="166" r="1.9" />
+    <circle cx="67" cy="168" r="1.9" />
+    <circle cx="300" cy="188" r="2.0" />
+    <circle cx="64" cy="190" r="1.9" />
+    <circle cx="294" cy="210" r="1.8" />
+    <circle cx="69" cy="212" r="1.8" />
+    <circle cx="282" cy="232" r="1.7" />
+    <circle cx="79" cy="234" r="1.8" />
+    <circle cx="264" cy="254" r="1.7" />
+    <circle cx="96" cy="254" r="1.7" />
+    <circle cx="242" cy="272" r="1.6" />
+    <circle cx="116" cy="271" r="1.7" />
+    <circle cx="218" cy="286" r="1.6" />
+    <circle cx="138" cy="285" r="1.6" />
+    <circle cx="192" cy="296" r="1.5" />
+    <circle cx="166" cy="296" r="1.5" />
+    <circle cx="180" cy="302" r="1.6" />
+  </g>
+
+  <!-- Mid-density wine particles across ribbon bodies -->
+  <g fill="#4A0712" opacity="0.88">
+    <circle cx="110" cy="120" r="1.5" />
+    <circle cx="128" cy="112" r="1.4" />
+    <circle cx="148" cy="106" r="1.6" />
+    <circle cx="170" cy="104" r="1.5" />
+    <circle cx="192" cy="108" r="1.7" />
+    <circle cx="214" cy="116" r="1.5" />
+    <circle cx="236" cy="130" r="1.6" />
+    <circle cx="254" cy="148" r="1.5" />
+    <circle cx="270" cy="170" r="1.6" />
+    <circle cx="148" cy="78" r="1.4" />
+    <circle cx="172" cy="84" r="1.5" />
+    <circle cx="196" cy="96" r="1.6" />
+    <circle cx="218" cy="114" r="1.5" />
+    <circle cx="236" cy="138" r="1.7" />
+    <circle cx="248" cy="164" r="1.6" />
+    <circle cx="254" cy="194" r="1.5" />
+    <circle cx="250" cy="224" r="1.6" />
+    <circle cx="238" cy="252" r="1.5" />
+    <circle cx="102" cy="164" r="1.6" />
+    <circle cx="124" cy="154" r="1.5" />
+    <circle cx="148" cy="150" r="1.7" />
+    <circle cx="172" cy="154" r="1.6" />
+    <circle cx="196" cy="162" r="1.5" />
+    <circle cx="220" cy="168" r="1.6" />
+    <circle cx="244" cy="170" r="1.5" />
+    <circle cx="268" cy="176" r="1.6" />
+    <circle cx="124" cy="228" r="1.5" />
+    <circle cx="146" cy="220" r="1.6" />
+    <circle cx="170" cy="218" r="1.5" />
+    <circle cx="194" cy="222" r="1.6" />
+    <circle cx="218" cy="230" r="1.5" />
+    <circle cx="240" cy="244" r="1.6" />
+  </g>
+
+  <!-- Accentuated brighter seam particles (Crimson #BD192A and #991323) -->
+  <g fill="#BD192A" opacity="0.95">
+    <circle cx="86" cy="115" r="1.8" />
+    <circle cx="104" cy="100" r="1.7" />
+    <circle cx="124" cy="94" r="1.9" />
+    <circle cx="146" cy="92" r="1.8" />
+    <circle cx="170" cy="96" r="2.0" />
+    <circle cx="194" cy="104" r="1.9" />
+    <circle cx="218" cy="116" r="2.0" />
+    <circle cx="240" cy="134" r="1.9" />
+    <circle cx="258" cy="154" r="1.8" />
+    <circle cx="274" cy="178" r="1.9" />
+    <circle cx="286" cy="204" r="1.9" />
+    <circle cx="136" cy="69" r="1.7" />
+    <circle cx="156" cy="74" r="1.8" />
+    <circle cx="180" cy="84" r="1.9" />
+    <circle cx="204" cy="98" r="2.0" />
+    <circle cx="226" cy="118" r="1.9" />
+    <circle cx="244" cy="144" r="2.0" />
+    <circle cx="256" cy="174" r="1.9" />
+    <circle cx="260" cy="206" r="1.9" />
+    <circle cx="252" cy="238" r="1.8" />
+    <circle cx="236" cy="268" r="1.8" />
+    <circle cx="70" cy="162" r="1.8" />
+    <circle cx="92" cy="146" r="1.9" />
+    <circle cx="116" cy="138" r="2.0" />
+    <circle cx="142" cy="138" r="1.9" />
+    <circle cx="168" cy="144" r="2.0" />
+    <circle cx="194" cy="154" r="1.9" />
+    <circle cx="220" cy="160" r="2.0" />
+    <circle cx="246" cy="160" r="1.9" />
+    <circle cx="272" cy="166" r="1.8" />
+    <circle cx="292" cy="184" r="1.9" />
+    <circle cx="110" cy="234" r="1.8" />
+    <circle cx="132" cy="220" r="1.9" />
+    <circle cx="156" cy="214" r="2.0" />
+    <circle cx="182" cy="216" r="1.9" />
+    <circle cx="208" cy="224" r="2.0" />
+    <circle cx="234" cy="238" r="1.9" />
+    <circle cx="256" cy="256" r="1.8" />
+    <circle cx="276" cy="276" r="1.8" />
+  </g>
+
+  <!-- Sparkle highlights along prominent fold peaks -->
+  <g fill="#D52A38" opacity="0.90">
+    <circle cx="168" cy="96" r="1.4" />
+    <circle cx="216" cy="116" r="1.4" />
+    <circle cx="224" cy="118" r="1.5" />
+    <circle cx="242" cy="144" r="1.4" />
+    <circle cx="166" cy="144" r="1.4" />
+    <circle cx="218" cy="160" r="1.5" />
+    <circle cx="154" cy="214" r="1.4" />
+    <circle cx="206" cy="224" r="1.4" />
+  </g>
+</svg>

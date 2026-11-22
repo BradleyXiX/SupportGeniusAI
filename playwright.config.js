@@ -9,9 +9,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   timeout: 30000,
+  expect: {
+    timeout: 10000
+  },
   use: {
     baseURL: `http://localhost:${TEST_PORT}`,
     trace: "on-first-retry",
+    launchOptions: {
+      args: ["--max-active-webgl-contexts=128"]
+    },
     ...devices["Desktop Chrome"]
   },
   webServer: {

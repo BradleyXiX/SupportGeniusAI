@@ -1,0 +1,152 @@
+{
+  "cpuThrottling": "6x slowdown via Chrome DevTools Protocol",
+  "journey": "Page load -> hero hover tilt/wave -> smooth scroll through system/experience/closing -> closing dwell -> scroll top",
+  "desktopEnabled": {
+    "frameCount": 332,
+    "avgDeltaMs": 29.7,
+    "minDeltaMs": 16.5,
+    "maxDeltaMs": 803.6,
+    "p95DeltaMs": 50,
+    "effectiveFps": 34,
+    "longTaskCount": 13,
+    "totalLongTaskDurationMs": 2889,
+    "maxLongTaskDurationMs": 1801,
+    "longTasks": [
+      {
+        "startTime": 1092,
+        "duration": 1801
+      },
+      {
+        "startTime": 2904,
+        "duration": 83
+      },
+      {
+        "startTime": 2988,
+        "duration": 124
+      },
+      {
+        "startTime": 3117,
+        "duration": 66
+      },
+      {
+        "startTime": 3518,
+        "duration": 134
+      },
+      {
+        "startTime": 3652,
+        "duration": 120
+      },
+      {
+        "startTime": 3773,
+        "duration": 81
+      },
+      {
+        "startTime": 3946,
+        "duration": 163
+      },
+      {
+        "startTime": 4195,
+        "duration": 60
+      },
+      {
+        "startTime": 6660,
+        "duration": 69
+      },
+      {
+        "startTime": 7695,
+        "duration": 83
+      },
+      {
+        "startTime": 7779,
+        "duration": 52
+      },
+      {
+        "startTime": 8373,
+        "duration": 53
+      }
+    ]
+  },
+  "desktopPaused": {
+    "frameCount": 434,
+    "avgDeltaMs": 19.9,
+    "minDeltaMs": 16.5,
+    "maxDeltaMs": 483.2,
+    "p95DeltaMs": 16.8,
+    "effectiveFps": 50,
+    "longTaskCount": 4,
+    "totalLongTaskDurationMs": 1590,
+    "maxLongTaskDurationMs": 1025,
+    "longTasks": [
+      {
+        "startTime": 761,
+        "duration": 1025
+      },
+      {
+        "startTime": 1826,
+        "duration": 374
+      },
+      {
+        "startTime": 2219,
+        "duration": 103
+      },
+      {
+        "startTime": 2347,
+        "duration": 88
+      }
+    ]
+  },
+  "mobileEnabled": {
+    "frameCount": 286,
+    "avgDeltaMs": 25.1,
+    "minDeltaMs": 16.5,
+    "maxDeltaMs": 883.3,
+    "p95DeltaMs": 33.4,
+    "effectiveFps": 40,
+    "longTaskCount": 9,
+    "totalLongTaskDurationMs": 2324,
+    "maxLongTaskDurationMs": 879,
+    "longTasks": [
+      {
+        "startTime": 981,
+        "duration": 201
+      },
+      {
+        "startTime": 1224,
+        "duration": 113
+      },
+      {
+        "startTime": 1434,
+        "duration": 879
+      },
+      {
+        "startTime": 2347,
+        "duration": 595
+      },
+      {
+        "startTime": 2993,
+        "duration": 108
+      },
+      {
+        "startTime": 3183,
+        "duration": 142
+      },
+      {
+        "startTime": 3325,
+        "duration": 138
+      },
+      {
+        "startTime": 3673,
+        "duration": 85
+      },
+      {
+        "startTime": 5553,
+        "duration": 63
+      }
+    ]
+  },
+  "comparison": {
+    "desktopFpsDelta": "34 FPS enabled vs 50 FPS paused",
+    "longTaskImpact": "Enabled: 13 long tasks (2889ms total) vs Paused: 4 long tasks (1590ms total)",
+    "mobileBehavior": "Mobile runs at 40 FPS with 9 long tasks, using static poster fallback for closing sphere on small screens"
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "suite": "SupportGenius AI Crimson Signal v3 Final Integrated Verification",
+  "timestamp": "2026-11-22T14:35:00+03:00",
+  "branch": "design/crimson-signal-v3",
+  "testExecution": {
+    "vitest": {
+      "command": "npm test",
+      "exitCode": 0,
+      "filesPassed": 16,
+      "testsPassed": 151,
+      "skipped": 0,
+      "duration": "8.59s"
+    },
+    "playwrightFullSuite": {
+      "command": "npm run test:browser",
+      "exitCode": 0,
+      "suitesPassed": 14,
+      "testsPassed": 171,
+      "skipped": 0,
+      "duration": "6.3m"
+    },
+    "playwrightFinalVerificationSuite": {
+      "command": "npx playwright test tests/browser/final-verification.spec.js",
+      "exitCode": 0,
+      "testsPassed": 9,
+      "skipped": 0,
+      "duration": "58.2s"
+    },
+    "reconciledTestCounts": {
+      "unitTests": 151,
+      "uniqueBrowserTests": 171,
+      "totalAutomatedTests": 322,
+      "allPassed": true
+    }
+  },
+  "coldLoadPerformance": {
+    "landing": {
+      "description": "3 independent cold-load runs in fresh browser context at 1440x1000 viewport",
+      "runs": [
+        { "run": 1, "lcpMs": 708, "cls": 0.0001, "domContentLoadedMs": 460, "loadMs": 508 },
+        { "run": 2, "lcpMs": 884, "cls": 0.0001, "domContentLoadedMs": 451, "loadMs": 489 },
+        { "run": 3, "lcpMs": 912, "cls": 0.0001, "domContentLoadedMs": 472, "loadMs": 511 }
+      ],
+      "medianLcpMs": 884,
+      "minLcpMs": 708,
+      "maxLcpMs": 912,
+      "medianCls": 0.0001,
+      "clsNote": "Eliminated font-swap layout shift by establishing flex-basis: 100% on .hero .actions .text-link and preloading primary web fonts; CLS reduced from 0.266 to 0.0001 (<= 0.1 budget met)"
+    },
+    "console": {
+      "description": "3 independent cold-load runs in fresh browser context at 1440x1000 viewport",
+      "runs": [
+        { "run": 1, "lcpMs": 340, "cls": 0.0029, "domContentLoadedMs": 281, "loadMs": 312 },
+        { "run": 2, "lcpMs": 288, "cls": 0.0025, "domContentLoadedMs": 272, "loadMs": 298 },
+        { "run": 3, "lcpMs": 432, "cls": 0.0026, "domContentLoadedMs": 310, "loadMs": 341 }
+      ],
+      "medianLcpMs": 340,
+      "minLcpMs": 288,
+      "maxLcpMs": 432,
+      "medianCls": 0.0026,
+      "clsNote": "CLS well below 0.1 threshold"
+    }
+  },
+  "throttledTrace": {
+    "condition": "6x CPU throttling via Chrome DevTools Protocol Emulation.setCPUThrottlingRate covering complete user interaction journey (load -> hero hover -> smooth scroll through system/experience/closing -> dwell -> scroll top)",
+    "desktopEnabled": {
+      "frameCount": 311,
+      "effectiveFps": 29,
+      "avgDeltaMs": 34.0,
+      "minDeltaMs": 16.5,
+      "maxDeltaMs": 966.6,
+      "p95DeltaMs": 50.1,
+      "longTaskCount": 14,
+      "totalLongTaskDurationMs": 2802
+    },
+    "desktopPaused": {
+      "frameCount": 449,
+      "effectiveFps": 45,
+      "avgDeltaMs": 22.1,
+      "minDeltaMs": 16.5,
+      "maxDeltaMs": 894.4,
+      "p95DeltaMs": 16.8,
+      "longTaskCount": 4,
+      "totalLongTaskDurationMs": 1447
+    },
+    "mobileEnabled": {
+      "frameCount": 372,
+      "effectiveFps": 40,
+      "avgDeltaMs": 25.2,
+      "minDeltaMs": 16.5,
+      "maxDeltaMs": 905.8,
+      "p95DeltaMs": 33.4,
+      "longTaskCount": 7,
+      "totalLongTaskDurationMs": 1628
+    },
+    "degradationBehavior": "Delta-time animation pacing ensures fluid visual transitions without cumulative position drift or thread deadlock under heavy CPU slowdown; offscreen and hidden tabs cleanly suspend frame loops"
+  },
+  "verifiedCrossDeviceConditions": {
+    "viewports": [
+      { "name": "Desktop", "width": 1440, "height": 1000, "horizontalOverflow": false },
+      { "name": "Mobile", "width": 390, "height": 844, "horizontalOverflow": false },
+      { "name": "Compact Mobile", "width": 320, "height": 800, "horizontalOverflow": false }
+    ],
+    "accessibility": {
+      "keyboardNavigation": "Passed; skip-link operable, visible outline on focus, interactive tabindex order",
+      "contrast": "Passed; dark surface contrast >= 4.5:1, paper surface contrast >= 4.5:1, zero low-contrast text",
+      "reducedMotion": "Passed; OS prefers-reduced-motion: reduce suspends WebGL loop and renders static SVG poster",
+      "noJsResilience": "Passed; static SVG posters, native <details> chapters, and mailto/anchor navigation 100% operable with JS disabled"
+    },
+    "resilienceAndLifecycle": {
+      "persistentPause": "Passed; sg_motion_v1 stored in localStorage, synchronizes across hero/orbits/network/closing scenes, persists across reload",
+      "storageFailure": "Passed; graceful fallback to in-memory preference when localStorage throws SecurityError/QuotaExceededError",
+      "moduleImportFailure": "Passed; progressive enhancement failure drops cleanly to static artwork with accessible status text",
+      "webglContextLoss": "Passed; WebGL context loss cleanly restores static poster and control state",
+      "consoleRecovery": "Passed; error states display RFC 7807 problem details and allow retry/reset without process restart",
+      "browserNavigation": "Passed; popstate back/forward transitions clean up and re-hydrate without duplicate scheduler loops",
+      "pagehideTeardown": "Passed; pagehide and beforeunload listeners release all scene scheduler ownership immediately"
+    }
+  }
+}
