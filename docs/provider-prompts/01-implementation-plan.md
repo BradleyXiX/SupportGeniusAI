@@ -1,5 +1,8 @@
 # Gemini support recovery — implementation plan
 
+> [!NOTE]
+> **Historical execution record:** This provider-recovery milestone has been merged into `main`. See [docs/deployment.md](../deployment.md) for the current canonical environment and provider configuration reference.
+
 > For agentic workers: use superpowers:executing-plans task by task. Do not implement the whole packet in one turn.
 
 Goal: Make support mode usable through an explicitly selected Gemini provider without OpenAI billing or an Ollama dependency, while preserving existing session safety.

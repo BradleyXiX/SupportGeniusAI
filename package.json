@@ -1,7 +1,9 @@
 {
   "name": "supportgenius-ai",
   "version": "1.0.0",
-  "description": "An intelligent customer support assistant MVP.",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Document-based customer support assistant for tailored business implementations.",
   "main": "server/index.js",
   "type": "module",
   "scripts": {

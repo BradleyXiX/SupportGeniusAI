@@ -1,118 +1,95 @@
-<p align="left"><img src="client/assets/brand/supportgenius-mark.svg" width="64" height="64" alt="SupportGenius AI signal-prism mark"></p>
+<p align="left"><img src="client/assets/brand/supportgenius-mark.svg" width="56" height="56" alt="SupportGenius AI signal-prism mark"></p>
 
 # SupportGenius AI
 
-**Knowledge, made clear.** A document-based customer support assistant built with Express and vanilla JavaScript for tailored client deployments.
+A document-based customer support assistant for tailored business implementations.
 
-SupportGenius AI retrieves context from configured business documents and generates replies through a selected model provider. Signal Desk keeps the conversation, usage estimates, and recovery controls in one focused interface, while the Crimson Signal presentation showcases product capabilities, system architecture, and client implementation enquiries.
+SupportGenius AI retrieves relevant passages from your configured business documents and passes them to a selected language model to answer policy, service, and FAQ questions. Signal Desk brings the conversation, status feedback, usage estimates, and session recovery controls into one focused interface built with Express and vanilla JavaScript.
 
-[Quick start](#quick-start) · [Architecture](#architecture) · [Verification](#verification) · [Deployment](docs/deployment.md) · [Design system](design.md) · [Implementation enquiries](#client-implementation-enquiries)
+**Interested in a tailored deployment?** [Discuss implementation](mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry) (`BradJohn70@gmail.com`) · [Client implementation brief](docs/client-implementation.md) · [Deployment & operations](docs/deployment.md) · [Documentation index](docs/README.md)
 
 ![Signal Desk console in local demo mode](docs/design-v3/screenshots/console-answered-1440.png)
 
-*Integrated Signal Desk workspace, captured from the live application at commit `1756167` in local demo mode (`APP_MODE=demo`, viewport 1440×1000). Demonstrates clean answered state with static crimson avatar mark, session cost estimate, and recovery controls. Contains sample fixture content; does not establish real-provider answer quality.*
+*Signal Desk console captured in local demo mode (`APP_MODE=demo`, 1440×1000, commit `1756167`). Shows sample fixture content rather than live model output; see the [dated verification record](docs/design-v3/receipts/11-receipt.md) for full capture context.*
 
-## Current capabilities
+## Capabilities
 
-| Available | Boundary |
-| --- | --- |
-| Text/Markdown document retrieval | Local `.txt` and `.md` documents; no PDF/DOCX upload pipeline |
-| Configurable OpenAI, Gemini, or Ollama | Availability depends on provider credentials, model, and deployment |
-| Deterministic demo mode | Fixture replies, with zero provider calls |
-| Anonymous signed-cookie sessions | Not customer authentication; in-memory state expires and resets on restart |
-| Bounded requests and recoverable errors | No guarantee of answer accuracy or provider availability |
-| Usage/cost estimates | Estimates may be unavailable; not binding billing records |
-| Truthful console lifecycle | Status driven by real client state (`idle`, `pending`, `settling`, `error`, `recovery`); no fake typing |
-| Accessible motion controls | Default-on motion after first paint for eligible visible scenes; persistent pause preference (`sg_motion_v1`); OS reduced-motion override |
-| Implementation enquiries | Direct email touchpoint (`#implementation-contact`); opens visitor email client without server form storage |
+| Capability | Current behavior |
+| :--- | :--- |
+| **Document knowledge base** | Reads local `.txt` and `.md` business documents; no PDF/DOCX upload pipeline. |
+| **Configurable model provider** | Supports OpenAI, Google Gemini, or local Ollama depending on deployment credentials and model configuration. |
+| **Focused conversation UI** | Signal Desk renders Markdown replies through vendored `marked` and `DOMPurify`, with explicit loading, error, and session recovery states. |
+| **Anonymous sessions** | Server-owned signed `HttpOnly` cookies keep short per-visitor conversation history in memory without browser token storage. |
+| **Bounded errors & usage estimates** | Enforces request timeouts, origin checks, rate limits, RFC 7807 error responses, and session-scoped cost estimates (not billing records). |
+| **Deterministic demo mode** | `APP_MODE=demo` returns local fixture replies with zero provider API calls for safe local evaluation. |
 
-Customer actions, live integrations, source-citation delivery, durable transcripts, and multi-tenant accounts are outside the current release. Retrieval provides context; review answer quality against known questions before client rollout.
+## Scope and operating limits
 
-## Quick start
+SupportGenius AI is delivered as a **tailored single-business deployment**, not a self-service multi-tenant SaaS product.
 
-Use Node.js **22.12+ within Node 22**, or a compatible Node 24/26 release, with npm. The test toolchain requires these runtimes. The current Dockerfile targets Node 20; align it before relying on Docker for development/tests.
+- **Unavailable in this release**: live customer actions (order updates, refunds, bookings, outbound webhooks), external CRM/helpdesk integrations, source-citation delivery, durable chat transcript storage, customer login/accounts, and multi-tenant isolation.
+- **Accuracy & operations**: retrieval supplies context to the language model but does not guarantee factual accuracy. Review answers against your business questions before rollout.
+- **Runtime constraints**: single Node.js process with an in-memory session store (500 sessions max, 30-minute inactivity TTL, cleared on restart). See [full operating limits and data flow](docs/deployment.md#3-operating-limits-and-data-flow).
 
-```bash
-git clone https://github.com/BradleyXiX/SupportGeniusAI.git
-cd SupportGeniusAI
-npm ci
-```
+## Local evaluation (authorized developers)
 
-If you already have a checkout, preserve any uncommitted work. The Crimson Signal design enhancements are integrated on branch `design/crimson-signal-v3`.
+Use of this repository is governed by [LICENSE](LICENSE). The steps below are for the owner and authorized developers evaluating the codebase locally.
 
-Copy `.env.example` to `.env`:
+**Requirements**: Node.js **22.12+ within Node 22**, or a compatible Node 24/26 release, with npm. (The included `Dockerfile` targets Node 20 and `docker-compose.yml` is an unverified starter recipe; see [Deployment](docs/deployment.md#6-container-recipes-unverified).)
 
-```powershell
-# Windows PowerShell
-Copy-Item .env.example .env
-```
+1. Install dependencies:
+   ```bash
+   npm ci
+   ```
+2. Copy `.env.example` to `.env`:
+   ```powershell
+   # Windows PowerShell
+   Copy-Item .env.example .env
+   ```
+   ```bash
+   # macOS / Linux
+   cp .env.example .env
+   ```
+3. Generate a 32+ character random `SESSION_SECRET` (do not use the placeholder in `.env.example`, and never commit `.env`):
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+4. Configure `.env` for local demo mode with zero provider calls and no embedding cache I/O:
+   ```dotenv
+   NODE_ENV=development
+   PORT=3000
+   APP_MODE=demo
+   RETRIEVAL_MODE=keyword
+   PUBLIC_ORIGIN=http://localhost:3000
+   SESSION_SECRET=<your-generated-secret>
+   ```
+   Leave `OPENAI_API_KEY`, `GEMINI_API_KEY`, and `CLIENT_WEBHOOK_URL` blank.
+5. Start the local server:
+   ```bash
+   npm run dev
+   ```
+   Open `http://localhost:3000` (landing page) or `http://localhost:3000/console/` (Signal Desk). Use the exact hostname configured in `PUBLIC_ORIGIN`, because `POST /session` and `POST /chat` enforce exact origin matching.
 
-```bash
-# macOS / Linux
-cp .env.example .env
-```
-
-Generate a local session secret:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-Set these values in `.env`, using your generated secret:
-
-```dotenv
-NODE_ENV=development
-PORT=3000
-APP_MODE=demo
-PUBLIC_ORIGIN=http://localhost:3000
-SESSION_SECRET=<generated-secret-at-least-32-characters>
-```
-
-Leave model keys and `CLIENT_WEBHOOK_URL` blank for the demo. Never commit `.env` or a real secret.
-
-```bash
-npm run dev
-```
-
-Open [the website](http://localhost:3000) or [Signal Desk](http://localhost:3000/console/). Use the same hostname as `PUBLIC_ORIGIN`: state-changing requests enforce that origin. Demo replies are fixtures.
-
-For real inference, read [provider configuration and operations](docs/deployment.md). For Gemini-only deployments, `LLM_PROVIDER=gemini`, `RETRIEVAL_MODE=keyword` and an explicit `GEMINI_MODEL` allow document retrieval without an embedding provider. Model access, quota, and answer quality must be checked in your own staging environment.
+For live `support` mode (OpenAI, Gemini, or Ollama), provider credentials, and production proxy requirements, read [docs/deployment.md](docs/deployment.md).
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Website["Marketing /"] --> Console["Signal Desk /console/"]
-    Console --> Capabilities["GET /capabilities"]
-    Console --> Session["POST /session · signed cookie"]
-    Console --> Chat["POST /chat · origin and session checks"]
-    Chat --> Mode{"Operating mode"}
-    Mode -->|demo| Fixture["Deterministic fixture reply"]
-    Mode -->|support| Retrieval["Keyword or vector retrieval"]
-    Docs["Local .txt / .md documents"] --> Retrieval
-    Retrieval --> Provider["Configured model provider"]
-    Provider --> Reply["Reply and usage estimate"]
-    Fixture --> Console
-    Reply --> Console
+    Docs["Local .txt / .md docs"] --> Retrieval["Retrieval (keyword or vector)"]
+    Client["Signal Desk /console/"] -->|POST /session, POST /chat| Server["Express API + Origin/Session checks"]
+    Server -->|APP_MODE=support| Retrieval
+    Retrieval --> Provider["Configured LLM (OpenAI / Gemini / Ollama)"]
+    Provider --> Client
+    Server -->|APP_MODE=demo| Demo["Deterministic fixture reply"]
+    Demo --> Client
 ```
 
-```text
-client/                 Marketing site and Signal Desk console (pure ES modules)
-server/app.js           Express app, security headers, and middleware
-server/routes/          Chat, session, capabilities, and health endpoints
-server/session/         Anonymous in-memory session store and lifecycle
-server/services/        Retrieval, providers, and usage estimates
-server/data/docs/       Local knowledge documents (.txt, .md)
-server/tests/           Unit and API contract tests (Vitest)
-tests/browser/          End-to-end browser journey suites (Playwright)
-docs/                   Architecture records, operations, and design specifications
-```
-
-The current store uses process memory and local files. There is no external vector database or multi-tenant storage layer.
+See [docs/deployment.md](docs/deployment.md) for environment variables, data-flow disclosures, session lifecycle, and single-proxy production topology.
 
 ## Verification
 
-Run the full automated test suite locally:
+Run the automated unit/contract and browser suites locally:
 
 ```bash
 npm test
@@ -120,151 +97,34 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The browser configuration launches an isolated local server on port `3888` in demo mode. Tests verify session ownership, origin enforcement, single-flight request gating, CSP compliance, error recovery, motion policy synchronization, and axe-core accessibility.
+`npm run test:browser` starts an isolated local server in `APP_MODE=demo` on port `3888`. Dated lab verification records and performance observations are preserved in [docs/design-v3/receipts/11-receipt.md](docs/design-v3/receipts/11-receipt.md) and [docs/design-v3/performance/verification-summary.json](docs/design-v3/performance/verification-summary.json).
 
-### Verified Suite Results
+## Documentation
 
-On branch `design/crimson-signal-v3`:
-- **Vitest unit & API contract suite**: Passed **151 tests in 16 files** (exit 0).
-- **Playwright browser integration suite** (`npm run test:browser`): Passed **171 tests across 14 spec files** (exit 0):
-  - `closing-footer.spec.js` (13/13 — includes desktop capture and unified closing layout verification)
-  - `closing-sphere.spec.js` (11/11 — closing sphere WebGL/poster lifecycle and scene registry coordination)
-  - `console-v3.spec.js` (14/14 — status indicator, message avatars, and composer styling)
-  - `console.spec.js` (50/50 — includes 320px responsive overflow regression in empty and answered states)
-  - `deployment.spec.js` (7/7)
-  - `experience.spec.js` (9/9)
-  - `final-verification.spec.js` (9/9 — cold-load performance, 6x CPU throttling trace, responsive reflow across 1440/390/320 viewports, keyboard outline audit, no-JS, reduced motion, persistent pause, and failure injection)
-  - `hero-capture.spec.js` (3/3 — reproducible full-hero screenshot captures)
-  - `marketing.spec.js` (8/8 — includes native anchor URL fragment and history preservation)
-  - `network-texture.spec.js` (10/10 — sparse background decoration and motion policy coordination)
-  - `orb.spec.js` (8/8)
-  - `signal-core.spec.js` (20/20 — includes WebGL particle envelope, tilt interaction, and fallback tests)
-  - `system-chapters.spec.js` (7/7)
-  - `system-orbits.spec.js` (10/10 — rotating orbits, pause synchronization, and screenshot captures)
-- **Reconciled test totals**: **151 unit tests + 171 browser tests = 322 automated tests** (100% passing, 0 skipped).
-- **Accessibility**: 0 serious or critical axe-core findings across both routes.
+- [Client evaluation & implementation brief](docs/client-implementation.md) — scope, evaluation process, and responsibilities for prospective clients
+- [Documentation index](docs/README.md) — full map of maintained references and historical records
+- [Deployment & operations guide](docs/deployment.md) — configuration, data flow, limits, and provider setup
+- [Staging smoke checklist](docs/release/staging-plan.md) & [Rollback guide](docs/release/rollback-plan.md)
+- [Architecture Decision Records](docs/adr/README.md)
+- [Design authority](design.md) & [Crimson Signal v3 addendum](docs/design-v3/design-enhancements.md)
+- [Contribution policy](CONTRIBUTING.md)
 
-### Lab Performance & Asset Footprint
+## Author and contact
 
-#### Cold-Load Performance Observations (Unthrottled Chrome, 1440×1000)
+Built by **Bradley Chiwo**
 
-| Route | Metric | Run 1 | Run 2 | Run 3 | Median | Notes |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Landing (`/`)** | **LCP** | 708 ms | 884 ms | 912 ms | **884 ms** | Largest paint element is the hero heading |
-| **Landing (`/`)** | **CLS** | 0.0001 | 0.0001 | 0.0001 | **0.0001** | Font-swap shift eliminated via flex-basis anchoring and font preloads (budget ≤ 0.1) |
-| **Console (`/console/`)** | **LCP** | 340 ms | 288 ms | 432 ms | **340 ms** | Fast initial shell paint |
-| **Console (`/console/`)** | **CLS** | 0.0029 | 0.0025 | 0.0026 | **0.0026** | Stable layout well within the 0.1 budget |
-
-#### 6x CPU-Throttled Motion & Frame Work Trace
-
-Captured via Chrome DevTools Protocol (`Emulation.setCPUThrottlingRate: 6`) covering complete interaction journey (load -> hero hover -> scroll through sections -> dwell -> scroll top):
-- **Desktop (motion enabled)**: 311 frames, **29 effective FPS**, avg delta **34.0 ms**, p95 delta **50.1 ms**, 14 long tasks (2,802 ms total duration).
-- **Desktop (user paused)**: 449 frames, **45 effective FPS**, avg delta **22.1 ms**, p95 delta **16.8 ms**, 4 long tasks (1,447 ms total duration).
-- **Mobile (390×844, enabled)**: 372 frames, **40 effective FPS**, avg delta **25.2 ms**, p95 delta **33.4 ms**, 7 long tasks (1,628 ms total duration).
-- **Degradation behavior**: Delta-time motion smoothing maintains fluid visual pacing without thread lockups, cumulative transform drift, or unhandled exceptions. Pausing animations cuts long-task execution time by ~48% and raises effective frame rate to 45 FPS under 6x CPU throttling.
-
-#### Exact Participating Asset Footprint
-
-| Category | File | Raw Bytes | Decimal KB | Binary KiB | Gzip Bytes | Gzip Est. (KiB) |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **HTML Documents** | `client/index.html` | 15,426 B | 15.43 KB | 15.06 KiB | 4,122 B | 4.03 KiB |
-| **HTML Documents** | `client/console/index.html` | 6,396 B | 6.40 KB | 6.25 KiB | 2,082 B | 2.03 KiB |
-| **Eager Landing JS** | `client/landing.js` | 15,142 B | 15.14 KB | 14.79 KiB | 3,351 B | 3.27 KiB |
-| **Eager Landing JS** | `client/marketing/chapters.js` | 3,494 B | 3.49 KB | 3.41 KiB | 1,160 B | 1.13 KiB |
-| **Eager Landing JS** | `client/marketing/examples.js` | 1,968 B | 1.97 KB | 1.92 KiB | 812 B | 0.79 KiB |
-| **Eager Landing JS** | `client/marketing/motion-policy.js` | 5,206 B | 5.21 KB | 5.08 KiB | 1,692 B | 1.65 KiB |
-| *Eager Landing JS Subtotal* | *4 modules* | **25,810 B** | **25.81 KB** | **25.21 KiB** | **7,015 B** | **6.85 KiB** |
-| **Deferred Landing JS** | `client/marketing/signal-core.js` | 18,438 B | 18.44 KB | 18.01 KiB | 5,153 B | 5.03 KiB |
-| **Deferred Landing JS** | `client/marketing/network-texture.js` | 8,817 B | 8.82 KB | 8.61 KiB | 2,727 B | 2.66 KiB |
-| *Deferred Landing JS Subtotal* | *2 modules* | **27,255 B** | **27.26 KB** | **26.62 KiB** | **7,880 B** | **7.70 KiB** |
-| **Console JS** | `client/app.js` | 29,856 B | 29.86 KB | 29.16 KiB | 6,955 B | 6.79 KiB |
-| **Console JS** | `client/chat-state.js` | 2,309 B | 2.31 KB | 2.25 KiB | 703 B | 0.69 KiB |
-| **Console JS** | `client/orb.js` | 10,797 B | 10.80 KB | 10.54 KiB | 2,906 B | 2.84 KiB |
-| **Console JS** | `client/marketing/motion-policy.js` | 5,206 B | 5.21 KB | 5.08 KiB | 1,692 B | 1.65 KiB |
-| *Console JS Subtotal* | *4 modules* | **48,168 B** | **48.17 KB** | **47.04 KiB** | **12,256 B** | **11.97 KiB** |
-| **Vendor JS** | `client/vendor/marked.min.js` | 35,485 B | 35.48 KB | 34.65 KiB | 10,778 B | 10.53 KiB |
-| **Vendor JS** | `client/vendor/purify.min.js` | 20,934 B | 20.93 KB | 20.44 KiB | 8,140 B | 7.95 KiB |
-| *Vendor JS Subtotal* | *2 scripts* | **56,419 B** | **56.42 KB** | **55.10 KiB** | **18,918 B** | **18.47 KiB** |
-| **Stylesheets** | `client/brand.css` | 17,857 B | 17.86 KB | 17.44 KiB | 2,743 B | 2.68 KiB |
-| **Stylesheets** | `client/marketing.css` | 42,600 B | 42.60 KB | 41.60 KiB | 6,437 B | 6.29 KiB |
-| **Stylesheets** | `client/styles.css` | 42,322 B | 42.32 KB | 41.33 KiB | 7,168 B | 7.00 KiB |
-| *Stylesheets Subtotal* | *3 CSS files* | **102,779 B** | **102.78 KB** | **100.37 KiB** | **16,348 B** | **15.96 KiB** |
-| **Static Fonts** | `client/assets/fonts/display-1.woff2` | 22,288 B | 22.29 KB | 21.77 KiB | 22,316 B | Pre-compressed |
-| **Static Fonts** | `client/assets/fonts/body-1.woff2` | 27,348 B | 27.35 KB | 26.71 KiB | 27,376 B | Pre-compressed |
-| **Static Fonts** | `client/assets/fonts/mono-1.woff2` | 21,168 B | 21.17 KB | 20.67 KiB | 21,196 B | Pre-compressed |
-| *Static Fonts Subtotal* | *3 WOFF2 subsets* | **70,804 B** | **70.80 KB** | **69.14 KiB** | *Pre-compressed* | *Pre-compressed* |
-| **Vector Artwork / Posters** | `client/assets/brand/signal-core-poster.svg` | 71,408 B | 71.41 KB | 69.73 KiB | 10,656 B | 10.41 KiB |
-| **Vector Artwork / Posters** | `client/assets/brand/closing-sphere-poster.svg` | 10,155 B | 10.15 KB | 9.92 KiB | 2,442 B | 2.38 KiB |
-| **Vector Artwork / Posters** | `client/assets/brand/network-texture-poster.svg` | 4,167 B | 4.17 KB | 4.07 KiB | 964 B | 0.94 KiB |
-| **Vector Artwork / Posters** | `client/assets/brand/avatar-sphere.svg` | 1,307 B | 1.31 KB | 1.28 KiB | 570 B | 0.56 KiB |
-| **Vector Artwork / Posters** | `client/assets/brand/supportgenius-mark.svg` | 368 B | 0.37 KB | 0.36 KiB | 227 B | 0.22 KiB |
-| **Vector Artwork / Posters** | `client/assets/brand/favicon.svg` | 368 B | 0.37 KB | 0.36 KiB | 227 B | 0.22 KiB |
-
-*Performance & transfer note*: All gzip values are software-calculated estimates using Deflate/Gzip compression, not measured HTTP wire transfers with live compression headers. Local lab observations do not establish real-world mobile cellular network performance, diverse hardware execution, or field INP. The system does not claim award readiness or public deployment status. See [design verification](docs/design-v2/verification.md) and [v3 verification summary](docs/design-v3/performance/verification-summary.json) for detailed observations and evidence bounds.
-
-## Visual design & integrated interface
-
-The **Crimson Signal** design language establishes a refined signal-prism identity, deep crimson and garnet accents (`#931b32`, `#6b1424`), an ink-black foundational surface (`#0f0b0d`), warm paper interlude sections (`#fbf8f5`), and a kinetic WebGL point sculpture with static SVG poster fallback.
-
-![SupportGenius AI integrated marketing landing page](docs/design-v3/screenshots/landing-desktop-1440.png)
-
-*Integrated marketing landing page, captured from the live application at commit `1756167` in local demo mode (`APP_MODE=demo`, viewport 1440×1000). Shows the animated crimson hero sculpture, capability bar, and architectural layout.*
-
-![SupportGenius AI closing implementation section](docs/design-v3/screenshots/closing-contact-desktop.png)
-
-*Unified closing section, captured from the live application at commit `1756167` in local demo mode (`APP_MODE=demo`, viewport 1440×1000). Shows the crimson wine sphere sculpture beside the "Make the next question count" call-to-action and implementation contact touchpoint.*
-
-### Screenshot Provenance
-
-| Interface | Image Path | Route | Commit | Viewport | Mode |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Signal Desk Answered** | [`docs/design-v3/screenshots/console-answered-1440.png`](docs/design-v3/screenshots/console-answered-1440.png) | `/console/` | `1756167` | 1440×1000 | `demo` |
-| **Marketing Hero** | [`docs/design-v3/screenshots/landing-desktop-1440.png`](docs/design-v3/screenshots/landing-desktop-1440.png) | `/` | `1756167` | 1440×1000 | `demo` |
-| **Closing Contact** | [`docs/design-v3/screenshots/closing-contact-desktop.png`](docs/design-v3/screenshots/closing-contact-desktop.png) | `/#implementation-contact` | `1756167` | 1440×1000 | `demo` |
-| **Historical Concept Board (v2)** | [`docs/design-v2/screenshots/reference-desktop.png`](docs/design-v2/screenshots/reference-desktop.png) | *Prototype* | `3bcaf7f` | 1440×1000 | *Design Reference (Historical)* |
-
-*Concept imagery disclosure*: The reference board above is historical design planning reference media from the v2 exploration phase. It is not production code and features standalone mock scripts.
-
-Design documentation:
-- [Design specification](design.md)
-- [Design enhancements specification](docs/design-v3/design-enhancements.md)
-- [Antigravity implementation sequence](docs/design-v2/execution-plan.md)
-- [Research and source audit](docs/design-v2/research.md)
-- [Design reference instructions](docs/design-v3/START-HERE.md)
-
-## Client implementation enquiries
-
-SupportGenius AI is designed for bespoke deployment across enterprise knowledge bases. Enquiries regarding custom installations, knowledge indexing, and architecture integration are handled directly:
-
-- **Primary enquiry action**: [Discuss implementation](mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry)
-- **Direct email address**: `BradJohn70@gmail.com`
-- *Note*: Clicking the implementation enquiry link opens the visitor's local email application with a pre-formatted subject line. No server-side form submission, external CRM, or automated dispatch is invoked.
-
-### Author & Engineering
-
-Built by **Bradley Chiwo**:
-- **Portfolio**: [https://bradleychiwo.netlify.app/](https://bradleychiwo.netlify.app/)
-- **LinkedIn**: [https://www.linkedin.com/in/bradley-john-chiwo/](https://www.linkedin.com/in/bradley-john-chiwo/)
+- **Implementation enquiries**: [BradJohn70@gmail.com](mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry)
 - **GitHub**: [https://github.com/BradleyXiX](https://github.com/BradleyXiX)
-
-## Deployment and operating limits
-
-Read the [deployment guide](docs/deployment.md), [staging plan](docs/release/staging-plan.md), and [rollback plan](docs/release/rollback-plan.md) before releasing.
-
-- Run one application process. Sessions are in memory, capped at 500, and expire after 30 minutes of inactivity. Restarts discard them.
-- History is bounded to six exchanges. Cost/token displays are estimates.
-- Production requires HTTPS, an explicit `PUBLIC_ORIGIN`, and a random `SESSION_SECRET` of at least 32 characters.
-- Production sessions use the `__Host-supportgenius_session` cookie with Secure, HttpOnly, and SameSite=Strict attributes.
-- `trust proxy: 1` assumes one trusted proxy, restricted backend ingress, and sanitized forwarding headers.
-- `GET /health` checks liveness; HTTP 200 does not prove model connectivity or answer quality.
-- Inspect live hosting branch tracking and preview policies before publishing any branch. A local branch does not prove remote deploy isolation.
-
-## Contributing and documentation
-
-Follow [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md). Keep changes scoped, preserve API contracts, and add meaningful regression coverage when behavior changes.
-
-[Architecture decisions](docs/adr/README.md) · [Safe Support Foundation](docs/adr/0002-safe-support-foundation-and-anonymous-sessions.md) · [Deployment](docs/deployment.md) · [Release preparation](docs/release/safe-foundation-pr.md)
+- **LinkedIn**: [https://www.linkedin.com/in/bradley-john-chiwo/](https://www.linkedin.com/in/bradley-john-chiwo/)
+- **Portfolio**: [https://bradleychiwo.netlify.app/](https://bradleychiwo.netlify.app/)
 
 ## License
 
-The repository does not currently include a project license. The owner must choose one before representing it as open-source software under specific terms. Bundled fonts and vendor assets retain their own notices; see [v3 asset notices](docs/design-v3/assets/NOTICE.md), [v2 design asset notices](docs/design-v2/assets/NOTICE.md), and [client vendor notices](client/vendor/LICENSES.md).
+Copyright (c) 2026 Bradley Chiwo. All rights reserved.
+
+SupportGenius AI is proprietary software governed by [LICENSE](LICENSE). Tailored client deployments and customizations are licensed under separate written agreements.
+
+Third-party open-source components and bundled font software retain their original licenses and copyright notices:
+- Vendored browser libraries and reference adaptations: [client/vendor/LICENSES.md](client/vendor/LICENSES.md)
+- Bundled Latin font subsets (SIL OFL 1.1): [Space Grotesk](client/assets/fonts/spacegrotesk-OFL.txt), [Plus Jakarta Sans](client/assets/fonts/plusjakartasans-OFL.txt), [JetBrains Mono](client/assets/fonts/jetbrainsmono-OFL.txt)
+- Brand asset provenance: [client/assets/brand/NOTICE.md](client/assets/brand/NOTICE.md)

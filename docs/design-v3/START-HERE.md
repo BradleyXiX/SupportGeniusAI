@@ -1,5 +1,8 @@
 # Crimson Signal v3: start here
 
+> [!NOTE]
+> **Status update (2026-11-23):** Crimson Signal v3 was merged into `main` via PR #7. [design-enhancements.md](design-enhancements.md) remains active as the v3 visual override to root [design.md](../../design.md); `prompts/`, `receipts/`, and `boards/` are preserved as historical execution records (and `screenshots/`, `recordings/`, and `performance/` are retained as active test/evidence paths).
+
 This is an enhancement proposal, not a replacement page architecture. Read design-enhancements.md and open boards/direction-board.svg (or direction-board.png). The board is static, editable vector artwork; it demonstrates proposed color, sphere material direction, orbit identity and composer treatment. It is not a completed animated/Figma implementation.
 
 Verified merged base: f92c63c (PR #6), observed locally after main advanced during planning. The local enhancement branch design/crimson-signal-v3 was fast-forwarded to that merge before adding this kit. Task 00 should reconfirm ancestry and baseline before product edits. No push/deploy was performed during planning.

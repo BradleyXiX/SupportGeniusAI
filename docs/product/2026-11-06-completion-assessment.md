@@ -1,5 +1,8 @@
 # SupportGeniusAI completion assessment
 
+> [!NOTE]
+> **Historical record (2026-11-06):** This assessment was captured before Safe Support Foundation, Gemini recovery, and Crimson Signal v3 were implemented and merged. Original findings (such as inline CSP handlers, caller-selected session IDs, and active webhooks) are **not** a current defect list. See [README.md](../../README.md), [docs/deployment.md](../deployment.md), and [ADR-0002](../adr/0002-safe-support-foundation-and-anonymous-sessions.md) for current behavior and operating limits.
+
 6 November 2026. Target: customized deployments for individual clients, not a self-service multi-tenant SaaS.
 
 ## Verdict

@@ -1,5 +1,8 @@
 # SupportGenius AI — Signal Architecture
 
+> [!NOTE]
+> **Active design authority signpost:** This file is the base visual and content authority (v2). For palette, legibility, motion defaults, closing contact, and console styling on current `main`, [docs/design-v3/design-enhancements.md](docs/design-v3/design-enhancements.md) is the active Crimson Signal v3 override.
+
 **Design authority, version 2.0 · 20 November 2026 · Type: reference**
 
 This document governs the new marketing surface and brand treatment. It replaces the earlier Signal Desk marketing art direction for this branch. It preserves the working product's routes and contracts. The reference in `docs/design-v2/reference/` is a visual target, not production application code. Figma SVG boards are editable layout references. Any conflict between the root copy and this kit's copy must be resolved by updating both in the same scoped commit.

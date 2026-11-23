@@ -1,6 +1,13 @@
 # ADR 0001: Enterprise Hardening — RFC 7807, XML Boundary Delimiters, Bounded FinOps, and Container Probes
 
-- **Status**: Accepted
+> [!NOTE]
+> **Historical status & correction note (2026-11-23):** Original decision text is preserved below for traceability. Several items have since been superseded or clarified:
+> - **Tool actions (`OrderStatus`)**: Unconditionally disabled in all modes per [ADR-0002](0002-safe-support-foundation-and-anonymous-sessions.md).
+> - **Session & FinOps memory bounds**: Replaced the global 5,000-session / 2-hour TTL FinOps map with cookie-owned session state in `memorystore` (500 sessions max, 30-minute inactivity TTL; see [ADR-0002](0002-safe-support-foundation-and-anonymous-sessions.md) and [docs/deployment.md](../deployment.md)).
+> - **XML prompt delimiters**: Structural framing reduces prompt-boundary ambiguity but does not prove immunity to prompt injection.
+> - **Audit & test counts**: The 0-CVE `npm audit` observation and 22-test count reflect the October 2026 snapshot, not an ongoing security certification or current test inventory.
+
+- **Status**: Partially superseded by [ADR-0002](0002-safe-support-foundation-and-anonymous-sessions.md)
 - **Deciders**: Platform Architecture, Design Systems, Security Engineering
 - **Date**: 2026-10-27
 - **Technical Context**: Production readiness audit scored SupportGeniusAI MVP at 48/100 (Blocked) due to missing test suites, unvalidated request payloads, unhandled prompt injection surfaces, unbounded memory leaks in session FinOps tracking, and missing container liveness probes.

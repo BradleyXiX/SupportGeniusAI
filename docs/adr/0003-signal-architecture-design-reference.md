@@ -1,6 +1,9 @@
 # ADR-0003: Signal Architecture design reference and staged integration
 
-Type: explanation. Status: design reference accepted for preparation; production integration pending Antigravity milestones. Date: 20 November 2026.
+> [!NOTE]
+> **Status update (2026-11-23):** Signal Architecture v2 (`design/signal-architecture-v2`, PR #6) and Crimson Signal v3 (`design/crimson-signal-v3`, PR #7) have since been merged into `main`. Root [design.md](../../design.md) remains the base design authority, with [docs/design-v3/design-enhancements.md](../design-v3/design-enhancements.md) as its active v3 override for palette, legibility, motion defaults, closing contact, and console styling.
+
+Type: explanation. Status: integrated (extended by Crimson Signal v3). Date: 20 November 2026.
 
 ## Context
 

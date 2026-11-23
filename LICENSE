@@ -1,0 +1,48 @@
+SupportGenius AI — Proprietary Software License
+
+Copyright (c) 2026 Bradley Chiwo. All rights reserved.
+
+1. Proprietary Scope
+This repository, including its original source code, architecture, documentation,
+and original visual assets ("the Software"), is the proprietary property of the
+copyright holder.
+
+2. No Open-Source Grant
+No license is granted to copy, modify, merge, publish, distribute, sublicense,
+host, or sell copies of the Software, in whole or in part, for commercial or
+non-commercial purposes, except as expressly authorized in a separate written
+agreement executed by the copyright holder (such as a client implementation,
+deployment, or customization agreement).
+
+Public visibility of this repository, if any, permits only repository viewing
+and platform-standard evaluation as governed by the hosting platform's terms of
+service and does not grant any right to deploy, redistribute, or create
+derivative works of the Software.
+
+3. Third-Party Components and Notices
+The Software bundles or depends on third-party open-source libraries, font
+software, and reference adaptations that remain subject to their own licenses
+and copyright notices. Nothing in this file restricts rights granted by those
+third-party licenses or alters their original notices:
+
+- Vendored browser libraries and reference adaptations (MIT; Apache-2.0 / MPL-2.0):
+  see client/vendor/LICENSES.md
+- Bundled Latin font subsets (SIL Open Font License 1.1 — Space Grotesk,
+  Plus Jakarta Sans, JetBrains Mono):
+  see client/assets/fonts/spacegrotesk-OFL.txt,
+      client/assets/fonts/plusjakartasans-OFL.txt, and
+      client/assets/fonts/jetbrainsmono-OFL.txt
+- Original brand and visual asset provenance:
+  see client/assets/brand/NOTICE.md
+- Installed Node.js dependencies:
+  see package.json and package-lock.json for each dependency's license metadata.
+
+4. Disclaimer
+UNLESS OTHERWISE AGREED IN WRITING, THE SOFTWARE IS PROVIDED "AS IS", WITHOUT
+WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NONINFRINGEMENT.
+
+5. Licensing Enquiries
+For commercial licensing, tailored client deployments, or customization
+agreements, contact: BradJohn70@gmail.com

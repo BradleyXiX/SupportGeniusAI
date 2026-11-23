@@ -1,58 +1,30 @@
-# Contributing to SupportGeniusAI
+# Contributing to SupportGenius AI
 
-First off, thank you for considering contributing to SupportGeniusAI! It's people like you that make SupportGeniusAI such a great tool.
+SupportGenius AI is proprietary software ([LICENSE](LICENSE)). This repository is maintained for the owner's product development and separately contracted client implementations; it is not an open-source community project, and submitting an issue or pull request does not guarantee acceptance or grant distribution rights.
 
-## Where do I go from here?
+## Reporting issues and enquiries
 
-If you've noticed a bug or have a feature request, make sure to check our [Issues](../../issues) to see if someone else in the community has already created a ticket. If not, go ahead and [make one](../../issues/new)!
+- **Bug reports or repository issues**: [https://github.com/BradleyXiX/SupportGeniusAI/issues](https://github.com/BradleyXiX/SupportGeniusAI/issues)
+- **Commercial implementation or licensing enquiries**: [BradJohn70@gmail.com](mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry)
 
-## Fork & create a branch
+## Local development setup (authorized contributors)
 
-If this is something you think you can fix, then fork SupportGeniusAI and create a branch with a descriptive name.
+**Requirements**: Node.js **22.12+ within Node 22**, or a compatible Node 24/26 release, with npm.
 
-A good branch name would be (where issue #325 is the ticket you're working on):
+1. Install exact lockfile dependencies:
+   ```bash
+   npm ci
+   ```
+2. Copy `.env.example` to `.env`, generate a 32+ character `SESSION_SECRET`, and set `APP_MODE=demo`, `RETRIEVAL_MODE=keyword`, and `PUBLIC_ORIGIN=http://localhost:3000`. Never commit `.env` or real API keys.
+3. Run the automated verification suites:
+   ```bash
+   npm test
+   npm run test:browser
+   ```
 
-```sh
-git checkout -b 325-add-pdf-support
-```
+## Change expectations
 
-## Get the test suite running
-
-Make sure you're using a compatible version of Node.js (v16 or higher). Install the dependencies and test that the app works locally:
-
-```sh
-npm install
-npm run dev
-```
-
-## Implement your fix or feature
-
-At this point, you're ready to make your changes! Feel free to ask for help; everyone is a beginner at first. 
-
-## Code Style
-
-We follow standard JavaScript coding conventions. Please ensure your code is clean, well-documented, and properly formatted before submitting a pull request.
-
-## Make a Pull Request
-
-At this point, you should switch back to your master branch and make sure it's up to date with SupportGeniusAI's master branch:
-
-```sh
-git remote add upstream git@github.com:BradleyXiX/SupportGeniusAI.git
-git checkout main
-git pull upstream main
-```
-
-Then update your feature branch from your local copy of main, and push it!
-
-```sh
-git checkout 325-add-pdf-support
-git rebase main
-git push --set-upstream origin 325-add-pdf-support
-```
-
-Finally, go to GitHub and make a Pull Request.
-
-## Code of Conduct
-
-Please note that this project is released with a Contributor Code of Conduct. By participating in this project you agree to abide by its terms.
+- Keep pull requests narrowly scoped and branch from current `main`.
+- Preserve the Express + vanilla ES module architecture, existing API contracts (`/health`, `/capabilities`, `/session`, `/chat`), CSP headers, and fail-closed action guardrails.
+- Add or update Vitest (`server/tests/`) or Playwright (`tests/browser/`) regression tests when changing runtime behavior.
+- Review [AGENTS.md](AGENTS.md) and [docs/README.md](docs/README.md) before modifying architecture or documentation.

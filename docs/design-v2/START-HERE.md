@@ -1,5 +1,8 @@
 # SupportGenius AI: Signal Architecture
 
+> [!NOTE]
+> **Historical reference kit (v2):** Signal Architecture v2 was merged into `main` (PR #6) and visually extended by Crimson Signal v3 (PR #7). For current product and design guidance, see [README.md](../../README.md), [design.md](../../design.md), and [docs/design-v3/design-enhancements.md](../design-v3/design-enhancements.md). Obsolete proposal files (`README.proposed.md` and `self-evaluation.md`) were retired in favor of root `README.md` and [docs/README.md](../README.md).
+
 Prepared 20 November 2026. This is the design and execution handoff for a second-generation brand and frontend. Product implementation belongs to Antigravity. Codex prepared a runnable, isolated reference and the engineering plan.
 
 ## Open first

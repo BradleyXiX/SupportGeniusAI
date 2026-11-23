@@ -1,5 +1,8 @@
 # Gemini execution prompts
 
+> [!NOTE]
+> **Historical execution packet (Signal Desk v1):** Preserved for engineering traceability only. This packet does not authorize new tasks or override current [AGENTS.md](../../AGENTS.md) or [docs/README.md](../README.md). Local machine paths referenced inside historical prompts (`C:/Users/...`) are unavailable external artifacts.
+
 Recommended strategy: Codex owns the spec and reviews receipts/diffs; Gemini implements one bounded task per session. Open the actual SupportGeniusAI project in Antigravity, not the Quillon project. Review the plan before starting product implementation. Pasting an individual task prompt authorizes that task only.
 
 # A0 — Safe branch and load the packet

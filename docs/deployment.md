@@ -1,183 +1,118 @@
-# SupportGeniusAI Operational Deployment Guide
+# SupportGenius AI — Deployment and Operations Guide
 
-This guide describes how to configure, verify, and operate SupportGeniusAI in local, staging, and production environments following the Safe Support Foundation architecture.
+*Diátaxis type: Reference & How-To Guide.* This document is the canonical operational reference for configuring, running, and verifying SupportGenius AI in local, staging, and production environments.
 
----
+## 1. Operating boundaries
 
-## 1. Architectural Operating Model
+SupportGenius AI is built for **tailored single-business deployments** with explicit defensive boundaries:
 
-SupportGeniusAI operates under strict defensive engineering boundaries:
-- **Zero Client Identity Storage**: Client browsers store zero tokens, session IDs, or credentials. Sessions are owned by the server and identified strictly by cryptographically signed, `HttpOnly`, `SameSite=Strict` cookies.
-- **Unconditional Action Disablement**: All customer-facing mutating actions (order lookup, address modification, booking) fail closed deterministically in all modes. Even if `CLIENT_WEBHOOK_URL` is set, outbound requests are prohibited.
-- **Single-Process Constraint**: The current release uses an in-memory session store (`InMemorySessionStore`) capped at 500 sessions with 30-minute inactivity expiry. The application must run as **exactly one process**. Scaling horizontally across multiple instances or worker processes will cause session loss and `401 Unauthorized` errors. External shared stores (e.g., Redis) are required before multi-instance deployment.
+- **Server-owned anonymous sessions**: Browsers store zero session tokens or credentials (`localStorage` stores only the non-sensitive `sg_motion_v1` animation toggle). Sessions use `express-session` with signed `HttpOnly`, `SameSite=Strict` cookies backed by `memorystore` (`server/session/store.js`).
+- **Unconditional action disablement**: Mutating customer actions (`checkOrderStatus`, `updateAddress`, `bookAppointment`, and `callWebhook` in `server/services/agent.js`) fail closed deterministically in every mode. Setting `CLIENT_WEBHOOK_URL` does not enable outbound webhooks.
+- **Single-process store**: Session state lives in Node process memory (`max: 500` sessions, 30-minute inactivity TTL, 60-second prune interval, `stale: false`). Run **exactly one application process**; horizontal scaling requires replacing the store with shared infrastructure (such as Redis).
 
----
+## 2. Environment variables (`server/config/env.js`)
 
-## 2. Environment Variables Specification
+All environment variables are validated at boot by Zod in `server/config/env.js`. Validation failure throws in development/test and exits with code `1` in production.
 
-All environment variables are strictly validated on boot using Zod schemas in `server/config/env.js`. If any required variable fails validation, the server exits immediately (`process.exit(1)` in production).
-
-| Variable Name | Type / Values | Default | Production Requirement | Purpose |
+| Variable | Allowed values / format | Default | Production requirement | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
-| `NODE_ENV` | `development` \| `test` \| `production` | `development` | **Required**: Set to `production` | Enables production security controls, strict cookie `Secure` flags, and strict error sanitization. |
-| `APP_MODE` | `support` \| `demo` | `support` | **Required**: Choose based on tier | `support`: Real vector retrieval & LLM provider inference.<br>`demo`: Zero-cost, zero-network deterministic customer simulation. |
-| `LLM_PROVIDER` | `auto` \| `openai` \| `gemini` \| `ollama` | `auto` | Optional | Selection strategy for chat inference. Set to `gemini` for explicit Gemini routing. |
-| `RETRIEVAL_MODE` | `vector` \| `keyword` | `vector` | Optional | `vector`: OpenAI/Ollama vector embeddings.<br>`keyword`: Deterministic BM25 keyword retrieval; eliminates all embedding models/APIs/caches. |
-| `PUBLIC_ORIGIN` | URL (string) | N/A | **Required**: e.g., `https://supportgenius.onrender.com` | Canonical public origin. Must use `https://` in production. Enforced strictly on all state-mutating requests (`/chat`, `/session`). |
-| `SESSION_SECRET` | String (≥32 chars) | N/A | **Required**: 32+ character random secret | Cryptographic key used to sign anonymous session cookies. Never commit or log this value. |
-| `PORT` | Positive integer | `3000` | Optional (Render injects `PORT=10000`) | Network port on which the Express HTTP server listens. |
-| `OPENAI_API_KEY` | String | `""` | Optional (Required if using OpenAI in `support` mode) | Secret API key for OpenAI LLM (`gpt-4o-mini`) and embeddings (`text-embedding-3-small`). |
-| `GEMINI_API_KEY` | String | `""` | Optional (Required if using Gemini in `support` mode) | Secret API key for Google Gemini LLM API (`POST /v1beta/models/${model}:generateContent`). |
-| `GEMINI_MODEL` | Bare model identifier | N/A (no default) | **Required** if support mode selects Gemini | Bare model ID without URL/path/query chars (e.g. `gemini-3.1-flash-lite`). Has no working default in `server/config/env.js` and cannot be omitted when Gemini is selected in support mode. Legacy `gemini-1.5-flash` and `gemini-2.0-flash` are deprecated/shut down by Google. |
-| `OLLAMA_URL` | URL (string) | `http://localhost:11434` | Optional | URL for local Ollama daemon if running open-weights inference. |
-| `RATE_LIMIT_WINDOW_MS` | Positive integer | `60000` | Optional (Default: 60,000ms / 1 min) | Time window for IP-based AI Gateway rate limiter. |
-| `RATE_LIMIT_MAX_REQUESTS` | Positive integer | `10` | Optional (Default: 10 requests) | Maximum requests per IP per time window. |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated URLs | `http://localhost:3000,http://127.0.0.1:3000` | Optional | Whitelist of allowed origins for cross-origin resource sharing. |
+| `NODE_ENV` | `development` \| `test` \| `production` | `development` | **Required**: `production` | Enables `Secure` `__Host-` cookie attributes and production startup exit on invalid config. |
+| `APP_MODE` | `support` \| `demo` | `support` | **Required** | `support`: document retrieval + configured LLM provider.<br>`demo`: deterministic local fixture replies with zero provider calls. |
+| `LLM_PROVIDER` | `auto` \| `openai` \| `gemini` \| `ollama` | `auto` | Optional | Chat provider selection. `auto` resolves `openai` → `gemini` → `ollama` based on non-empty API keys. |
+| `RETRIEVAL_MODE` | `vector` \| `keyword` | `vector` | Optional | `vector`: embedding similarity via OpenAI/Ollama with `server/data/vector_cache.json` and keyword fallback.<br>`keyword`: deterministic lowercased word/prefix token matching with zero embedding calls and zero cache file reads/writes. |
+| `PUBLIC_ORIGIN` | Valid URL | *(none)* | **Required** (`https://` in production) | Canonical origin enforced via exact `Origin` header matching on `POST /session` and `POST /chat`. |
+| `SESSION_SECRET` | String (≥ 32 chars) | *(none)* | **Required** | Cryptographic secret signing anonymous session cookies. Never commit or log. |
+| `PORT` | Positive integer | `3000` | Optional (platform may inject) | HTTP listening port. |
+| `OPENAI_API_KEY` | String | `""` | Required if `support` selects OpenAI | OpenAI API key for chat and `text-embedding-3-small` embeddings. |
+| `OPENAI_MODEL` | String (read in `server/services/llm.js`) | `gpt-4o-mini` | Optional | Optional OpenAI chat model override (not schema-validated in `env.js`). |
+| `GEMINI_API_KEY` | String | `""` | Required if `support` selects Gemini | Google Gemini API key sent via `x-goog-api-key` header. |
+| `GEMINI_MODEL` | Bare model ID (`^[a-zA-Z0-9_.-]+$`) | `""` (no default) | **Required** if `support` selects Gemini | Bare model identifier for `POST /v1beta/models/${model}:generateContent`. Confirm active model availability and quota in Google Cloud Console. |
+| `OLLAMA_URL` | Valid URL | `http://localhost:11434` | Optional | Base URL for a local/private Ollama daemon. |
+| `OLLAMA_CHAT_MODEL` | String | `qwen2.5-coder:7b` | Optional | Ollama chat model name. |
+| `OLLAMA_EMBED_MODEL` | String | `nomic-embed-text:latest` | Optional | Ollama embedding model name in `vector` mode. |
+| `CLIENT_WEBHOOK_URL` | Valid URL or `""` | `""` | Leave blank | Validated for backwards compatibility; outbound webhook execution is unconditionally disabled. |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated origins | `http://localhost:3000,http://127.0.0.1:3000` | Optional | Additional CORS allowlist entries alongside `PUBLIC_ORIGIN`. |
+| `RATE_LIMIT_WINDOW_MS` | Positive integer | `60000` | Optional | Rate-limiter window in milliseconds (applied independently to `/session` and `/chat`). |
+| `RATE_LIMIT_MAX_REQUESTS` | Positive integer | `10` | Optional | Maximum requests per IP per window on `/session` and `/chat`. |
 
----
-
-## 3. Secret Generation
-
-Before deploying to staging or production, generate a cryptographically strong `SESSION_SECRET`:
+Generate `SESSION_SECRET` locally before deployment:
 
 ```bash
-# Generate a cryptographically secure 64-character hexadecimal secret
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-> [!CAUTION]
-> Never commit `.env` or paste real `SESSION_SECRET` or API keys into git commits, issue tickets, or verification receipts.
+## 3. Operating limits and data flow
 
----
+### External data transmission
 
-## 4. Production HTTPS & Reverse Proxy Topology
+Ephemeral in-memory sessions do **not** mean zero external data transmission or guaranteed privacy. Verify provider data-retention policies before processing customer questions:
 
-SupportGeniusAI is designed to run behind a single TLS-terminating reverse proxy (such as Render, Cloudflare, AWS ALB, or Nginx).
+- **`APP_MODE=support` (chat inference)**: On each `POST /chat`, the server sends up to 3 retrieved document excerpts (`server/data/docs/*.txt`, `*.md`), the customer's question (capped at 2,000 characters), and up to 6 turns (12 messages) of session history to the configured LLM provider (OpenAI, Gemini, or Ollama).
+- **`RETRIEVAL_MODE=vector` (default)**: At server startup (`server/index.js` → `initializeStore()`), uncached chunks are embedded via OpenAI (`OPENAI_API_KEY`) or Ollama (`OLLAMA_URL`) and cached locally in `server/data/vector_cache.json`. At query time, `getRelevantChunks()` embeds the user question before falling back to keyword scoring if embeddings are unavailable.
+- **`RETRIEVAL_MODE=keyword`**: Loads `.txt` and `.md` chunks into memory at startup and ranks them with deterministic lowercased word and >3-character prefix token matching (`calculateKeywordScore()` in `server/services/embeddings.js`). This avoids all embedding API calls and avoids reading or writing `server/data/vector_cache.json`, **but in `APP_MODE=support` it still sends prompts to the configured chat provider**.
+- **`APP_MODE=demo`**: `getEmbedding()` returns `null` immediately and `callLLM()` returns deterministic `[Demo]` fixtures with zero outbound provider requests. Setting `RETRIEVAL_MODE=keyword` alongside `APP_MODE=demo` also skips reading `server/data/vector_cache.json` at startup.
 
+### Session, concurrency, and timeout bounds
+
+- **Session capacity & lifetime**: Up to 500 concurrent sessions in process memory (`memorystore`), expiring after 30 minutes of inactivity. Process restarts discard all active sessions; clients recover from `401 Unauthorized` (`SESSION_REQUIRED`) via the console reset control.
+- **Single-process isolation note**: Running one process prevents multi-instance session desynchronization, but does **not** provide multi-tenant isolation or customer authentication.
+- **Concurrency & deadlines**: Overlapping requests on one session return `409 Conflict` (`SESSION_BUSY`). Timeout hierarchy: 5s embedding fetch, 20s LLM fetch, 30s server `/chat` budget, 15s client `/session` deadline, 45s client `/chat` deadline.
+- **Cost estimates**: `server/services/finops.js` computes session-scoped estimates from static lookup rates for known models and returns `cost: null, costAvailable: false` (`Unavailable` in UI) for unpriced models. Displayed figures are local estimates, never provider invoices or free-tier guarantees.
+
+## 4. Production HTTPS and reverse proxy topology
+
+Express configures `app.set("trust proxy", 1)` (`server/app.js`), assuming **exactly one trusted TLS-terminating reverse proxy** sits directly in front of the Node process:
+
+1. **Restricted backend ingress**: Do not expose the Node port directly to the public internet; otherwise clients can spoof `X-Forwarded-For` or `X-Forwarded-Proto`.
+2. **Header sanitization**: The fronting proxy must replace incoming `X-Forwarded-*` headers before forwarding requests.
+3. **Multi-hop proxy chains**: Architectures with multiple proxies (for example, CDN → load balancer → app) do not automatically match `trust proxy: 1` without explicit proxy/CIDR configuration.
+4. **Cookies & Origin**: In `NODE_ENV=production`, session cookies use `__Host-supportgenius_session` with `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/`, and no `Domain` attribute. `POST /session` and `POST /chat` reject missing or mismatched `Origin` headers with `403 Forbidden`.
+
+## 5. Local evaluation and hosted deployment
+
+### Local setup (Node 22.12+ within Node 22, or Node 24/26)
+
+```bash
+npm ci
+cp .env.example .env   # PowerShell: Copy-Item .env.example .env
+# Set SESSION_SECRET (32+ random chars), PUBLIC_ORIGIN=http://localhost:3000, APP_MODE=demo, RETRIEVAL_MODE=keyword
+npm test
+npm run test:browser
+npm run dev
 ```
-[Browser Client]
-       │
-       ▼ (HTTPS :443)
-[Single Trusted TLS Proxy]  <-- Terminates TLS, sanitizes & replaces X-Forwarded-* headers
-       │
-       ▼ (HTTP :10000 / loopback / private network)
-[Express Server (trust proxy: 1)]
-```
 
-### Supported Topology Requirements (`trust proxy: 1`):
-1. **Exactly One Trusted Hop**: The application configures `app.set("trust proxy", 1)`. This setting strictly assumes **exactly one trusted reverse proxy** sits directly between the public client and the Node.js application process.
-2. **Restricted Backend Ingress**: Backend ingress must be restricted solely to the trusted proxy. The backend application port (e.g., `:3000` or `:10000`) must **not** be publicly reachable or exposed directly to the internet; direct client bypass would allow spoofed `X-Forwarded-For` or `X-Forwarded-Proto` headers to bypass rate limits or TLS detection.
-3. **Header Sanitization**: The trusted fronting proxy must sanitize and replace incoming `X-Forwarded-*` headers (`X-Forwarded-Proto`, `X-Forwarded-For`, `X-Forwarded-Host`) before relaying requests to Express.
-4. **Arbitrary Proxy Chains Unsupported**: Multi-tier architectures (e.g., Cloudflare CDN -> intermediate load balancer -> egress proxy -> app) or arbitrary proxy chains do **not** automatically satisfy `trust proxy: 1` unless intermediate hops are consolidated, strip untrusted headers, or Express trust configuration is explicitly tailored to the specific CIDR network.
+### Hosted Node service checklist (for example, Render)
 
-### Key Network & Security Settings:
-1. **TLS & Rate Limiting Detection**: With `trust proxy: 1`, Express inspects the single proxy hop so that `req.secure` correctly identifies HTTPS connections and `req.ip` correctly resolves client IPs for rate limiting.
-2. **Cookie Security**:
-   - `HttpOnly: true`: Completely prevents JavaScript access to session tokens.
-   - `SameSite: "Strict"`: Blocks cookies from being sent on cross-site requests.
-   - `Secure: true`: In production (`NODE_ENV=production`), cookies are only transmitted over HTTPS connections.
-3. **Exact Origin Header Matching**:
-   - All `POST /chat` and `POST /session` requests require an `Origin` header matching `PUBLIC_ORIGIN`.
-   - Mismatched or missing `Origin` headers receive `403 Forbidden` (`INVALID_ORIGIN`).
+1. Configure **one single instance** (disable autoscaling and multi-worker clustering).
+2. Set build command `npm ci` (or `npm install`) and start command `npm start`.
+3. Configure environment variables (`NODE_ENV=production`, `APP_MODE`, `PUBLIC_ORIGIN=https://...`, `SESSION_SECRET`, `PORT`, plus provider variables). When preparing variables in Render, use **Save Changes** without triggering an unintended automatic deploy, and preserve existing production secrets/origins.
+   - **Gemini + keyword minimal footprint**: `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL=<verified-bare-model-id>`, `RETRIEVAL_MODE=keyword`.
+   - **OpenAI**: `LLM_PROVIDER=openai` (or `auto`), `OPENAI_API_KEY`.
+4. Point platform liveness checks at `GET /health`. Note that `GET /health` checks process liveness and loaded chunk count only; HTTP `200` does **not** prove upstream provider connectivity, model quota, or answer quality.
+5. Run the [Staging smoke verification plan](release/staging-plan.md) before promoting to production, and record the live revision per the [Rollback guide](release/rollback-plan.md).
 
----
+## 6. Container recipes (unverified)
 
-## 5. In-Memory Session Store Limitations
+The repository includes `Dockerfile` and `docker-compose.yml` as unverified starter recipes, not tested production container installations:
 
-The current production release uses an in-process LRU cache (`server/session/store.js`):
-- **Capacity**: 500 concurrent active sessions. When capacity is reached, the least recently used session is evicted.
-- **Inactivity TTL**: Sessions automatically expire 30 minutes after their last interaction.
-- **Sliding History Window**: Each session retains up to 6 turns (12 messages: 6 user questions, 6 assistant replies).
-- **Ephemeral State**: **Process restarts discard all active session histories**. When a client presents an evicted or expired session cookie, the server responds with RFC 7807 `401 Unauthorized` (`SESSION_REQUIRED`). The Signal Desk console gracefully handles this by offering an explicit session recovery affordance.
-- **Single Process Only**: Do NOT configure process managers (e.g., PM2 clustering) or cloud platform replica counts > 1. Scaling to multiple instances requires integrating an external distributed session store (e.g., Redis).
+- `Dockerfile` targets `node:20-alpine`, whereas the repository's development and test toolchain requires Node `22.12+` (within Node 22) or Node 24/26.
+- `docker-compose.yml` sets `NODE_ENV=production` and `OLLAMA_URL=http://ollama:11434`, but omits required `PUBLIC_ORIGIN` (`https://...`) and `SESSION_SECRET` (≥ 32 chars) and does not pull Ollama chat or embedding models automatically.
 
----
+Do not rely on either file for production deployment without updating and testing the runtime image, environment wiring, and reverse-proxy TLS termination.
 
-## 6. Deployment Procedures
+## 7. Knowledge onboarding and updates
 
-### 6.1 Local Development / Testing
-1. Clone the repository and install dependencies:
-   ```bash
-   npm install
-   ```
-2. Create `.env` from template:
-   ```bash
-   cp .env.example .env
-   ```
-3. Set `SESSION_SECRET` to a random string (≥32 chars) and `PUBLIC_ORIGIN=http://localhost:3000`.
-4. Run automated test suites:
-   ```bash
-   # Run all 116 unit and contract tests
-   npm test
+### Supported files and reader behavior (`server/db/vectorStore.js`)
 
-   # Run all 62 end-to-end browser tests
-   npm run test:browser
-   ```
-5. Start development server:
-   ```bash
-   npm run dev
-   ```
+- **Directory and formats**: At startup (`server/index.js` → `initializeStore()`), the server reads `server/data/docs/` as a **flat directory** (`fs.readdirSync`). It loads only UTF-8 files whose names end with `.txt` or `.md` (case-sensitive). Nested subdirectories, PDF, DOCX, HTML, and binary files are not read.
+- **Chunking and reload**: Each document is split into 40-word chunks with 10-word overlap (`chunkText(text, 40, 10)` in `server/utils/chunkText.js`). There is no browser upload UI, live watcher, or reindex API—knowledge changes take effect only after restarting the Node process.
 
-### 6.2 Render Deployment Checklist
-When configuring a Web Service on Render:
-1. **Environment**: `Node`
-2. **Build Command**: `npm install`
-3. **Start Command**: `npm start`
-4. **Instance Type**: Single Instance (e.g., Starter or Standard — **do not enable autoscaling**).
-5. **Environment Variables**:
-   > [!IMPORTANT]
-   > Render operators must select **Save Changes** only when preparing variables before deployment (do not trigger automatic deployment). Preserve existing production `SESSION_SECRET`, `PUBLIC_ORIGIN`, and `PORT` settings.
-   - `NODE_ENV`: `production`
-   - `APP_MODE`: `support` (or `demo` for marketing demonstrations)
-   - `PUBLIC_ORIGIN`: `https://<your-service-name>.onrender.com` (preserve existing production setting)
-   - `SESSION_SECRET`: `<generated-32-char-hex-secret>` (preserve existing production setting)
-   - `PORT`: `10000` (Render default; preserve existing production setting)
-   - **For Gemini-Only Support Mode (Recommended minimal footprint)**:
-     - `LLM_PROVIDER`: `gemini`
-     - `GEMINI_API_KEY`: `<your-gemini-api-key>`
-     - `GEMINI_MODEL`: `gemini-3.1-flash-lite` (Required: has no working default in `server/config/env.js`; cannot be omitted)
-     - `RETRIEVAL_MODE`: `keyword`
-     *(Zero OpenAI dependency, zero Ollama process, zero embedding cache file writes)*
-   - **For OpenAI Support Mode**:
-     - `LLM_PROVIDER`: `openai` (or `auto`)
-     - `OPENAI_API_KEY`: `<your-openai-key>`
-6. **Health Check Path**: `/health` (strictly a container liveness/status endpoint; returns HTTP 200 with process uptime and memory metrics).
+### Update procedure
 
-> [!IMPORTANT]
-> **Free Tier & Quota Caveat**: While Google lists a free-tier rate limit for `gemini-3.1-flash-lite`, free tier availability, quota limits, and account permissions are not guaranteed. Cost telemetry displays list-price paid-tier estimates ($0.25/1M input, $1.50/1M output including thoughts). Before relying on Gemini in production, confirm billing and quota allowances in the Google Cloud Console.
-
-### 6.3 Staging Smoke Check for Knowledge Availability & Session Bootstrap
-The `GET /health` endpoint confirms HTTP process liveness and that the vector store structure is initialized in memory, but it does **not** prove that custom knowledge documents are accurate, that upstream LLM providers are reachable, or that model answers are usable.
-
-Before promoting any build to production, perform an explicit staging smoke test:
-1. **Liveness & Chunk Verification**:
-   ```bash
-   curl -s https://<staging-app>.onrender.com/health | jq .
-   # Verify: status === "healthy", environment === "production", vectorStore.isInitialized === true, vectorStore.chunksCount > 0
-   ```
-2. **Capability Contract Check**:
-   ```bash
-   curl -s https://<staging-app>.onrender.com/capabilities | jq .
-   # Verify: mode matches configured APP_MODE, actionsEnabled === false, sessionRequired === true
-   ```
-3. **Session Bootstrap Verification**:
-   - Verify session bootstrap separately: `POST /session` returns HTTP 204 and sets the `__Host-supportgenius_session` cookie in production, with `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`, and no `Domain` attribute.
-4. **End-to-End Query Verification**:
-   - Open `/console/` in a browser.
-   - Verify connection beacon turns green and initial welcome loads.
-   - Send a domain question covered by `server/data/docs/` (e.g., "What is your return policy?").
-   - Confirm that a successful `POST /chat` returns HTTP 200 and the expected grounded reply, that inference latency is reasonable, and that no 502/504 errors appear in the browser console.
-   - *(Note: Do not make Set-Cookie on chat a pass condition or record cookie values; the session cookie is established during POST /session bootstrap).*
-
----
-
-## 7. Deferred Roadmap Scope
-
-The following capabilities are deliberately out of scope for the Safe Support Foundation and will be addressed in future phases:
-- **Customer Authentication**: Persistent customer accounts, passwords, or OAuth logins.
-- **Multi-Tenant SaaS**: Tenant organization isolation and per-tenant knowledge bases.
-- **Durable Transcript Storage**: SQL/NoSQL storage of chat logs and compliance audit trails.
-- **Distributed Session Clustering**: Redis/Valkey session adapters.
-- **Live Action Execution**: External order lookup, CRM syncing, or calendar booking webhooks.
-- **Dynamic Knowledge Sync**: Ingesting live Google Drive or Confluence documents.
-
+1. **Prepare and review privately**: Author or edit authorized `.txt`/`.md` files outside any public Git repository. Review content to remove secrets, credentials, and unnecessary personal data.
+2. **Back up and version**: Archive the current approved document set in a private backup or versioned store before making changes, and agree who owns updates and rollback.
+3. **Apply files and restart**: Add, replace, or remove target `.txt`/`.md` files in `server/data/docs/` on the deployment target, then restart the single application process. Note that restarting clears all in-memory `memorystore` sessions.
+4. **Mode-specific cache behavior**:
+   - **`RETRIEVAL_MODE=keyword`**: Reads `.txt`/`.md` directly into memory at startup with zero embedding calls and zero `server/data/vector_cache.json` reads or writes.
+   - **`RETRIEVAL_MODE=vector`**: Hashes each chunk's text with SHA-256 (`computeChunkHash()`) and reuses matching entries from `server/data/vector_cache.json`, embedding only uncached chunks and writing the file non-atomically. **Known limitation**: cache keys are text-hash only—not namespaced by embedding provider, model, or vector dimension—and `cosineSimilarity()` truncates mismatched vector lengths. If you switch embedding providers or models, back up the existing cache and run a controlled cache rebuild in staging rather than casually deleting client files or caches; removed document chunks also remain as unused keys on disk until rebuilt.
+5. **Verify before rollout**: Check `GET /health` to confirm `vectorStore.isInitialized === true` and `chunksCount > 0`, then run a staged sample-question set covering both updated and unchanged policies (see [Staging smoke verification plan](release/staging-plan.md)). `GET /health` and a nonzero chunk count confirm only that chunks loaded—never that model answers are accurate.
