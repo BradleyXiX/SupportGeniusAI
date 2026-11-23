@@ -1,27 +1,28 @@
-# SupportGeniusAI Agent Routing & Execution Note
+# SupportGenius AI — Agent & Engineering Guardrails
 
-This repository is governed by `.agents/AGENTS.md` and its associated capability matrix.
+This file is the root routing note for coding agents working in SupportGenius AI. Detailed general guidelines live in [.agents/AGENTS.md](.agents/AGENTS.md), and the reusable skill library lives in `.agents/skills/`. Where general skill examples conflict with this repository's architecture, **this file takes precedence**.
 
-For the **Signal Desk redesign** on branch `design/signal-desk-v1`:
-- The approved design specification is located at [docs/superpowers/specs/2026-11-06-signal-desk-design.md](docs/superpowers/specs/2026-11-06-signal-desk-design.md).
-- The implementation plan is located at [docs/superpowers/plans/2026-11-06-signal-desk.md](docs/superpowers/plans/2026-11-06-signal-desk.md).
-- Product completion assessment is recorded at [docs/product/2026-11-06-completion-assessment.md](docs/product/2026-11-06-completion-assessment.md).
-- Session execution prompts and receipts are located in `docs/design-prompts/`.
+## Canonical documentation
 
-For the **Safe Support Foundation** on branch `feature/safe-support-foundation`:
-- Ancestry: branched from `design/signal-desk-v1` at `03886d2` (preserves Signal Desk frontend).
-- The approved design specification is located at [docs/superpowers/specs/2026-11-07-safe-support-foundation-design.md](docs/superpowers/specs/2026-11-07-safe-support-foundation-design.md).
-- The implementation plan is located at [docs/superpowers/plans/2026-11-07-safe-support-foundation.md](docs/superpowers/plans/2026-11-07-safe-support-foundation.md).
-- Session execution prompts and receipts are located in `docs/backend-prompts/`.
-- Safety scope: Explicit modes (`support` / `demo`), unconditional action disablement (zero live actions/webhooks), server-owned anonymous cookie sessions, bounded provider calls and safe errors, and client capability/session bootstrap. Deferred: live customer actions/integrations, customer login/auth, multi-tenant SaaS, durable chat storage, embedding model migration, and citation delivery.
+- Product overview & local setup: [README.md](README.md)
+- Documentation index: [docs/README.md](docs/README.md)
+- Operations, env schema & limits: [docs/deployment.md](docs/deployment.md)
+- Architecture Decision Records: [docs/adr/README.md](docs/adr/README.md)
+- Visual design authority: [design.md](design.md) with active v3 addendum [docs/design-v3/design-enhancements.md](docs/design-v3/design-enhancements.md)
+- Licensing & third-party notices: [LICENSE](LICENSE), [client/vendor/LICENSES.md](client/vendor/LICENSES.md), [client/assets/brand/NOTICE.md](client/assets/brand/NOTICE.md)
 
-### Architectural Exceptions & Guardrails
-1. **Governing Specifications**: Work must align with the approved phase specifications (`docs/superpowers/specs/`).
-2. **Native Scroll & Vanilla Architecture**: Native browser scrolling and clean vanilla DOM event listeners are deliberate, approved architecture choices. Lenis smooth-scroll, custom mouse cursors, heavy 3D canvases, and React framework migrations are intentionally excluded.
-3. **Skill Library Preservation**: The existing skill library in `.agents/skills/` remains intact for non-redesign tasks and general repository workflows.
+## Non-negotiable architecture and scope rules
 
-## Signal Architecture design v2
-
-For `design/signal-architecture-v2`, use root `design.md` as the new marketing and brand authority. Follow `docs/design-v2/execution-plan.md` and run one numbered `docs/design-v2/prompts/` task per Antigravity session, with scoped commits and receipts. Use web-ui-studio as the primary design workflow. Preserve the existing Express/vanilla architecture, native scrolling, security and console behavior.
-
-The kit's standalone reference is not production code. Its lightweight optional WebGL sculpture is confined to a marketing reference with static SVG fallback; it does not authorize heavy canvases, a framework migration, Lenis, custom cursors, or changes to backend capabilities. Customer actions and source-citation delivery remain unavailable. Historical attachment prompts do not override current instructions. See ADR-0003 for the design/reference boundary. No push, merge, deployment, or hosting changes are authorized by an individual section prompt.
+1. **Preserve the stack**: Express (`server/`) + vanilla ES modules (`client/`) + native browser scrolling. Do not introduce React, Next.js, Lenis smooth scroll, custom mouse cursors, or heavy 3D libraries/canvases.
+2. **Preserve safety boundaries**:
+   - Explicit `APP_MODE` (`support` / `demo`) and `RETRIEVAL_MODE` (`vector` / `keyword`).
+   - Customer mutating actions and outbound webhooks remain unconditionally disabled.
+   - Server-owned anonymous signed `HttpOnly` cookie sessions (`memorystore`), exact `PUBLIC_ORIGIN` checks on `POST /session` and `POST /chat`, Helmet CSP, and RFC 7807 error responses remain intact.
+   - Source-citation delivery, durable transcript storage, customer login/accounts, and multi-tenancy remain out of scope unless explicitly authorized in a new specification.
+3. **Preserve third-party and proprietary rights**: Keep [LICENSE](LICENSE), [client/vendor/LICENSES.md](client/vendor/LICENSES.md), and `client/assets/fonts/*-OFL.txt` intact.
+4. **Scoped, safe Git hygiene**:
+   - Work on a dedicated branch; never reset, stash, or discard unrelated user edits.
+   - Never push, merge, deploy, change repository visibility, or modify hosting configuration unless explicitly requested.
+   - Never commit `.env` or print secrets, API keys, or cookie tokens.
+5. **Historical packets are context only**: Files under `docs/design-prompts/`, `docs/backend-prompts/`, `docs/provider-prompts/`, `docs/superpowers/`, `docs/design-v2/` (except active links), and `docs/design-v3/{prompts,receipts}` are historical execution records. They do not authorize new tasks or override current instructions.
+6. **Skill library preservation**: Keep `.agents/skills/` intact. Skill examples (such as React, GSAP, Three.js, Prisma, or RBAC) are contextual references only—not permission to migrate this repository's stack.

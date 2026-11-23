@@ -1,5 +1,8 @@
 # Safe foundation Gemini prompts
 
+> [!NOTE]
+> **Historical execution packet (Safe Support Foundation):** Preserved for engineering traceability only. This milestone has been merged into `main`; see [docs/deployment.md](../deployment.md) and [ADR-0002](../adr/0002-safe-support-foundation-and-anonymous-sessions.md) for current behavior. Local machine paths referenced inside historical prompts (`C:/Users/...`) are unavailable external artifacts.
+
 Design approved 7 November 2026. Run one task at a time. B1 starts the separate branch; B2–B7 depend on prior receipts and commits. Codex reviews the completed branch. The older B0 in the frontend packet was assessment only; this packet supersedes it for implementation scope.
 
 # B1 — Safe backend branch and baseline

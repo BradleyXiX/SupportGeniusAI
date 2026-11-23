@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "license": "UNLICENSED",
-  "description": "An intelligent customer support assistant MVP.",
+  "description": "Document-based customer support assistant for tailored business implementations.",
   "main": "server/index.js",
   "type": "module",
   "scripts": {

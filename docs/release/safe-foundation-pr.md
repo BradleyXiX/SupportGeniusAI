@@ -1,5 +1,8 @@
 # Pull Request: Safe Support Foundation & Signal Desk Integration
 
+> [!NOTE]
+> **Historical record:** Preserved pull-request summary for the merged `feature/safe-support-foundation` milestone. Branch SHAs and test counts below reflect that historical snapshot. See [docs/deployment.md](../deployment.md) and [docs/README.md](../README.md) for current operational documentation.
+
 - **Branch**: `feature/safe-support-foundation`
 - **Target Base**: `main` (stems from `origin/main` at `9b500e2` and preserves full Signal Desk redesign ancestry from `03886d2`)
 - **Base SHA**: `03886d2a64d5bff18ee5be6bd50e9ff75c328bc5` (branch fork from `design/signal-desk-v1`)
