@@ -99,3 +99,20 @@ The repository includes `Dockerfile` and `docker-compose.yml` as unverified star
 - `docker-compose.yml` sets `NODE_ENV=production` and `OLLAMA_URL=http://ollama:11434`, but omits required `PUBLIC_ORIGIN` (`https://...`) and `SESSION_SECRET` (≥ 32 chars) and does not pull Ollama chat or embedding models automatically.
 
 Do not rely on either file for production deployment without updating and testing the runtime image, environment wiring, and reverse-proxy TLS termination.
+
+## 7. Knowledge onboarding and updates
+
+### Supported files and reader behavior (`server/db/vectorStore.js`)
+
+- **Directory and formats**: At startup (`server/index.js` → `initializeStore()`), the server reads `server/data/docs/` as a **flat directory** (`fs.readdirSync`). It loads only UTF-8 files whose names end with `.txt` or `.md` (case-sensitive). Nested subdirectories, PDF, DOCX, HTML, and binary files are not read.
+- **Chunking and reload**: Each document is split into 40-word chunks with 10-word overlap (`chunkText(text, 40, 10)` in `server/utils/chunkText.js`). There is no browser upload UI, live watcher, or reindex API—knowledge changes take effect only after restarting the Node process.
+
+### Update procedure
+
+1. **Prepare and review privately**: Author or edit authorized `.txt`/`.md` files outside any public Git repository. Review content to remove secrets, credentials, and unnecessary personal data.
+2. **Back up and version**: Archive the current approved document set in a private backup or versioned store before making changes, and agree who owns updates and rollback.
+3. **Apply files and restart**: Add, replace, or remove target `.txt`/`.md` files in `server/data/docs/` on the deployment target, then restart the single application process. Note that restarting clears all in-memory `memorystore` sessions.
+4. **Mode-specific cache behavior**:
+   - **`RETRIEVAL_MODE=keyword`**: Reads `.txt`/`.md` directly into memory at startup with zero embedding calls and zero `server/data/vector_cache.json` reads or writes.
+   - **`RETRIEVAL_MODE=vector`**: Hashes each chunk's text with SHA-256 (`computeChunkHash()`) and reuses matching entries from `server/data/vector_cache.json`, embedding only uncached chunks and writing the file non-atomically. **Known limitation**: cache keys are text-hash only—not namespaced by embedding provider, model, or vector dimension—and `cosineSimilarity()` truncates mismatched vector lengths. If you switch embedding providers or models, back up the existing cache and run a controlled cache rebuild in staging rather than casually deleting client files or caches; removed document chunks also remain as unused keys on disk until rebuilt.
+5. **Verify before rollout**: Check `GET /health` to confirm `vectorStore.isInitialized === true` and `chunksCount > 0`, then run a staged sample-question set covering both updated and unchanged policies (see [Staging smoke verification plan](release/staging-plan.md)). `GET /health` and a nonzero chunk count confirm only that chunks loaded—never that model answers are accurate.

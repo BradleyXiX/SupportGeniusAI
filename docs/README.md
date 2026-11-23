@@ -5,6 +5,7 @@ One canonical document per topic. Maintained guides reflect the current `main` c
 ## Product and evaluation
 
 - [Product overview & local evaluation](../README.md) — capabilities, scope boundaries, quick start, and contact details
+- [Client evaluation & implementation brief](client-implementation.md) — buyer-facing scope, evaluation process, responsibilities, and commercial/data boundaries
 - [Contribution policy](../CONTRIBUTING.md) — issue reporting and authorized contributor workflow
 - [Proprietary license](../LICENSE) and third-party notices ([client/vendor/LICENSES.md](../client/vendor/LICENSES.md), [client/assets/brand/NOTICE.md](../client/assets/brand/NOTICE.md))
 

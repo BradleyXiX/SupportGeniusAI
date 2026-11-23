@@ -6,7 +6,7 @@ A document-based customer support assistant for tailored business implementation
 
 SupportGenius AI retrieves relevant passages from your configured business documents and passes them to a selected language model to answer policy, service, and FAQ questions. Signal Desk brings the conversation, status feedback, usage estimates, and session recovery controls into one focused interface built with Express and vanilla JavaScript.
 
-**Interested in a tailored deployment?** [Discuss implementation](mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry) (`BradJohn70@gmail.com`) · [Deployment & operations](docs/deployment.md) · [Documentation index](docs/README.md)
+**Interested in a tailored deployment?** [Discuss implementation](mailto:BradJohn70@gmail.com?subject=SupportGenius%20AI%20implementation%20enquiry) (`BradJohn70@gmail.com`) · [Client implementation brief](docs/client-implementation.md) · [Deployment & operations](docs/deployment.md) · [Documentation index](docs/README.md)
 
 ![Signal Desk console in local demo mode](docs/design-v3/screenshots/console-answered-1440.png)
 
@@ -101,6 +101,7 @@ npm run test:browser
 
 ## Documentation
 
+- [Client evaluation & implementation brief](docs/client-implementation.md) — scope, evaluation process, and responsibilities for prospective clients
 - [Documentation index](docs/README.md) — full map of maintained references and historical records
 - [Deployment & operations guide](docs/deployment.md) — configuration, data flow, limits, and provider setup
 - [Staging smoke checklist](docs/release/staging-plan.md) & [Rollback guide](docs/release/rollback-plan.md)
