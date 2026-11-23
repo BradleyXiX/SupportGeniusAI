@@ -1,6 +1,7 @@
 # SupportGenius AI — Client Evaluation & Implementation Brief
 
-Prepared by **Bradley Chiwo** · Independent developer & implementer  
+Prepared by **Bradley Chiwo** · Independent developer & implementer
+
 *Informational overview of a tailored single-business implementation. Not a binding service contract or product warranty.*
 
 ## 1. Who this fits
@@ -67,7 +68,7 @@ Before deployment, the parties agree who owns hosting, domain/TLS, model-provide
 
 - **Licensing**: SupportGenius AI's core software is proprietary ([LICENSE](../LICENSE)). Client usage/deployment rights and ownership of custom deliverables are defined in a separate written agreement. Client-supplied content remains subject to the client's rights and agreed handling.
 - **Data processing**: In live support mode, document excerpts, customer questions, and short session history are sent to the configured model provider (and embedding provider in vector mode). Provider and hosting subprocessor terms must be reviewed before use; no GDPR, HIPAA, or SOC 2 certification or zero-third-party-processing claim is made.
-- **Operational boundaries**: Human escalation is an agreed operational route, not a shipped helpdesk integration. Any external lead research (such as Bradley's separate Insight Scraper prospecting workflow) is independent of SupportGenius AI and is not a product integration.
+- **Operational boundaries**: Human escalation is an agreed operational route, not a shipped helpdesk integration. Insight Scraper is Bradley's separate prospecting workflow and is not a SupportGenius AI feature or integration.
 
 ## 8. Next step
 
